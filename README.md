@@ -58,6 +58,8 @@ cd server
 npm install
 cp .env.example .env   # then edit DATABASE_URL with your real credentials
 npx prisma generate    # generate the Prisma client
+npx prisma migrate deploy  # apply database migrations (creates the Category table)
+npm run prisma:seed    # seed the four request categories
 npm run dev            # http://localhost:3001
 ```
 
