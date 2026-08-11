@@ -1,24 +1,21 @@
 import { useState } from 'react'
-
-interface SystemStatus {
-  status: 'ok' | 'error'
-  service: string
-}
+import { getCategories, getHealth, type Category, type SystemStatus } from './api'
 
 function App() {
   const [loading, setLoading] = useState(false)
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null)
+  const [categories, setCategories] = useState<Category[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const checkSystem = async () => {
     setLoading(true)
     setError(null)
     setSystemStatus(null)
+    setCategories(null)
     try {
-      const res = await fetch('/api/health')
-      if (!res.ok) throw new Error('API unavailable')
-      const data: SystemStatus = await res.json()
-      setSystemStatus(data)
+      const [health, cats] = await Promise.all([getHealth(), getCategories()])
+      setSystemStatus(health)
+      setCategories(cats)
     } catch {
       setError('Unable to connect to TokTickIT API')
     } finally {
@@ -50,6 +47,16 @@ function App() {
             <div className="alert alert-danger mb-3">
               System Status: Offline
               <div className="small mt-1">{error}</div>
+            </div>
+          )}
+          {categories && !loading && (
+            <div>
+              <h2 className="h5 mb-2">Supported Request Categories</h2>
+              <ol className="mb-0">
+                {categories.map((category) => (
+                  <li key={category.id}>{category.name}</li>
+                ))}
+              </ol>
             </div>
           )}
         </div>
