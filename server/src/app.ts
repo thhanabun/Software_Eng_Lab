@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { healthRouter } from "./routes/health";
 
 export function createApp(): express.Express {
   const app = express();
@@ -7,9 +8,7 @@ export function createApp(): express.Express {
   app.use(cors());
   app.use(express.json());
 
-  app.get("/", (_req, res) => {
-    res.json({ service: "TokTickIT API" });
-  });
+  app.use("/api/health", healthRouter);
 
   return app;
 }
