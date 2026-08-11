@@ -1,14 +1,5 @@
 import { useState } from 'react'
-
-interface SystemStatus {
-  status: 'ok' | 'error'
-  service: string
-}
-
-interface Category {
-  id: number
-  name: string
-}
+import { getCategories, getHealth, type Category, type SystemStatus } from './api'
 
 function App() {
   const [loading, setLoading] = useState(false)
@@ -22,17 +13,9 @@ function App() {
     setSystemStatus(null)
     setCategories(null)
     try {
-      const [healthRes, categoriesRes] = await Promise.all([
-        fetch('/api/health'),
-        fetch('/api/categories'),
-      ])
-      if (!healthRes.ok) throw new Error('API unavailable')
-      const health: SystemStatus = await healthRes.json()
+      const [health, cats] = await Promise.all([getHealth(), getCategories()])
       setSystemStatus(health)
-      if (categoriesRes.ok) {
-        const cats: Category[] = await categoriesRes.json()
-        setCategories(cats)
-      }
+      setCategories(cats)
     } catch {
       setError('Unable to connect to TokTickIT API')
     } finally {
