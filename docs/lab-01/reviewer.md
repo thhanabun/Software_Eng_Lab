@@ -11,7 +11,7 @@
 | #6 | feature/2-health-check       | "Health check API and Supertest called API works. Check System UI call request API and return correctly. Delete Vite template is OK for further implements."                                         |
 | #7 | feature/3-category-seed      | "Prisma Category Model and Migration has correct Schema. Seeding data script has no error and safe for re-run. No DB credentials leaked."                                                            |
 | #8 | feature/4-category-list      | "Category API endpoint calling and Supertest works correctly. React can display API response after request. API response format and error handling works on error case. Vitest test work correctly." |
-| #9 | lab1-staging (final to main) | "lgtm, all Lab 1 requirements resolved."                                                                                                                                                             |
+| #10 | lab1-staging (final to main) | "lgtm, all Lab 1 requirements resolved." |
 
 Reviewer comment I received: all four Issue PRs and the final lab1-staging PR were approved with the comments above.
 How I responded: no changes were required; I acknowledged each approval, re-ran the tests before merging, and merged only after the reviewer's approval.
