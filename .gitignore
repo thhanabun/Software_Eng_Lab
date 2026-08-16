@@ -36,3 +36,6 @@ coverage/
 
 # Lab document (reference only, not part of repository structure)
 Lab1_Labsheet.pdf
+
+# Lab 1 submission evidence (screenshots, LaTeX draft — kept local only)
+evidence/
