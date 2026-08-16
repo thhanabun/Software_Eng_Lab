@@ -1,21 +1,13 @@
-# Lab 1 Tests
+# Lab 1 — Test Plan and Evidence
 
-All tests are located under the `tests/lab-01` folder. Run them with:
+All test files live under server/tests/lab-01/ and client/tests/lab-01/.
 
-```bash
-# API tests (Supertest)
-cd server && npm test
+| # | Tool | Test | Result |
+|---|------|------|--------|
+| 1 | Supertest | GET /api/health returns 200, status=ok | PASS |
+| 2 | Supertest | GET /api/categories returns 4 seeded categories in id order | PASS |
+| 3 | Vitest | Heading renders | PASS |
+| 4 | Vitest | Success state shows Online + category list | PASS |
+| 5 | Vitest | Error state shows Offline + message | PASS |
 
-# UI tests (Vitest)
-cd client && npm test
-```
-
-| Test File | Tool | Test Description |
-|---|---|---|
-| tests/lab-01/api-01-health.test.ts | Supertest | Health endpoint returns 200 and expected JSON |
-| tests/lab-01/api-02-categories.test.ts | Supertest | Categories endpoint returns the four seeded categories |
-| tests/lab-01/UI-01-heading.test.tsx | Vitest | TokTickIT heading renders |
-| tests/lab-01/UI-02-loading-list.test.tsx | Vitest | Loading state changes to category list |
-| tests/lab-01/UI-03-api-error.test.tsx | Vitest | API failure displays a useful error message |
-
-_Test output evidence to be attached when tests pass on `main`._
+Paste your passing terminal output / screenshot below.
