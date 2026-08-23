@@ -39,3 +39,6 @@ Lab1_Labsheet.pdf
 
 # Lab 1 submission evidence (screenshots, LaTeX draft — kept local only)
 evidence/
+
+# Uploaded ticket attachments (Lab 2 — local file storage, never committed)
+server/uploads/
