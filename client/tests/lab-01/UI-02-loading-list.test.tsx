@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import App from '../../src/App'
+import SystemStatusCard from '../../src/components/SystemStatusCard'
 
 const categories = [
   { id: 1, name: 'Account and Access' },
@@ -29,7 +29,7 @@ describe('Check System loading to list flow', () => {
       })
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<App />)
+    render(<SystemStatusCard />)
     await userEvent.click(screen.getByRole('button', { name: 'Check System' }))
 
     expect(screen.getByRole('status')).toHaveTextContent('loading')

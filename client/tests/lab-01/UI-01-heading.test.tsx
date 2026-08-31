@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import App from '../../src/App'
+import SystemStatusCard from '../../src/components/SystemStatusCard'
 
 describe('App heading', () => {
   it('renders the TokTickIT heading', () => {
-    render(<App />)
+    render(<SystemStatusCard />)
     expect(
       screen.getByRole('heading', { name: 'TokTickIT IT Service Desk' }),
     ).toBeInTheDocument()
