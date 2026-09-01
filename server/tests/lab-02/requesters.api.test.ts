@@ -37,6 +37,22 @@ describe("GET /api/requesters (API-01)", () => {
   });
 });
 
+describe("GET /api/related-systems (API-01b)", () => {
+  it("returns 200 with active related systems ordered by name", async () => {
+    const res = await request(createApp()).get("/api/related-systems");
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThanOrEqual(6);
+    for (const system of res.body) {
+      expect(typeof system.id).toBe("number");
+      expect(typeof system.name).toBe("string");
+    }
+    const names = res.body.map((s: { name: string }) => s.name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+  });
+});
+
 describe("Lab 2 seed idempotency (API-02)", () => {
   it("re-running the seed creates no duplicates", async () => {
     const before = {
