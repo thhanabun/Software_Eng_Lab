@@ -24,11 +24,18 @@ interface FieldErrors {
   summary?: string
   description?: string
   requestedPriority?: string
+  attachments?: string
 }
 
 function fileExtension(name: string): string {
   const idx = name.lastIndexOf('.')
   return idx === -1 ? '' : name.slice(idx + 1).toLowerCase()
+}
+
+function formatSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${bytes} B`
 }
 
 export default function CreateTicket() {
@@ -95,6 +102,11 @@ export default function CreateTicket() {
     setFiles((current) => current.filter((_, i) => i !== index))
   }
 
+  const clearAttachments = () => {
+    setFiles([])
+    setFileErrors([])
+  }
+
   const validate = (): FieldErrors => {
     const errors: FieldErrors = {}
     if (!categoryId) errors.categoryId = 'Category is required'
@@ -106,6 +118,7 @@ export default function CreateTicket() {
     else if (description.trim().length > DESCRIPTION_MAX)
       errors.description = `Description must be ${DESCRIPTION_MAX} characters or fewer`
     if (!requestedPriority) errors.requestedPriority = 'Requested priority is required'
+    if (fileErrors.length > 0) errors.attachments = 'Fix the attachment issues before submitting'
     return errors
   }
 
@@ -157,7 +170,7 @@ export default function CreateTicket() {
 
   if (created) {
     return (
-      <div className="tg-success-panel" role="status">
+      <div className="tg-success-panel" role="status" style={{ maxWidth: '640px', margin: '0 auto' }}>
         <h1 className="h4 mb-2">Ticket created</h1>
         <p className="mb-1">Your official Ticket Number is</p>
         <p className="h3 mb-3" data-testid="generated-ticket-number" style={{ color: 'var(--tg-primary)' }}>
@@ -187,7 +200,7 @@ export default function CreateTicket() {
   }
 
   return (
-    <div className="tg-card" style={{ maxWidth: '840px' }}>
+    <div className="tg-card" style={{ maxWidth: '840px', margin: '0 auto' }}>
       <h1 className="h4 mb-4">Create Ticket</h1>
 
       {referenceError && (
@@ -338,25 +351,43 @@ export default function CreateTicket() {
           type="file"
           multiple
           className="tg-field"
-          onChange={(e) => handleFiles(e.target.files)}
+          onChange={(e) => {
+            handleFiles(e.target.files)
+            e.target.value = ''
+          }}
         />
         {fileErrors.map((message) => (
           <p key={message} className="tg-field-error mb-0">
             {message}
           </p>
         ))}
+        {fieldErrors.attachments && <p className="tg-field-error">{fieldErrors.attachments}</p>}
+        {(files.length > 0 || fileErrors.length > 0) && (
+          <button
+            type="button"
+            className="tg-btn tg-btn-tertiary mt-2"
+            style={{ minHeight: '28px', padding: '2px 8px' }}
+            onClick={clearAttachments}
+          >
+            Clear attachments
+          </button>
+        )}
         {files.length > 0 && (
-          <ul className="mt-2 mb-0">
+          <ul className="mt-2 mb-0" style={{ listStyle: 'none', paddingLeft: 0 }}>
             {files.map((file, index) => (
-              <li key={`${file.name}-${index}`}>
-                {file.name}
+              <li key={`${file.name}-${index}`} className="d-flex align-items-center gap-2 mb-1">
+                <span>{file.name}</span>
+                <span className="small" style={{ color: 'var(--tg-muted)' }}>
+                  ({formatSize(file.size)})
+                </span>
                 <button
                   type="button"
-                  className="tg-btn tg-btn-tertiary"
-                  style={{ minHeight: '24px', padding: '0 8px' }}
+                  className="tg-btn-icon"
+                  aria-label={`Remove attachment ${file.name}`}
+                  title={`Remove ${file.name}`}
                   onClick={() => removeFile(index)}
                 >
-                  Remove {file.name}
+                  ×
                 </button>
               </li>
             ))}

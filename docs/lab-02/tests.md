@@ -57,6 +57,8 @@ Conventions: API tests reset/seed data in `beforeEach`/`beforeAll`; attachment t
 | UI-10 | UI | AC-09, BR-13 | API failure on create | Safe error; form values preserved | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | UI-11 | UI | AC-04, AC-10 | System fields & reference data | Ticket Number/Date read-only before submit; categories/systems from API; requester from context | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | UI-12 | UI | AC-30, BR-17 | Attachment selection in create form | Valid file listed; invalid type/size shows per-file message | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
+| UI-13 | UI | AC-21, BR-17 | Submit with attachment error | Blocked with "fix the attachment issues" message, no POST; Clear attachments restores submit | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
+| UI-14 | UI | AC-20, FR-07 | Per-file attachment removal | × button (accessible name "Remove attachment …") deletes only that file, others remain | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | UI-13 | UI | AC-11 | My Tickets list | Rows rendered from API for selected requester | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
 | UI-14 | UI | AC-12, AC-13, AC-14 | Search/filter/sort controls | Correct query params sent on change; Clear filters resets | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
 | UI-15 | UI | AC-15 | Pagination controls | Page change/pageSize sent; metadata displayed | `client/tests/lab-02/MyTickets.test.tsx` | Planned |
@@ -97,8 +99,8 @@ Conventions: API tests reset/seed data in `beforeEach`/`beforeAll`; attachment t
 | AC-17 | API-13, UI-16 |
 | AC-18 | E2E-02 |
 | AC-19 | API-14, UI-18 |
-| AC-20 | API-17, API-21, UI-20, E2E-03 |
-| AC-21 | API-18, API-19, API-20, UI-21 |
+| AC-20 | API-17, API-21, UI-20, UI-14, E2E-03 |
+| AC-21 | API-18, API-19, API-20, UI-21, UI-13 |
 | AC-22 | API-22, UI-22, E2E-03 |
 | AC-23 | API-23, API-24, UI-23, E2E-03 |
 | AC-24 | API-01, API-06 |
