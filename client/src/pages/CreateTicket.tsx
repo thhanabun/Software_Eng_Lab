@@ -24,7 +24,6 @@ interface FieldErrors {
   summary?: string
   description?: string
   requestedPriority?: string
-  attachments?: string
 }
 
 function fileExtension(name: string): string {
@@ -118,7 +117,6 @@ export default function CreateTicket() {
     else if (description.trim().length > DESCRIPTION_MAX)
       errors.description = `Description must be ${DESCRIPTION_MAX} characters or fewer`
     if (!requestedPriority) errors.requestedPriority = 'Requested priority is required'
-    if (fileErrors.length > 0) errors.attachments = 'Fix the attachment issues before submitting'
     return errors
   }
 
@@ -361,7 +359,6 @@ export default function CreateTicket() {
             {message}
           </p>
         ))}
-        {fieldErrors.attachments && <p className="tg-field-error">{fieldErrors.attachments}</p>}
         {(files.length > 0 || fileErrors.length > 0) && (
           <button
             type="button"

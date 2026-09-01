@@ -283,7 +283,7 @@ describe('Create Ticket screen', () => {
     expect(screen.getByText('diagram.png')).toBeInTheDocument()
   })
 
-  it('UI-13: Submit is blocked while an attachment error exists, and Clear fixes it', async () => {
+  it('UI-13: rejected attachment files are informational and do not block submit', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       if (url === '/api/categories') return ok(categories)
@@ -303,19 +303,12 @@ describe('Create Ticket screen', () => {
     expect(await screen.findByText(/notes\.txt.*(unsupported|not supported|allowed)/i)).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: /submit ticket/i }))
-    expect(
-      await screen.findByText(/fix the attachment issues before submitting/i),
-    ).toBeInTheDocument()
-    expect(
-      fetchMock.mock.calls.filter(([u, i]) => String(u) === '/api/tickets' && (i as RequestInit)?.method === 'POST'),
-    ).toHaveLength(0)
 
-    await userEvent.click(screen.getByRole('button', { name: /clear attachments/i }))
-    expect(screen.queryByText(/notes\.txt/i)).not.toBeInTheDocument()
-
-    await userEvent.click(screen.getByRole('button', { name: /submit ticket/i }))
     await waitFor(() => {
       expect(screen.getByTestId('generated-ticket-number')).toBeInTheDocument()
     })
+    expect(
+      fetchMock.mock.calls.filter(([u, i]) => String(u) === '/api/tickets' && (i as RequestInit)?.method === 'POST'),
+    ).toHaveLength(1)
   })
 })
