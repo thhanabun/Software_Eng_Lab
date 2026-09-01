@@ -163,6 +163,30 @@ textarea.tg-field {
   text-decoration: underline;
 }
 
+.tg-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--tg-error);
+  background-color: #ffffff;
+  color: var(--tg-error);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tg-btn-icon:hover {
+  background-color: #fee4e2;
+}
+
+.tg-btn-icon:focus-visible {
+  outline: 2px solid var(--tg-secondary);
+  outline-offset: 2px;
+}
+
 .tg-btn:disabled {
   background-color: #d9dedb;
   color: #7a857f;

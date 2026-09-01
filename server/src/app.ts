@@ -3,6 +3,8 @@ import cors from "cors";
 import { healthRouter } from "./routes/health";
 import { categoriesRouter } from "./routes/categories";
 import { requestersRouter } from "./routes/requesters";
+import { relatedSystemsRouter } from "./routes/relatedSystems";
+import { ticketsRouter } from "./routes/tickets";
 
 export function createApp(): express.Express {
   const app = express();
@@ -13,6 +15,8 @@ export function createApp(): express.Express {
   app.use("/api/health", healthRouter);
   app.use("/api/categories", categoriesRouter);
   app.use("/api/requesters", requestersRouter);
+  app.use("/api/related-systems", relatedSystemsRouter);
+  app.use("/api/tickets", ticketsRouter);
 
   return app;
 }
