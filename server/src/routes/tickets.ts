@@ -21,6 +21,174 @@ function toPositiveInt(value: unknown): number | null {
   return n;
 }
 
+const STATUSES = ["NEW"];
+const PAGE_SIZES = [5, 10, 25];
+const DEFAULT_PAGE_SIZE = 10;
+
+const PRIORITY_RANK = Prisma.sql`CASE t."requestedPriority"::text WHEN 'LOW' THEN 1 WHEN 'MEDIUM' THEN 2 WHEN 'HIGH' THEN 3 WHEN 'URGENT' THEN 4 ELSE 9 END`;
+
+const SORTS: Record<string, Prisma.Sql> = {
+  "createdAt:desc": Prisma.sql`t."createdAt" DESC`,
+  "createdAt:asc": Prisma.sql`t."createdAt" ASC`,
+  "updatedAt:desc": Prisma.sql`t."updatedAt" DESC`,
+  "updatedAt:asc": Prisma.sql`t."updatedAt" ASC`,
+  "summary:desc": Prisma.sql`t."summary" DESC`,
+  "summary:asc": Prisma.sql`t."summary" ASC`,
+  "requestedPriority:desc": Prisma.sql`${PRIORITY_RANK} DESC`,
+  "requestedPriority:asc": Prisma.sql`${PRIORITY_RANK} ASC`,
+};
+
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (ch) => `\\${ch}`);
+}
+
+function queryString(req: { query: unknown }, name: string): string {
+  const value = (req.query as Record<string, unknown>)[name];
+  return typeof value === "string" ? value.trim() : "";
+}
+
+interface TicketListRow {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  requestedPriority: string;
+  currentStatus: string;
+  categoryId: number;
+  categoryName: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+ticketsRouter.get("/", async (req, res) => {
+  const requesterId = toPositiveInt(req.headers["x-requester-id"]);
+  if (requesterId === null) {
+    res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Valid X-Requester-Id header is required",
+        details: [{ field: "requesterId", message: "X-Requester-Id must be a positive integer" }],
+      },
+    });
+    return;
+  }
+
+  const requester = await prisma.requesterUser.findUnique({ where: { id: requesterId } });
+  if (!requester) {
+    res.status(404).json({
+      error: { code: "NOT_FOUND", message: "Requester not found" },
+    });
+    return;
+  }
+
+  const details: FieldError[] = [];
+
+  const search = queryString(req, "search");
+
+  const categoryIdRaw = queryString(req, "categoryId");
+  let categoryId: number | null = null;
+  if (categoryIdRaw) {
+    categoryId = toPositiveInt(categoryIdRaw);
+    if (categoryId === null) {
+      details.push({ field: "categoryId", message: "categoryId must be a positive integer" });
+    }
+  }
+
+  const status = queryString(req, "status");
+  if (status && !STATUSES.includes(status)) {
+    details.push({ field: "status", message: `status must be one of: ${STATUSES.join(", ")}` });
+  }
+
+  const priority = queryString(req, "priority");
+  if (priority && !PRIORITIES.includes(priority)) {
+    details.push({
+      field: "priority",
+      message: "priority must be LOW, MEDIUM, HIGH, or URGENT",
+    });
+  }
+
+  const sort = queryString(req, "sort") || "createdAt:desc";
+  if (!SORTS[sort]) {
+    details.push({ field: "sort", message: "Invalid sort value" });
+  }
+
+  const pageRaw = queryString(req, "page") || "1";
+  const page = Number(pageRaw);
+  if (!Number.isInteger(page) || page < 1) {
+    details.push({ field: "page", message: "page must be a positive integer" });
+  }
+
+  const pageSizeRaw = queryString(req, "pageSize") || String(DEFAULT_PAGE_SIZE);
+  const pageSize = Number(pageSizeRaw);
+  if (!PAGE_SIZES.includes(pageSize)) {
+    details.push({ field: "pageSize", message: "pageSize must be 5, 10, or 25" });
+  }
+
+  if (categoryId !== null) {
+    const category = await prisma.category.findUnique({ where: { id: categoryId } });
+    if (!category) details.push({ field: "categoryId", message: "Category not found" });
+  }
+
+  if (details.length > 0) {
+    res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid ticket list query",
+        details,
+      },
+    });
+    return;
+  }
+
+  const where: Prisma.Sql[] = [Prisma.sql`t."requesterId" = ${requesterId}`];
+  if (search) {
+    const pattern = `%${escapeLike(search)}%`;
+    where.push(Prisma.sql`(t."summary" ILIKE ${pattern} OR t."description" ILIKE ${pattern})`);
+  }
+  if (categoryId !== null) where.push(Prisma.sql`t."categoryId" = ${categoryId}`);
+  if (status) where.push(Prisma.sql`t."currentStatus"::text = ${status}`);
+  if (priority) where.push(Prisma.sql`t."requestedPriority"::text = ${priority}`);
+  const whereSql = Prisma.join(where, " AND ");
+  const orderSql = SORTS[sort];
+  const offset = (page - 1) * pageSize;
+
+  try {
+    const [rows, totals] = await Promise.all([
+      prisma.$queryRaw<TicketListRow[]>`
+        SELECT t."id", t."ticketNumber", t."summary", t."requestedPriority", t."currentStatus",
+               t."categoryId", c."name" AS "categoryName", t."createdAt", t."updatedAt"
+        FROM "Ticket" t
+        JOIN "Category" c ON c."id" = t."categoryId"
+        WHERE ${whereSql}
+        ORDER BY ${orderSql}, t."ticketNumber" DESC
+        LIMIT ${pageSize} OFFSET ${offset}
+      `,
+      prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*)::bigint AS count
+        FROM "Ticket" t
+        WHERE ${whereSql}
+      `,
+    ]);
+    const totalItems = Number(totals[0]?.count ?? 0n);
+    res.json({
+      items: rows.map((row) => ({
+        ...row,
+        requestedPriority: String(row.requestedPriority),
+        currentStatus: String(row.currentStatus),
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      })),
+      page,
+      pageSize,
+      totalItems,
+      totalPages: Math.ceil(totalItems / pageSize),
+    });
+  } catch {
+    res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Unable to load tickets" },
+    });
+  }
+});
+
 ticketsRouter.post("/", async (req, res) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const details: FieldError[] = [];

@@ -3,7 +3,7 @@ import AppShell from './components/AppShell'
 import RequireRequester from './components/RequireRequester'
 import SystemStatusCard from './components/SystemStatusCard'
 import CreateTicket from './pages/CreateTicket'
-import MyTicketsPlaceholder from './pages/MyTicketsPlaceholder'
+import MyTickets from './pages/MyTickets'
 import RequesterSelection from './pages/RequesterSelection'
 import TicketDetailPlaceholder from './pages/TicketDetailPlaceholder'
 import { RequesterProvider, useRequester } from './requesterContext'
@@ -27,7 +27,7 @@ function App() {
             </RequireRequester>
           }
         >
-          <Route path="/tickets" element={<MyTicketsPlaceholder />} />
+          <Route path="/tickets" element={<MyTickets />} />
           <Route path="/tickets/new" element={<CreateTicket />} />
           <Route path="/tickets/:id" element={<TicketDetailPlaceholder />} />
         </Route>
