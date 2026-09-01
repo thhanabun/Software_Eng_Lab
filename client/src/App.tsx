@@ -1,67 +1,39 @@
-import { useState } from 'react'
-import { getCategories, getHealth, type Category, type SystemStatus } from './api'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import AppShell from './components/AppShell'
+import RequireRequester from './components/RequireRequester'
+import SystemStatusCard from './components/SystemStatusCard'
+import CreateTicketPlaceholder from './pages/CreateTicketPlaceholder'
+import MyTicketsPlaceholder from './pages/MyTicketsPlaceholder'
+import RequesterSelection from './pages/RequesterSelection'
+import TicketDetailPlaceholder from './pages/TicketDetailPlaceholder'
+import { RequesterProvider, useRequester } from './requesterContext'
+
+function RootRedirect() {
+  const { requester } = useRequester()
+  return <Navigate to={requester ? '/tickets' : '/select-requester'} replace />
+}
 
 function App() {
-  const [loading, setLoading] = useState(false)
-  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null)
-  const [categories, setCategories] = useState<Category[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const checkSystem = async () => {
-    setLoading(true)
-    setError(null)
-    setSystemStatus(null)
-    setCategories(null)
-    try {
-      const [health, cats] = await Promise.all([getHealth(), getCategories()])
-      setSystemStatus(health)
-      setCategories(cats)
-    } catch {
-      setError('Unable to connect to TokTickIT API')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <div className="container py-5" style={{ maxWidth: '640px' }}>
-      <div className="card shadow-sm">
-        <div className="card-body p-4">
-          <h1 className="card-title text-center mb-4">TokTickIT IT Service Desk</h1>
-          <div className="d-grid mb-4">
-            <button type="button" className="btn btn-primary btn-lg" onClick={checkSystem}>
-              Check System
-            </button>
-          </div>
-          {loading && (
-            <p className="text-center text-secondary mb-3" role="status">
-              ⏳ loading…
-            </p>
-          )}
-          {systemStatus && systemStatus.status === 'ok' && !loading && (
-            <div className="alert alert-success mb-3">
-              System Status: Online
-            </div>
-          )}
-          {error && !loading && (
-            <div className="alert alert-danger mb-3">
-              System Status: Offline
-              <div className="small mt-1">{error}</div>
-            </div>
-          )}
-          {categories && !loading && (
-            <div>
-              <h2 className="h5 mb-2">Supported Request Categories</h2>
-              <ol className="mb-0">
-                {categories.map((category) => (
-                  <li key={category.id}>{category.name}</li>
-                ))}
-              </ol>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+    <RequesterProvider>
+      <Routes>
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/select-requester" element={<RequesterSelection />} />
+        <Route path="/system" element={<SystemStatusCard />} />
+        <Route
+          element={
+            <RequireRequester>
+              <AppShell />
+            </RequireRequester>
+          }
+        >
+          <Route path="/tickets" element={<MyTicketsPlaceholder />} />
+          <Route path="/tickets/new" element={<CreateTicketPlaceholder />} />
+          <Route path="/tickets/:id" element={<TicketDetailPlaceholder />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </RequesterProvider>
   )
 }
 

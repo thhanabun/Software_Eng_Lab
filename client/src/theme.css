@@ -1,0 +1,231 @@
+:root {
+  --tg-primary: #006b3c;
+  --tg-secondary: #0b7a46;
+  --tg-pale: #eaf6ef;
+  --tg-bg: #f5f7f6;
+  --tg-surface: #ffffff;
+  --tg-border: #d8e2dc;
+  --tg-text: #1f2e28;
+  --tg-muted: #5c6b63;
+  --tg-readonly: #f1f4ef;
+  --tg-error: #b42318;
+  --tg-warning: #b54708;
+  --tg-success: #067647;
+}
+
+body {
+  background-color: var(--tg-bg);
+  color: var(--tg-text);
+}
+
+.tg-header {
+  background-color: var(--tg-primary);
+  color: #ffffff;
+  padding: 12px 0;
+}
+
+.tg-brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.tg-nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.tg-nav-link:hover {
+  color: #ffffff;
+  background-color: var(--tg-secondary);
+}
+
+.tg-nav-link.active {
+  color: #ffffff;
+  background-color: var(--tg-secondary);
+  box-shadow: inset 0 -3px 0 var(--tg-pale);
+}
+
+.tg-requester-chip {
+  background-color: var(--tg-pale);
+  color: var(--tg-text);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+}
+
+.tg-main {
+  padding-top: 24px;
+  padding-bottom: 48px;
+}
+
+.tg-card {
+  background-color: var(--tg-surface);
+  border: 1px solid var(--tg-border);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(31, 46, 40, 0.08);
+  padding: 24px;
+}
+
+.tg-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tg-required-mark {
+  color: var(--tg-error);
+}
+
+.tg-field {
+  width: 100%;
+  height: 40px;
+  background-color: #ffffff;
+  border: 1px solid #9aa8a0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: var(--tg-text);
+}
+
+.tg-field:focus {
+  outline: 2px solid var(--tg-secondary);
+  outline-offset: 1px;
+}
+
+textarea.tg-field {
+  height: auto;
+  min-height: 120px;
+  resize: vertical;
+}
+
+.tg-field[readonly],
+.tg-readonly {
+  background-color: var(--tg-readonly);
+  border-color: var(--tg-border);
+}
+
+.tg-field-invalid {
+  border-color: var(--tg-error);
+}
+
+.tg-field-error {
+  color: var(--tg-error);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+.tg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.tg-btn:focus-visible {
+  outline: 2px solid var(--tg-secondary);
+  outline-offset: 2px;
+}
+
+.tg-btn-primary {
+  background-color: var(--tg-primary);
+  color: #ffffff;
+}
+
+.tg-btn-primary:hover:not(:disabled) {
+  background-color: var(--tg-secondary);
+}
+
+.tg-btn-secondary {
+  background-color: #ffffff;
+  color: var(--tg-primary);
+  border-color: var(--tg-primary);
+}
+
+.tg-btn-danger {
+  background-color: #ffffff;
+  color: var(--tg-error);
+  border-color: var(--tg-error);
+}
+
+.tg-btn-tertiary {
+  background-color: transparent;
+  color: var(--tg-secondary);
+  border: none;
+  text-decoration: underline;
+}
+
+.tg-btn:disabled {
+  background-color: #d9dedb;
+  color: #7a857f;
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+.tg-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tg-badge-low {
+  background-color: #e5e7e6;
+  color: var(--tg-text);
+}
+
+.tg-badge-medium {
+  background-color: var(--tg-pale);
+  color: var(--tg-primary);
+}
+
+.tg-badge-high {
+  background-color: #fef0c7;
+  color: var(--tg-warning);
+}
+
+.tg-badge-urgent {
+  background-color: #fee4e2;
+  color: var(--tg-error);
+}
+
+.tg-badge-status-new {
+  background-color: var(--tg-pale);
+  color: var(--tg-primary);
+}
+
+.tg-badge-removed {
+  background-color: #e5e7e6;
+  color: var(--tg-muted);
+}
+
+.tg-error-banner {
+  border: 1px solid var(--tg-error);
+  color: var(--tg-error);
+  background-color: #fff5f4;
+  border-radius: 6px;
+  padding: 12px 16px;
+}
+
+.tg-success-panel {
+  border: 1px solid var(--tg-success);
+  background-color: var(--tg-pale);
+  color: var(--tg-text);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.tg-empty-state {
+  text-align: center;
+  color: var(--tg-muted);
+  padding: 32px 16px;
+}

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import App from '../../src/App'
+import SystemStatusCard from '../../src/components/SystemStatusCard'
 
 describe('Check System API failure', () => {
   afterEach(() => {
@@ -11,7 +11,7 @@ describe('Check System API failure', () => {
   it('displays a useful error message when the API is unavailable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')))
 
-    render(<App />)
+    render(<SystemStatusCard />)
     await userEvent.click(screen.getByRole('button', { name: 'Check System' }))
 
     await waitFor(() => {
