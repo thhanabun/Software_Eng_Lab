@@ -86,32 +86,30 @@ ticketAttachmentsRouter.post(
   async (req, res, next) => {
     const ticketId = await ownedTicketId(req, res);
     if (ticketId === null) return;
-
-    const activeCount = await prisma.attachment.count({ where: { ticketId, removedAt: null } });
-    if (activeCount >= MAX_ACTIVE_ATTACHMENTS) {
-      res.status(409).json({
-        error: {
-          code: "CONFLICT",
-          message: `A ticket can have at most ${MAX_ACTIVE_ATTACHMENTS} active attachments`,
-        },
-      });
-      return;
-    }
     next();
   },
   uploadSingle,
   async (req, res) => {
     const file = req.file;
+    const storedPath = file ? path.join(UPLOADS_DIR, file.filename) : null;
+    const reject = (status: number, code: string, message: string) => {
+      if (storedPath) fs.promises.rm(storedPath, { force: true }).catch(() => undefined);
+      res.status(status).json({ error: { code, message } });
+    };
+
     if (!file) {
       validationError(res, "Invalid file upload", "file", "Attach a file under the field name 'file'");
       return;
     }
 
-    const storedPath = path.join(UPLOADS_DIR, file.filename);
-    const reject = (status: number, code: string, message: string) => {
-      fs.promises.rm(storedPath, { force: true }).catch(() => undefined);
-      res.status(status).json({ error: { code, message } });
-    };
+    // The request body has now been fully consumed, so these early responses
+    // (409/415/400) reach the browser cleanly instead of being seen as network failures.
+    const ticketId = Number(req.params.id);
+    const activeCount = await prisma.attachment.count({ where: { ticketId, removedAt: null } });
+    if (activeCount >= MAX_ACTIVE_ATTACHMENTS) {
+      reject(409, "CONFLICT", `A ticket can have at most ${MAX_ACTIVE_ATTACHMENTS} active attachments`);
+      return;
+    }
 
     if (!isAllowedType(file.originalname, file.mimetype)) {
       reject(415, "UNSUPPORTED_MEDIA", "Only JPG, JPEG, PNG, WEBP or PDF files are allowed");
@@ -119,7 +117,6 @@ ticketAttachmentsRouter.post(
     }
 
     try {
-      const ticketId = Number(req.params.id);
       const attachment = await prisma.attachment.create({
         data: {
           ticketId,
@@ -131,7 +128,7 @@ ticketAttachmentsRouter.post(
       });
       res.status(201).json(attachmentMeta(attachment));
     } catch {
-      fs.promises.rm(storedPath, { force: true }).catch(() => undefined);
+      fs.promises.rm(storedPath ?? '', { force: true }).catch(() => undefined);
       res.status(500).json({
         error: { code: "INTERNAL_ERROR", message: "Unable to store attachment" },
       });
