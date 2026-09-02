@@ -10,6 +10,7 @@ import {
   type Ticket,
 } from '../api'
 import { useRequester } from '../requesterContext'
+import { formatSize } from '../lib/format'
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 const SUMMARY_MAX = 120
@@ -29,12 +30,6 @@ interface FieldErrors {
 function fileExtension(name: string): string {
   const idx = name.lastIndexOf('.')
   return idx === -1 ? '' : name.slice(idx + 1).toLowerCase()
-}
-
-function formatSize(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${bytes} B`
 }
 
 export default function CreateTicket() {

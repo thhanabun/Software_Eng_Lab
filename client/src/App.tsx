@@ -5,7 +5,7 @@ import SystemStatusCard from './components/SystemStatusCard'
 import CreateTicket from './pages/CreateTicket'
 import MyTickets from './pages/MyTickets'
 import RequesterSelection from './pages/RequesterSelection'
-import TicketDetailPlaceholder from './pages/TicketDetailPlaceholder'
+import TicketDetail from './pages/TicketDetail'
 import { RequesterProvider, useRequester } from './requesterContext'
 
 function RootRedirect() {
@@ -29,7 +29,7 @@ function App() {
         >
           <Route path="/tickets" element={<MyTickets />} />
           <Route path="/tickets/new" element={<CreateTicket />} />
-          <Route path="/tickets/:id" element={<TicketDetailPlaceholder />} />
+          <Route path="/tickets/:id" element={<TicketDetail />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

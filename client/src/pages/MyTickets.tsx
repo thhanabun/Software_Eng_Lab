@@ -8,6 +8,7 @@ import {
   type TicketListResult,
 } from '../api'
 import { useRequester } from '../requesterContext'
+import { formatDate } from '../lib/format'
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 const STATUSES = ['NEW']
@@ -25,12 +26,6 @@ const PAGE_SIZES = [5, 10, 25]
 
 function priorityBadge(priority: string): string {
   return `tg-badge tg-badge-${priority.toLowerCase()}`
-}
-
-function formatDateTime(iso: string): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 export default function MyTickets() {
@@ -298,7 +293,7 @@ export default function MyTickets() {
                   <td data-testid="ticket-number" style={{ whiteSpace: 'nowrap' }}>
                     <Link to={`/tickets/${ticket.id}`}>{ticket.ticketNumber}</Link>
                   </td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(ticket.createdAt)}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{formatDate(ticket.createdAt)}</td>
                   <td>{ticket.summary}</td>
                   <td>{ticket.categoryName}</td>
                   <td>

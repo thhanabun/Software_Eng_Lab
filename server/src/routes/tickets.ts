@@ -2,6 +2,8 @@ import { Router } from "express";
 import { Prisma, RequestedPriority } from "@prisma/client";
 import { prisma } from "../db";
 import { generateTicketNumber } from "../lib/ticketNumber";
+import { parsePositiveIntParam, resolveRequesterId } from "../lib/requesterHeader";
+import { attachmentMeta, sortAttachments } from "./ticketAttachments";
 
 export const ticketsRouter: Router = Router();
 
@@ -59,26 +61,51 @@ interface TicketListRow {
   updatedAt: Date;
 }
 
-ticketsRouter.get("/", async (req, res) => {
-  const requesterId = toPositiveInt(req.headers["x-requester-id"]);
-  if (requesterId === null) {
-    res.status(400).json({
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Valid X-Requester-Id header is required",
-        details: [{ field: "requesterId", message: "X-Requester-Id must be a positive integer" }],
-      },
-    });
+ticketsRouter.get("/:id", async (req, res) => {
+  const requesterId = await resolveRequesterId(req, res);
+  if (requesterId === null) return;
+
+  const id = parsePositiveIntParam(req.params.id);
+  if (id === null) {
+    res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found" } });
     return;
   }
 
-  const requester = await prisma.requesterUser.findUnique({ where: { id: requesterId } });
-  if (!requester) {
-    res.status(404).json({
-      error: { code: "NOT_FOUND", message: "Requester not found" },
+  try {
+    const ticket = await prisma.ticket.findFirst({
+      where: { id, requesterId },
+      include: {
+        category: true,
+        relatedSystem: true,
+        requester: true,
+        attachments: true,
+      },
     });
-    return;
+    if (!ticket) {
+      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found" } });
+      return;
+    }
+
+    const { category, relatedSystem, requester, attachments, ...fields } = ticket;
+    res.json({
+      ...fields,
+      createdAt: ticket.createdAt.toISOString(),
+      updatedAt: ticket.updatedAt.toISOString(),
+      categoryName: category.name,
+      relatedSystemName: relatedSystem.name,
+      requesterName: requester.name,
+      attachments: sortAttachments(attachments).map(attachmentMeta),
+    });
+  } catch {
+    res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Unable to load ticket" },
+    });
   }
+});
+
+ticketsRouter.get("/", async (req, res) => {
+  const requesterId = await resolveRequesterId(req, res);
+  if (requesterId === null) return;
 
   const details: FieldError[] = [];
 
