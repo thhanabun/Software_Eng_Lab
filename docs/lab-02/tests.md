@@ -70,6 +70,7 @@ Conventions: API tests reset/seed data in `beforeEach`/`beforeAll`; attachment t
 | UI-21 | UI | AC-21 | Upload invalid file | Per-file error message; no row added | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
 | UI-22 | UI | AC-22 | Download active | Download action present for active; absent for removed | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
 | UI-23 | UI | AC-23, BR-20 | Remove confirmation | Modal requires reason; confirm calls DELETE; removed badge shown | `client/tests/lab-02/AttachmentSection.test.tsx` | Planned |
+| UI-24 | UI | AC-30, BR-22, AD-11 | Create with attachments (two-step) | Ticket POSTed first, then each file uploaded in order; a failed upload keeps the ticket and shows a per-file banner directing retry from Ticket Detail | `client/tests/lab-02/CreateTicket.test.tsx` | Planned |
 | STYLE-01 | UI style | AC-27 | Zen Green conformance | Primary button/header use tg-primary classes/tokens; read-only shading distinct; error text below field | `client/tests/lab-02/CreateTicket.test.tsx`, `client/tests/lab-02/AppShell.test.tsx` | Planned |
 | E2E-01 | E2E | AC-01, AC-05, AC-11 | Full flow: select requester → create → appears in My Tickets → open detail | Official number displayed; ticket found in list and detail | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 | E2E-02 | E2E | AC-03, AC-18, AC-29 | Ownership: requester B never sees A's ticket/attachment | Cross-requester access rejected in UI and direct API | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
@@ -109,7 +110,7 @@ Conventions: API tests reset/seed data in `beforeEach`/`beforeAll`; attachment t
 | AC-27 | STYLE-01, E2E-04 |
 | AC-28 | E2E-01 (keyboard navigation step), manual checklist |
 | AC-29 | API-27, E2E-02 |
-| AC-30 | API-17 (failure path), UI-12, E2E-03 |
+| AC-30 | API-17 (failure path), UI-12, UI-24, E2E-03 |
 
 Every AC maps to ≥1 test; every test maps to ≥1 AC/BR.
 

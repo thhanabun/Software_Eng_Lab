@@ -311,4 +311,36 @@ describe('Create Ticket screen', () => {
       fetchMock.mock.calls.filter(([u, i]) => String(u) === '/api/tickets' && (i as RequestInit)?.method === 'POST'),
     ).toHaveLength(1)
   })
+
+  it('UI-24 (AC-30): selected files are uploaded after ticket creation; a failed upload keeps the ticket', async () => {
+    const uploads: string[] = []
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url === '/api/categories') return ok(categories)
+      if (url === '/api/related-systems') return ok(systems)
+      if (url === '/api/tickets' && init?.method === 'POST') return ok(createdTicket())
+      if (url === '/api/tickets/42/attachments' && init?.method === 'POST') {
+        const file = (init.body as FormData).get('file') as File
+        uploads.push(file.name)
+        if (file.name === 'bad.png') return fail(500, { error: { code: 'INTERNAL_ERROR' } })
+        return { ok: true, status: 201, json: async () => ({ id: 1, ticketId: 42 }) }
+      }
+      throw new Error(`unexpected ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderPage()
+    await screen.findByLabelText(/^Category/i)
+    await fillValidForm()
+    await userEvent.upload(screen.getByLabelText(/attachments/i), [
+      new File(['a'], 'good.png', { type: 'image/png' }),
+      new File(['b'], 'bad.png', { type: 'image/png' }),
+    ])
+    await userEvent.click(screen.getByRole('button', { name: /submit ticket/i }))
+
+    expect(await screen.findByTestId('generated-ticket-number')).toBeInTheDocument()
+    expect(uploads).toEqual(['good.png', 'bad.png'])
+    expect(screen.getByTestId('attachment-upload-summary')).toHaveTextContent(/bad\.png/i)
+    expect(screen.getByTestId('attachment-upload-summary')).toHaveTextContent(/ticket detail/i)
+  })
 })
