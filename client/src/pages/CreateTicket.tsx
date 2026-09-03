@@ -5,11 +5,13 @@ import {
   createTicket,
   getCategories,
   getRelatedSystems,
+  uploadAttachment,
   type Category,
   type RelatedSystem,
   type Ticket,
 } from '../api'
 import { useRequester } from '../requesterContext'
+import { formatSize } from '../lib/format'
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 const SUMMARY_MAX = 120
@@ -29,12 +31,6 @@ interface FieldErrors {
 function fileExtension(name: string): string {
   const idx = name.lastIndexOf('.')
   return idx === -1 ? '' : name.slice(idx + 1).toLowerCase()
-}
-
-function formatSize(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${bytes} B`
 }
 
 export default function CreateTicket() {
@@ -58,6 +54,10 @@ export default function CreateTicket() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [created, setCreated] = useState<Ticket | null>(null)
+  const [attachmentResults, setAttachmentResults] = useState<{
+    uploaded: number
+    failed: string[]
+  } | null>(null)
 
   const loadReferenceData = useCallback(async () => {
     setReferenceError(null)
@@ -130,6 +130,7 @@ export default function CreateTicket() {
     setFileErrors([])
     setFieldErrors({})
     setSubmitError(null)
+    setAttachmentResults(null)
   }
 
   const handleSubmit = async () => {
@@ -149,6 +150,17 @@ export default function CreateTicket() {
         description: description.trim(),
         requestedPriority,
       })
+      let uploaded = 0
+      const failed: string[] = []
+      for (const file of files) {
+        try {
+          await uploadAttachment(ticket.id, requester.id, file)
+          uploaded += 1
+        } catch {
+          failed.push(file.name)
+        }
+      }
+      setAttachmentResults(files.length > 0 ? { uploaded, failed } : null)
       setCreated(ticket)
     } catch (err) {
       if (err instanceof ApiRequestError && err.details) {
@@ -174,6 +186,21 @@ export default function CreateTicket() {
         <p className="h3 mb-3" data-testid="generated-ticket-number" style={{ color: 'var(--tg-primary)' }}>
           {created.ticketNumber}
         </p>
+        {attachmentResults &&
+          (attachmentResults.failed.length === 0 ? (
+            <p className="mb-3" data-testid="attachment-upload-summary">
+              {attachmentResults.uploaded} attachment file(s) uploaded.
+            </p>
+          ) : (
+            <div
+              className="tg-error-banner mb-3 text-start"
+              role="alert"
+              data-testid="attachment-upload-summary"
+            >
+              Ticket created, but these attachments failed: {attachmentResults.failed.join(', ')}. Open
+              Ticket Detail to retry the upload.
+            </div>
+          ))}
         <div className="d-flex gap-2 flex-wrap">
           <button
             type="button"

@@ -150,3 +150,83 @@ export async function listTickets(params: TicketListParams): Promise<TicketListR
   }
   return res.json()
 }
+
+export interface AttachmentMeta {
+  id: number
+  ticketId: number
+  originalName: string
+  mimeType: string
+  sizeBytes: number
+  uploadedAt: string
+  removedAt: string | null
+  removalReason: string | null
+}
+
+export interface TicketDetail extends Ticket {
+  categoryName: string
+  relatedSystemName: string
+  requesterName: string
+  attachments: AttachmentMeta[]
+}
+
+async function apiError(res: Response, fallback: string): Promise<ApiRequestError> {
+  const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null
+  return new ApiRequestError(body?.error?.message || fallback, res.status)
+}
+
+export async function getTicketDetail(id: number, requesterId: number): Promise<TicketDetail> {
+  const res = await fetch(`/api/tickets/${id}`, {
+    headers: { 'X-Requester-Id': String(requesterId) },
+  })
+  if (!res.ok) throw await apiError(res, 'Ticket detail failed')
+  return res.json()
+}
+
+export async function listAttachments(
+  ticketId: number,
+  requesterId: number,
+): Promise<AttachmentMeta[]> {
+  const res = await fetch(`/api/tickets/${ticketId}/attachments`, {
+    headers: { 'X-Requester-Id': String(requesterId) },
+  })
+  if (!res.ok) throw new ApiRequestError('Attachment list failed', res.status)
+  return res.json()
+}
+
+export async function uploadAttachment(
+  ticketId: number,
+  requesterId: number,
+  file: File,
+): Promise<AttachmentMeta> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`/api/tickets/${ticketId}/attachments`, {
+    method: 'POST',
+    headers: { 'X-Requester-Id': String(requesterId) },
+    body: form,
+  })
+  if (!res.ok) throw await apiError(res, 'Attachment upload failed')
+  return res.json()
+}
+
+export async function removeAttachment(
+  attachmentId: number,
+  requesterId: number,
+  reason: string,
+): Promise<AttachmentMeta> {
+  const res = await fetch(`/api/attachments/${attachmentId}`, {
+    method: 'DELETE',
+    headers: { 'X-Requester-Id': String(requesterId), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  })
+  if (!res.ok) throw await apiError(res, 'Attachment removal failed')
+  return res.json()
+}
+
+export async function downloadAttachment(attachmentId: number, requesterId: number): Promise<Blob> {
+  const res = await fetch(`/api/attachments/${attachmentId}/download`, {
+    headers: { 'X-Requester-Id': String(requesterId) },
+  })
+  if (!res.ok) throw await apiError(res, 'Attachment download failed')
+  return res.blob()
+}

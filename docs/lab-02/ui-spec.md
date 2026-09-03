@@ -69,7 +69,7 @@ Card layout, max-width 1080px centered.
 - **Details:** Summary (single input, counter 0/120), Description (textarea, counter 0/2000) — full width.
 - **Attachments:** file picker (permitted types hint text), selected-file list with per-file size + remove, per-file error text (type/size).
 - **Actions (bottom):** Submit (primary, busy state), Cancel (secondary → My Tickets).
-- **Success panel:** pale green, check icon + text, generated Ticket Number prominent, next actions: View ticket / Create another.
+- **Success panel:** pale green, check icon + text, generated Ticket Number prominent, next actions: View ticket / Create another. When files were selected, a post-creation upload result is shown here (count uploaded, or failed file names directing retry from Ticket Detail — BR-22/AC-30).
 - **Failure banner:** safe error message; form values preserved (BR-13).
 
 ### 6.3 My Tickets — `/tickets`
