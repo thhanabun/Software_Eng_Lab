@@ -275,7 +275,8 @@ export default function MyTickets() {
 
       {loadState === 'ready' && result && result.items.length > 0 && (
         <>
-          <table className="table align-middle">
+          <div className="table-responsive">
+            <table className="table align-middle">
             <thead>
               <tr>
                 <th scope="col">Ticket</th>
@@ -312,7 +313,8 @@ export default function MyTickets() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
 
           <div
             className="d-flex align-items-center justify-content-between gap-3 flex-wrap"
