@@ -76,6 +76,7 @@ Conventions: API tests reset/seed data in `beforeEach`/`beforeAll`; attachment t
 | E2E-02 | E2E | AC-03, AC-18, AC-29 | Ownership: requester B never sees A's ticket/attachment | Cross-requester access rejected in UI and direct API | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 | E2E-03 | E2E | AC-20..AC-23 | Attachment lifecycle in browser | Upload → download → remove with reason → blocked download | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 | E2E-04 | Responsive | AC-26, AC-27 | Screenshots at desktop/tablet/mobile for create-ticket, my-tickets, ticket-detail | Screenshots saved to `artifacts/lab-02/screenshots/`; checklist passes (no clipping/overlap/h-scroll) | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
+| E2E-05 | E2E | AC-28 | Full keyboard navigation | Requester selection, Create Ticket nav, form entry, and submit all reachable via focus + keyboard only; official number produced | `e2e/lab-02/requester-ticket-flow.spec.ts` | Planned |
 
 ## 3. Acceptance-Criterion Traceability
 
@@ -108,7 +109,7 @@ Conventions: API tests reset/seed data in `beforeEach`/`beforeAll`; attachment t
 | AC-25 | UI-01..UI-04 |
 | AC-26 | E2E-04 |
 | AC-27 | STYLE-01, E2E-04 |
-| AC-28 | E2E-01 (keyboard navigation step), manual checklist |
+| AC-28 | E2E-05, manual checklist |
 | AC-29 | API-27, E2E-02 |
 | AC-30 | API-17 (failure path), UI-12, UI-24, E2E-03 |
 

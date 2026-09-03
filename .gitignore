@@ -43,3 +43,8 @@ evidence/
 
 # Uploaded ticket attachments (Lab 2 — local file storage, never committed)
 server/uploads/
+
+# Lab 2 E2E tooling and generated artifacts
+e2e/node_modules/
+e2e/test-results/
+artifacts/
