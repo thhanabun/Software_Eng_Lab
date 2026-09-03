@@ -143,17 +143,17 @@ test('E2E-03: attachment upload, download, soft removal and blocked download', a
 
   const testId = (await removedRow.first().getAttribute('data-testid')) ?? ''
   const attachmentId = testId.replace('attachment-row-', '')
-  if (/^\d+$/.test(attachmentId)) {
-    const requesters = (await (await request.get('/api/requesters')).json()) as {
-      id: number
-      name: string
-    }[]
-    const aliceId = requesters.find((r) => r.name === 'Alice Carter')?.id
-    const blocked = await request.get(`/api/attachments/${attachmentId}/download`, {
-      headers: { 'X-Requester-Id': String(aliceId) },
-    })
-    expect(blocked.status()).toBe(410)
-  }
+  expect(attachmentId).toMatch(/^\d+$/)
+  const requesters = (await (await request.get('/api/requesters')).json()) as {
+    id: number
+    name: string
+  }[]
+  const aliceId = requesters.find((r) => r.name === 'Alice Carter')?.id
+  expect(aliceId).toBeTruthy()
+  const blocked = await request.get(`/api/attachments/${attachmentId}/download`, {
+    headers: { 'X-Requester-Id': String(aliceId) },
+  })
+  expect(blocked.status()).toBe(410)
 })
 
 test('E2E-04: responsive screenshots for create, my tickets, and detail', async ({ browser }) => {
