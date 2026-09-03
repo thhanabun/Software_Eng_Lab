@@ -179,6 +179,8 @@ test('E2E-04: responsive screenshots for create, my tickets, and detail', async 
     await page.screenshot({ path: path.join(outDir, `${name}-my-tickets.png`) })
 
     await page.getByRole('link', { name: 'Create Ticket' }).first().click()
+    await expect(page).toHaveURL(/\/tickets\/new$/)
+    await expect(page.getByLabel(/^Category/i)).toBeVisible()
     await page.screenshot({ path: path.join(outDir, `${name}-create-ticket.png`) })
 
     const summary = marker(`e2e ${name} screenshot ticket`)
