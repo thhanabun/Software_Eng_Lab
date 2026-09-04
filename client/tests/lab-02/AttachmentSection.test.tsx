@@ -143,7 +143,7 @@ describe('Attachment section', () => {
     await screen.findByTestId('attachment-row-31')
 
     await userEvent.click(screen.getByRole('button', { name: /remove battery\.png/i }))
-    const dialog = await screen.findByRole('dialog')
+    await screen.findByRole('dialog')
 
     await userEvent.click(screen.getByTestId('confirm-remove'))
     expect(await screen.findByText(/removal reason is required/i)).toBeInTheDocument()

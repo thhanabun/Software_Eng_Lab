@@ -22,10 +22,13 @@ How I responded: I fixed review items in-thread before merging where they were b
 
 1. `Attachment.ticketId` — add `@@index([ticketId])` or document the justification in specification.md §7 (PR #20, item 2).
 2. `seed.ts` — upsert `update` blocks currently re-force `active`, silently reverting manual deactivation (PR #20, item 3).
-3. tests.md — add explicit boundary cases (120/121 summary, 2000/2001 description, 5/6 attachments) (PR #19, item 3).
+3. ~~tests.md — add explicit boundary cases (120/121 summary, 2000/2001 description, 5/6 attachments) (PR #19, item 3).~~ **DONE in #25** — API-04b now tests summary 120/121, description 2000 pass, and the 5-attachment boundary; `tests.md` gained the API-04b row.
 4. api-spec.md — header behavior matrix should state GET-endpoint behavior for an inactive requester explicitly (PR #19, item 2).
 5. README — still only covers Lab 1; add Lab 2 setup (migrate, seed, server/uploads/, `cd e2e && npx playwright test`) per Definition of Done (PR #24, note 2).
 6. api-spec.md §3 — reconcile documented upload order (ownership → count → size → type) with multer's actual size-before-count check, or note that multer enforces size first (PR #24, note 1).
+7. §12 artifacts structure — screenshots now nested under `create-ticket/`, `my-tickets/`, `ticket-detail/` subfolders (per-screen, one file per viewport) to match the handout's required tree (was flat `viewport-screen.png`).
+
+Note: items 1, 2, 4, 6 are documentation/schema polish; item 5 (README) is the only functional-DoD gap. All are scheduled for Issue #18 (Final documentation & release).
 
 ## Pull Requests I reviewed for my partner
 

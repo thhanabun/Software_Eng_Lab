@@ -1,7 +1,10 @@
+import fs from "node:fs";
+import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../../src/app";
 import { prisma } from "../../src/db";
+import { UPLOADS_DIR } from "../../src/lib/attachments";
 
 const validPayload = (requesterId: number) => ({
   requesterId,
@@ -106,6 +109,59 @@ describe("POST /api/tickets validation (API-04)", () => {
     expect(fields).toContain("categoryId");
     expect(fields).toContain("relatedSystemId");
     expect(fields).toContain("requestedPriority");
+  });
+});
+
+describe("POST /api/tickets length boundaries (API-04b, BR-09/BR-10)", () => {
+  it("accepts a summary of exactly 120 and a description of exactly 2000 characters", async () => {
+    const res = await request(createApp())
+      .post("/api/tickets")
+      .send({
+        ...validPayload(requesterId),
+        summary: "s".repeat(120),
+        description: "d".repeat(2000),
+      });
+
+    expect(res.status).toBe(201);
+    createdTicketIds.push(res.body.id);
+    expect(res.body.summary).toHaveLength(120);
+  });
+
+  it("rejects a summary of 121 characters with a summary field detail", async () => {
+    const res = await request(createApp())
+      .post("/api/tickets")
+      .send({ ...validPayload(requesterId), summary: "s".repeat(121) });
+
+    expect(res.status).toBe(400);
+    const fields = res.body.error.details.map((d: { field: string }) => d.field);
+    expect(fields).toContain("summary");
+  });
+
+  it("accepts the exact 5-attachment limit and rejects the sixth (BR-17 boundary)", async () => {
+    const created = await request(createApp())
+      .post("/api/tickets")
+      .send(validPayload(requesterId));
+    createdTicketIds.push(created.body.id);
+
+    let filesStored = 0;
+    for (let i = 1; i <= 5; i++) {
+      const res = await request(createApp())
+        .post(`/api/tickets/${created.body.id}/attachments`)
+        .set("X-Requester-Id", String(requesterId))
+        .attach(
+          "file",
+          Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+          { filename: `bound-${i}.png`, contentType: "image/png" },
+        );
+      if (res.status === 201) filesStored += 1;
+    }
+    expect(filesStored).toBe(5);
+
+    const attachments = await prisma.attachment.findMany({ where: { ticketId: created.body.id } });
+    for (const attachment of attachments) {
+      fs.rmSync(path.join(UPLOADS_DIR, attachment.storedName), { force: true });
+    }
+    await prisma.attachment.deleteMany({ where: { ticketId: created.body.id } });
   });
 });
 

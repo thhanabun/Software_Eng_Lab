@@ -22,6 +22,7 @@ Conventions: API tests reset/seed data in `beforeEach`/`beforeAll`; attachment t
 | API-02 | API | BR-27 | Seed idempotency | Running seed twice creates no duplicates (categories/systems/requesters counts stable) | `server/tests/lab-02/requesters.api.test.ts` | Planned |
 | API-03 | API | AC-01, BR-01, BR-02 | POST /api/tickets valid payload | 201; one saved ticket; unique number matches format; status NEW; timestamps set | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
 | API-04 | API | AC-06, AC-07, BR-09..BR-11 | Create validation failures (missing/oversize summary/description, bad category/system/priority) | 400 with field-level details; nothing saved | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
+| API-04b | API | BR-09, BR-10, BR-17 | Length/count **boundaries** (labsheet §9.2) | Summary exactly 120 accepted / 121 rejected; description exactly 2000 accepted; fifth attachment accepted (sixth covered by API-20) | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
 | API-05 | API | BR-01 | Concurrent/sequential creates same day | All numbers unique, no duplicates after collision retry | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
 | API-06 | API | AC-24, BR-23 | Create with inactive requester | 400; no ticket saved | `server/tests/lab-02/create-ticket.api.test.ts` | Planned |
 | API-07 | API | AC-11, AC-03, BR-08 | GET /api/tickets ownership | Only selected requester's tickets returned; missing header → 400; unknown requester → 404 | `server/tests/lab-02/my-tickets.api.test.ts` | Planned |
