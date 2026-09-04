@@ -163,7 +163,6 @@ test('E2E-04: responsive screenshots for create, my tickets, and detail', async 
     ['mobile', 390, 844],
   ]
   const outDir = fileURLToPath(new URL('../../artifacts/lab-02/screenshots', import.meta.url))
-  fs.mkdirSync(outDir, { recursive: true })
 
   for (const [name, width, height] of viewports) {
     const context = await browser.newContext({ viewport: { width, height } })
@@ -176,19 +175,27 @@ test('E2E-04: responsive screenshots for create, my tickets, and detail', async 
         .or(page.getByTestId('empty-state'))
         .or(page.getByTestId('no-results-state')),
     ).toBeVisible({ timeout: 15_000 })
-    await page.screenshot({ path: path.join(outDir, `${name}-my-tickets.png`) })
+    await page.screenshot({
+      path: shot(outDir, 'my-tickets', name),
+    })
 
     await page.getByRole('link', { name: 'Create Ticket' }).first().click()
     await expect(page).toHaveURL(/\/tickets\/new$/)
     await expect(page.getByLabel(/^Category/i)).toBeVisible()
-    await page.screenshot({ path: path.join(outDir, `${name}-create-ticket.png`) })
+    await page.screenshot({ path: shot(outDir, 'create-ticket', name) })
 
     const summary = marker(`e2e ${name} screenshot ticket`)
     await createTicketViaUI(page, summary)
     await page.getByRole('button', { name: 'View Ticket' }).click()
     await expect(page.getByTestId('detail-ticket-number')).toBeVisible()
-    await page.screenshot({ path: path.join(outDir, `${name}-ticket-detail.png`), fullPage: true })
+    await page.screenshot({ path: shot(outDir, 'ticket-detail', name), fullPage: true })
 
     await context.close()
   }
 })
+
+function shot(baseDir: string, screen: string, viewport: string): string {
+  const dir = path.join(baseDir, screen)
+  fs.mkdirSync(dir, { recursive: true })
+  return path.join(dir, `${viewport}.png`)
+}
