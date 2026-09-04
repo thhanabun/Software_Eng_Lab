@@ -168,7 +168,7 @@ Constraints (BR-17): types `jpg/jpeg/png/webp/pdf` (extension **and** MIME check
 ### POST /api/tickets/:id/attachments — upload
 Headers: `X-Requester-Id` required. Body: `multipart/form-data`, single field `file`.
 
-Order of checks: ownership/ticket exists → active-count limit → size → type.
+Order of checks: ownership/ticket exists → size (enforced while multer streams the body, so it is answered before the count/type checks) → active-count limit → type. The body is always fully consumed before responding so the browser receives a clean status instead of a network error. For a single uploaded file the cases do not overlap, so the observable outcome per violation matches the codes below regardless of order.
 
 Responses:
 - **201**:
@@ -228,6 +228,7 @@ Headers: `X-Requester-Id` required. Body:
 | `X-Requester-Id` missing or non-integer | 400 `VALIDATION_ERROR` |
 | requester id does not exist | 404 `NOT_FOUND` |
 | requester inactive on create | 400 `VALIDATION_ERROR` (BR-23) |
+| requester inactive on **read** endpoints (list, detail, attachments) | 200 — read-only access to existing data is still allowed; only creation is blocked (BR-23 governs writes; tickets are retained for audit) |
 | resource belongs to another requester | 404 `NOT_FOUND` (no existence leakage) |
 
 ## 5. Validation failure examples

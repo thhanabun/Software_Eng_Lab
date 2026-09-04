@@ -70,11 +70,11 @@ In our own words: the IT department needs a real, professional intake experience
 - BR-20: Soft removal requires an explicit confirmation and a removal reason (1–200 characters after trimming).
 - BR-21: Only the owning Requester may upload, download, or soft-remove a ticket's attachments.
 - BR-22: Ticket creation and attachment upload are separate steps: the ticket is created first (201), then each selected file is uploaded. If any upload fails, the ticket is kept, the failures are reported per file, and the user can retry from Ticket Detail (compensation strategy — no silent loss, no orphaned uploads).
-- BR-23: Inactive Requesters are excluded from the selector and cannot create tickets (server rejects with 400).
+- BR-23: Inactive Requesters are excluded from the selector and cannot create tickets (server rejects with 400). Their **existing** tickets/attachments remain readable via the API (audit retention); only writes are blocked.
 - BR-24: My Tickets distinguishes an empty state (Requester has no tickets at all) from a no-results state (filters/search excluded everything).
 - BR-25: A non-existent or non-owned ticket id returns 404 with a safe message.
 - BR-26: All API errors use the safe error shape; no stack traces, SQL, or internal paths are exposed. Unexpected failures return 500.
-- BR-27: Seed data is idempotent (safe to re-run without duplicates) and contains: the 4 required categories, at least 6 related systems, at least 4 active requesters, and at least 1 inactive requester.
+- BR-27: Seed data is idempotent (safe to re-run without duplicates, and never re-activates a manually deactivated Requester/Related System) and contains: the 4 required categories — **Account and Access, Hardware, Software, Network** — at least 6 related systems (Email, Campus Wi-Fi, VPN, LEB2 App, Grade Submission App, Printer, Corporate Laptop), at least 4 active requesters, and at least 1 inactive requester.
 - BR-28: Lab 3 transition: the `X-Requester-Id` context mechanism will be replaced by real authentication without changing the ticket/attachment ownership model (tickets keep their requester FK).
 
 ## 6. UI Specification Summary
@@ -103,7 +103,7 @@ Enums: `RequestedPriority { LOW MEDIUM HIGH URGENT }`, `TicketStatus { NEW }`.
 
 Relationships: Requester 1—N Tickets; Ticket 1—N Attachments; Category 1—N Tickets; RelatedSystem 1—N Tickets.
 
-Indexes/constraints: unique on ticketNumber, requester email, category name, related system name; `@@index([requesterId, createdAt(sort: Desc)])` for the owned list default query; `@@index([currentStatus])` and `@@index([categoryId])` for filters. Soft removal is represented by nullable `removedAt`/`removalReason` (no row deletion; partial uniqueness stays on storedName).
+Indexes/constraints: unique on ticketNumber, requester email, category name, related system name, and attachment storedName; `@@index([requesterId, createdAt(sort: Desc)])` for the owned list default query; `@@index([currentStatus])` and `@@index([categoryId])` for filters; `@@index([ticketId])` on Attachment because Postgres does not auto-index FK columns and every attachment listing/limit check filters by it. Soft removal is represented by nullable `removedAt`/`removalReason` (no row deletion; partial uniqueness stays on storedName).
 
 **Justified design decision (required by labsheet):** attachment files live on disk under `server/uploads/` while only metadata lives in PostgreSQL. Rationale: binary files bloat the database, complicate backups, and make streaming downloads awkward; metadata-only rows keep queries fast and let soft removal work by flipping two columns while the file stays on disk (never served once removed). The UUID stored name prevents filename collisions and path traversal; the original name is preserved for display/Content-Disposition only.
 

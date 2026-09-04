@@ -75,4 +75,6 @@ model Attachment {
   uploadedAt    DateTime  @default(now())
   removedAt     DateTime?
   removalReason String?
+
+  @@index([ticketId])
 }

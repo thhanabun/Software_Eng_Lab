@@ -40,7 +40,8 @@ export async function seedAll(db: PrismaClient): Promise<void> {
   for (const system of RELATED_SYSTEMS) {
     await db.relatedSystem.upsert({
       where: { name: system.name },
-      update: { active: system.active },
+      // Intentionally not updating "active": manual deactivation must survive re-seeding.
+      update: {},
       create: system,
     });
   }
@@ -48,7 +49,8 @@ export async function seedAll(db: PrismaClient): Promise<void> {
   for (const requester of REQUESTERS) {
     await db.requesterUser.upsert({
       where: { email: requester.email },
-      update: { name: requester.name, active: requester.active },
+      // Intentionally not updating "active": manual deactivation must survive re-seeding.
+      update: { name: requester.name },
       create: requester,
     });
   }
