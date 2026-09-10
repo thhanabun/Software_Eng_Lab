@@ -63,7 +63,9 @@ Grouped layout (Lab 2 grid extended): requester block (name/email, read-only), c
 ### 4.6 Admin User Management — `/admin/users`
 One screen: toolbar (search input name/email + single role filter + **Create user** primary right); table (desktop) / cards (mobile): Name, Email, Role pill, Status pill (Active/Deactivated), **Edit** action per row. Create/Edit modal: name, email, role select, active toggle, initial-password field (create + reset only, with rule hints); validation below fields; duplicate-email and safety-rule failures as form-level safe messages. Per-row **Set new password** action (modal with new-password field; confirm consequences text: "user must change it at next login"). Self-row: deactivate toggle disabled with tooltip ("You cannot deactivate your own account"); last-admin row likewise ("System needs at least one active administrator"). Success toasts/text per action; forbidden panel for non-admin direct access; failure + Retry on list load.
 
-## 5. Screen modes and feedback (labsheet §8.6)
+## 5. Screen modes and feedback (sheet §8.6)
+
+Create / view / edit modes per screen: **create-capable** — Create Ticket form, requester/staff comment and note post boxes, admin create/edit modal, change-password form; **view-only** — queue table/cards, staff detail information grid, admin user list; **constrained-edit** — staff ops panel (owner, IT Priority, matrix-limited status) and admin row actions (edit, reset password, activate/deactivate). The table below lists runtime states per screen.
 
 | Screen | Modes | Feedback covered |
 |---|---|---|
@@ -75,7 +77,7 @@ One screen: toolbar (search input name/email + single role filter + **Create use
 | User management | loading / loaded / empty / modal create-edit / reset-pw / failure / forbidden | validation, safety-rule messages, success text, retry |
 | Shell/guards | authenticated / expired / forbidden / pending-change | login redirect + notice, forbidden panel, forced change route |
 
-## 6. Responsive rules (labsheet §8.7 — same as Lab 2)
+## 6. Responsive rules (sheet §8.7 — same as Lab 2)
 
 Desktop ≥992 centered max-width (detail/ops two-column where practical); tablet 768–991 two-column collapsing; mobile <768 stacked, tables → cards, touch targets ≥44px, no page-level horizontal scroll, no clipped labels/overlap/hidden buttons at any viewport.
 
@@ -97,5 +99,6 @@ All controls labeled; modals `role=dialog` with Escape/overlay close and focus t
 | Public vs Internal visually distinct (lock + tint + label) | ☐ | ☐ | ☐ |
 | Role nav correct per role; no unauthorized links | ☐ | ☐ | ☐ |
 | Forbidden/expired-session states safe | ☐ | ☐ | ☐ |
+| Visible keyboard focus at all viewports | ☐ | ☐ | ☐ |
 
 Screenshot paths: `artifacts/lab-03/screenshots/{authentication,staff-queue,staff-ticket-detail,user-management}/{desktop,tablet,mobile}.png`

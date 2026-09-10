@@ -12,7 +12,7 @@ Test-Driven Development plan for Lab 3. Created **before implementation** (with 
 - **Responsive/visual** — Playwright screenshots at 1280×800 / 820×1180 / 390×844 into `artifacts/lab-03/screenshots/`, checked against ui-spec §8.
 - **E2E** — Playwright against running server+client (`e2e/lab-03/`): first-login force-change, staff flow, admin flow.
 
-Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests override bcrypt cost to 4 via env (speed; production cost stays 12 per AD-03); seeded passwords are dev-only values; no test skipped or disabled in the final state.
+Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests override bcrypt cost to 4 via env (speed; production cost stays 12 per AD-03); seeded passwords are dev-only values; no test skipped or disabled in the final state. ID numbering continues Lab 2 (UNIT-01 and UI-01..UI-24 live in `lab-02`; Lab 3 IDs start at UNIT-02/UI-30) — sequences are per-lab, nothing skipped.
 
 ## 2. Planned Tests
 
@@ -37,7 +37,7 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | AUTHZ-05 | API | BR-12 | Cross-requester ticket/attachment/comment access | 404 everywhere, no leakage | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | AUTHZ-06 | API | sheet §6.2 | Logged-out access to every protected route class | 401 everywhere | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | AUTHZ-07 | API | AC-19 | Requester detail payload contains comments, never notes | Notes absent even when they exist | `server/tests/lab-03/authorization.api.test.ts` | TBD |
-| RREG-01 | API | AC-12 | Lab 2 create/list/detail/attachments under cookie identity | Same behaviors/codes as Lab 2 suites | `server/tests/lab-03/authorization.api.test.ts` + Lab 2 suites green | TBD |
+| RREG-01 | API | AC-12 | Lab 2 create/list/detail/attachments under cookie identity | Same behaviors/codes as Lab 2 suites; Lab 2 suites stay green | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | Q-01 | API | AC-13 | Queue search/filter/sort/page happy paths | Correct slices + metadata; defaults (createdAt asc, pageSize 10) | `server/tests/lab-03/staff-queue.api.test.ts` | TBD |
 | Q-02 | API | AC-13 | Queue invalid params / unknown ignored | 400 per-field; unknown params ignored | `server/tests/lab-03/staff-queue.api.test.ts` | TBD |
 | Q-03 | API | AC-13 | Owner filter incl. `unassigned` | Correct subsets | `server/tests/lab-03/staff-queue.api.test.ts` | TBD |
@@ -68,7 +68,7 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | E2E-01 | E2E | AC-01, AC-02, AC-07 | authentication: login variants + forced change + logout blocks back-access | Full browser flow incl. invalid/inactive cases | `e2e/lab-03/authentication.spec.ts` | TBD |
 | E2E-02 | E2E | AC-13..AC-20 | staff-ticket-flow: queue → claim → priority → status → comment + note → indication visible | End-to-end staff loop in browser | `e2e/lab-03/staff-ticket-flow.spec.ts` | TBD |
 | E2E-03 | E2E | AC-21..AC-25 | user-administration: create → edit → reset → forced change → safety rejections → non-admin 403 | Full admin loop in browser | `e2e/lab-03/user-administration.spec.ts` | TBD |
-| E2E-04 | Responsive | AC-28, AC-30 | Screenshots 4 screen groups × 3 viewports + checklist | Saved to `artifacts/lab-03/screenshots/`; ui-spec §8 passes | e2e specs | TBD |
+| E2E-04 | Responsive | AC-28, AC-30 | Screenshots 4 screen groups × 3 viewports + checklist | Saved to `artifacts/lab-03/screenshots/`; ui-spec §8 passes | `e2e/lab-03/authentication.spec.ts`, `e2e/lab-03/staff-ticket-flow.spec.ts`, `e2e/lab-03/user-administration.spec.ts` | TBD |
 | E2E-05 | E2E | AC-29 | Keyboard-only login → role flow | Reachable + completable via keyboard | `e2e/lab-03/authentication.spec.ts` | TBD |
 
 ## 3. Acceptance-Criterion Traceability
@@ -107,7 +107,7 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | AC-30 | STYLE-02, E2E-04 |
 | AC-31 | STOP-05, UI-33 |
 
-Every AC maps to ≥1 test; every test maps to ≥1 AC/BR. Boundary coverage (labsheet §9.2 analogue): AUTH-09 (password lengths), CN-05 (comment 2000/2001).
+Every AC maps to ≥1 test; every test maps to ≥1 AC/BR. Boundary coverage (sheet §9.2 analogue): AUTH-09 (password lengths), CN-05 (comment 2000/2001).
 
 ## 4. Responsive and Visual Checklist
 
@@ -121,6 +121,7 @@ Executed in Issue #35 against ui-spec §8 with the E2E-04 screenshots (desktop 1
 - [ ] No page-level horizontal scrolling at 390px
 - [ ] Public vs Internal visually distinct (lock + tint + label, not color alone)
 - [ ] Role nav correct per role; guards render safe panels
+- [ ] Visible keyboard focus indicators at all three viewports
 - [ ] Forbidden/expired-session states safe and readable
 
 Screenshot paths: `artifacts/lab-03/screenshots/{authentication,staff-queue,staff-ticket-detail,user-management}/{desktop,tablet,mobile}.png`
@@ -150,6 +151,6 @@ _Filled during Issue #36 with real pass output (no test skipped, disabled, or co
 
 ## 7. Known Limitations or Deferred Tests
 
-- Account lockout/unlock is excluded scope (BR-06): attempts are logged, no lockout tested.
+- Account lockout/unlock is excluded scope (BR-06): no lockout tested.
 - CSRF-token flow is not tested beyond SameSite + JSON-only posture (AD-02); a token would add tests before production use.
 - Multi-session concurrency beyond sibling-kill on password change is out of scope.

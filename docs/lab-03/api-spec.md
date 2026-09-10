@@ -158,7 +158,7 @@ Any non-admin authenticated caller → **403** with no user data (AC-25). Unauth
 
 ### GET /api/admin/users — list
 Query: `search` (substring over name + email, case-insensitive, optional), `role` (single value, optional; invalid → 400).
-- **200**: `{ items: [<safe user + createdAt>] }` ordered by name. No pagination (AD-08).
+- **200**: `{ items: [<safe user + createdAt>] }` ordered by name ascending (case-insensitive). No pagination (AD-08).
 
 ### POST /api/admin/users — create
 Body: `{ "name", "email", "role", "active"?, "initialPassword" }` (active defaults true).

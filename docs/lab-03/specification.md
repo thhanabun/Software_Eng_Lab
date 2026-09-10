@@ -140,7 +140,7 @@ New/changed Prisma models (PostgreSQL; existing Ticket/Attachment rows preserved
 
 Enums: extend `TicketStatus` to the 8 values; add `UserRole`, `CommentVisibility`. `RequestedPriority` reused for `itPriority`.
 
-Indexes/constraints: unique on user email (case-insensitive — `citext`-style via lower() or application-normalized lowercase storage; decision: store emails lowercased, unique index), session tokenHash unique, comment `@@index([ticketId, createdAt])`, ticket `@@index([ownerId])`, `@@index([currentStatus, updatedAt])` for the queue default query. Rationale recorded per-field in §7 of the migration commit like Lab 2.
+Indexes/constraints: unique on user email (case-insensitive — `citext`-style via lower() or application-normalized lowercase storage; decision: store emails lowercased, unique index), session tokenHash unique, comment `@@index([ticketId, createdAt])`, ticket `@@index([ownerId])`, `@@index([currentStatus, updatedAt])` for the queue default query. Rationale recorded per-field in the migration commit message like Lab 2.
 
 Migration strategy (tested on a copy first, sheet §5.2): (1) create new tables/enums; (2) insert Users from RequesterUsers (role REQUESTER, preserve active, seeded initial passwords per sheet §5.3); (3) remap `ticket.requesterId` old→new via a mapping table in the migration script; (4) backfill `itPriority=requestedPriority`; (5) drop `RequesterUser`. Rollback = restore from pre-migration dump (documented command in README).
 
@@ -228,6 +228,19 @@ Product Definition of Done (checked before the coding agent may report complete)
 - [ ] README setup/test instructions current (migrate, seed, dev logins, e2e commands)
 
 Course delivery (checked separately): GitHub Issues + Kanban statuses used; feature branches; peer-reviewed PRs through `lab3-staging`; reviewer comments responded; `docs/lab-03/` complete (specification.md, tests.md, ui-spec.md, api-spec.md, reviewer.md, ai-use.md); one submission PDF.
+
+Issue decomposition (sheet §11) — each required area maps to a tracked issue:
+
+| Area | Issue |
+|---|---|
+| specification, tests, migration plan | #29 (this contract) |
+| authentication (model, session, seed, login APIs) | #30 |
+| authorization + requester regression | #31 |
+| IT Staff Ticket Queue | #32 |
+| IT Staff Ticket operations (ownership, priority, status, comments, notes) | #33 |
+| Administrator user management | #34 |
+| E2E testing + visual inspection (screenshots, checklist) | #35 |
+| release integration (reviewer.md, ai-use.md, final tests.md, README, merge to main) | #36 |
 
 ## 11. Assumptions and Decisions
 
