@@ -245,7 +245,7 @@ ticketsRouter.post("/", async (req, res) => {
   }
 
   if (requesterId !== null) {
-    const requester = await prisma.user.findUnique({ where: { id: requesterId } });
+    const requester = await prisma.user.findFirst({ where: { id: requesterId, role: "REQUESTER" } });
     if (!requester) add("requesterId", "Requester not found");
     else if (!requester.active) add("requesterId", "Requester is not active");
   }

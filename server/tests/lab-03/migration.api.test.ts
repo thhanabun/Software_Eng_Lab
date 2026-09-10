@@ -95,4 +95,12 @@ describe("migrated Lab 2 data integrity (MIG-02)", () => {
   it("no account keeps the migration placeholder hash", async () => {
     expect(await prisma.user.count({ where: { passwordHash: "MIGRATION_PENDING_RESET" } })).toBe(0);
   });
+
+  it("all stored emails are lowercase (case-insensitive uniqueness invariant)", async () => {
+    const emails = await prisma.user.findMany({ select: { email: true } });
+    expect(emails.length).toBeGreaterThan(0);
+    for (const { email } of emails) {
+      expect(email).toBe(email.toLowerCase());
+    }
+  });
 });

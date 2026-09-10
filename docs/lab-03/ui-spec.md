@@ -45,7 +45,7 @@ Color tokens, typography, spacing, radius, button variants (primary/secondary/te
 Centered card (max-width 480px): TokTickIT title; Email + Password fields (labels above, asterisk, autocomplete attrs); **Sign in** primary (busy "Signing in…" while in flight); field + form-level validation below fields; generic failure message ("Invalid email or password") that never distinguishes the cause; deactivated-account message distinct (BR-07); loading state while checking an existing session (already signed in → role home). Keyboard: Enter submits; focus visible.
 
 ### 4.2 Change Password — `/change-password`
-Centered card: shown forced (pending flag) or voluntary (from user menu). Fields: Current password (omitted in forced-initial mode — the fresh login is the proof), New password (live rule hints: length/letter/digit), Confirm password; **Save new password** primary busy state; success → role home (forced) or back (voluntary) with confirmation text; mismatches/weak passwords blocked client-side AND server-side.
+Centered card: shown forced (pending flag) or voluntary (from user menu). Fields: Current password (in forced mode, the issued initial password — always required so the differ-rule applies), New password (live rule hints: length/letter/digit), Confirm password; **Save new password** primary busy state; success → role home (forced) or back (voluntary) with confirmation text; mismatches/weak passwords blocked client-side AND server-side.
 
 ### 4.3 Requester screens (regression + additions)
 - Selection screen and Change Requester action: **deleted**. No requester state in localStorage; identity comes from `me`.

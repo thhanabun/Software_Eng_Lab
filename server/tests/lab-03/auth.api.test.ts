@@ -171,6 +171,18 @@ describe("POST /api/auth/change-password (AUTH-07, AUTH-08, AUTH-09)", () => {
       .post("/api/auth/change-password")
       .send({ currentPassword: "Wrong12345", newPassword: "Valid12345", confirmPassword: "Valid12345" });
     expect(wrongCurrent.status).toBe(403);
+
+    // Pending-initial flow also verifies the initial password (BR-09 differ).
+    const pending = request.agent(app);
+    await pending.post("/api/auth/login").send({ email: "auth-new@example.test", password: KNOWN_PASSWORD });
+    const pendingWrong = await pending
+      .post("/api/auth/change-password")
+      .send({ currentPassword: "Wrong12345", newPassword: "Valid12345", confirmPassword: "Valid12345" });
+    expect(pendingWrong.status).toBe(403);
+    const pendingReuse = await pending
+      .post("/api/auth/change-password")
+      .send({ currentPassword: KNOWN_PASSWORD, newPassword: KNOWN_PASSWORD, confirmPassword: KNOWN_PASSWORD });
+    expect(pendingReuse.status).toBe(400);
   });
 
   it("clears the flag, rehashes, and kills sibling sessions (AUTH-08)", async () => {
@@ -182,7 +194,7 @@ describe("POST /api/auth/change-password (AUTH-07, AUTH-08, AUTH-09)", () => {
 
     const changed = await first
       .post("/api/auth/change-password")
-      .send({ newPassword: "BrandNew123", confirmPassword: "BrandNew123" });
+      .send({ currentPassword: KNOWN_PASSWORD, newPassword: "BrandNew123", confirmPassword: "BrandNew123" });
     expect(changed.status).toBe(200);
     expect(changed.body.user.mustChangePassword).toBe(false);
 

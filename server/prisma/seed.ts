@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { pathToFileURL } from "node:url";
+import { PLACEHOLDER_HASH, hashPassword } from "../src/lib/password.js";
 
 const prisma = new PrismaClient();
 
@@ -7,7 +8,6 @@ const prisma = new PrismaClient();
 // documented in README, never a real secret). Every seeded account starts in
 // must-change state per BR-02/BR-23.
 export const SEED_INITIAL_PASSWORD = process.env.SEED_INITIAL_PASSWORD ?? "Changeme123!";
-const PLACEHOLDER_HASH = "MIGRATION_PENDING_RESET";
 
 const CATEGORY_NAMES = [
   "Account and Access",
@@ -133,8 +133,6 @@ const SEED_COMMENTS: SeedComment[] = [
 ];
 
 export async function seedAll(db: PrismaClient): Promise<void> {
-  const { hashPassword } = await import("../src/lib/password.js");
-
   for (const name of CATEGORY_NAMES) {
     await db.category.upsert({ where: { name }, update: {}, create: { name } });
   }

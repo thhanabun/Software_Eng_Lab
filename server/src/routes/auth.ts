@@ -59,7 +59,12 @@ authRouter.post("/login", async (req, res) => {
 // POST /api/auth/logout — idempotent session invalidation.
 authRouter.post("/logout", async (req, res) => {
   await destroySession(req.cookies?.[SESSION_COOKIE]);
-  res.clearCookie(SESSION_COOKIE, { path: "/" });
+  res.clearCookie(SESSION_COOKIE, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
   res.status(200).json({ ok: true });
 });
 
@@ -77,28 +82,27 @@ authRouter.post("/change-password", requireAuth, async (req, res) => {
   }
 
   const { currentPassword, newPassword, confirmPassword } = req.body ?? {};
-  const pendingInitial = user.mustChangePassword;
 
-  if (!pendingInitial) {
-    if (typeof currentPassword !== "string" || currentPassword.length === 0) {
-      res.status(400).json({
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Current password is required",
-          details: [{ field: "currentPassword", message: "Current password is required" }],
-        },
-      });
-      return;
-    }
-    if (!(await verifyPassword(currentPassword, user.passwordHash))) {
-      res.status(403).json({
-        error: { code: "FORBIDDEN", message: "Current password is incorrect" },
-      });
-      return;
-    }
+  // The current (or initial) password is always required and verified, so the
+  // BR-09 differ-check applies uniformly to both flows.
+  if (typeof currentPassword !== "string" || currentPassword.length === 0) {
+    res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Current password is required",
+        details: [{ field: "currentPassword", message: "Current password is required" }],
+      },
+    });
+    return;
+  }
+  if (!(await verifyPassword(currentPassword, user.passwordHash))) {
+    res.status(403).json({
+      error: { code: "FORBIDDEN", message: "Current password is incorrect" },
+    });
+    return;
   }
 
-  const issues = validateNewPassword(newPassword, pendingInitial ? undefined : currentPassword);
+  const issues = validateNewPassword(newPassword, currentPassword);
   if (typeof confirmPassword !== "string" || confirmPassword !== newPassword) {
     issues.push({ field: "confirmPassword", message: "Passwords do not match" });
   }

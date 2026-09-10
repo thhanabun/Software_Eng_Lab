@@ -26,7 +26,8 @@ export async function resolveRequesterId(req: Request, res: Response): Promise<n
 
   // Lab 3 compat shim (Issue #30): the header now resolves against User.
   // Issue #31 removes this mechanism entirely in favor of cookie identity.
-  const requester = await prisma.user.findUnique({ where: { id: requesterId } });
+  // Only REQUESTER-role users satisfy requester paths; staff/admin ids 404.
+  const requester = await prisma.user.findFirst({ where: { id: requesterId, role: "REQUESTER" } });
   if (!requester) {
     res.status(404).json({
       error: { code: "NOT_FOUND", message: "Requester not found" },
