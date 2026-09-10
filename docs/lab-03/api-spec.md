@@ -18,6 +18,8 @@ Base URL: `/api` · Content type: JSON unless noted · Auth: session cookie `tok
 
 No stack traces, SQL, file paths, password hashes, session tokens, or internal identifiers are ever exposed. Unexpected failures → `500` (`INTERNAL_ERROR`, generic message).
 
+CSRF posture (BR-10): the session cookie is `SameSite=Lax`; all state-changing JSON endpoints require `Content-Type: application/json` and reject cross-site form-shaped bodies. No dedicated CSRF token at lab scale.
+
 ### Error codes used
 
 | code | meaning |
@@ -76,7 +78,8 @@ Body: `{ "currentPassword"?: "...", "newPassword": "...", "confirmPassword": "..
 All Lab 2 `/api/tickets*` and `/api/attachments*` endpoints behave identically except:
 - No `X-Requester-Id` header. The requester is `session.user` (must have role REQUESTER; staff/admin calling requester endpoints get 403 — they use §4–§5 instead).
 - `POST /api/tickets` no longer accepts `requesterId` in the body — if present it is ignored (BR-03, AC-03).
-- Inactive requesters: reads of existing owned data still allowed (audit retention, Lab 2 BR-23); writes (create/upload/remove/comment/indicate) → 403.
+- Inactive requesters: reads of existing owned data still allowed (audit retention — carryover of Lab 2 BR-23); writes (create/upload/remove/comment/indicate) → 403.
+- Staff/Administrator users do not call these requester endpoints (403 when role ≠ REQUESTER); they operate through §3–§4 and download attachments via the staff path in §4.
 - Error set gains 401/403; all Lab 2 codes (400/404/409/410/413/415) unchanged.
 
 ### GET /api/tickets/:id — owned detail (extended)
@@ -84,7 +87,7 @@ All Lab 2 `/api/tickets*` and `/api/attachments*` endpoints behave identically e
 
 ### GET+POST /api/tickets/:id/comments — public comments
 - GET **200**: `[{ id, body, authorName, authorRole, createdAt }]` newest-first. Non-owned → 404.
-- POST body `{ "body": "..." }` (BR-20: trim, 1–2000) → **201** with the entry (author/time from server, BR-19). Closed/cancelled ticket → 400 (BR-22). Non-owned → 404.
+- POST body `{ "body": "..." }` (BR-20: trim, 1–2000) → **201** with the entry (author/time from server, BR-19). Cancelled ticket → 400 (BR-22). Non-owned → 404.
 
 ### GET+POST /api/tickets/:id/notes — internal notes (staff/admin only, §5.2 detail)
 - Any Requester caller → **403** `FORBIDDEN`, no note content (AC-04). (Full contract under §5.)
@@ -114,7 +117,7 @@ Unknown parameters ignored. Priority sorts use severity URGENT > HIGH > MEDIUM >
 - **401/403**: session / role failures. Requester role → 403.
 
 ### GET /api/staff/tickets/:id — staff detail
-- **200**: full ticket incl. requester `{id,name,email}`, owner, both priorities, flags, `comments` (public) + `notes` (internal) newest-first, attachments metadata (Lab 2 shape, read-only here).
+- **200**: full ticket incl. requester `{id,name,email}`, owner, both priorities, flags, `comments` (public) + `notes` (internal) newest-first, attachments metadata (Lab 2 shape, read-only here — file bytes via the staff download in §4).
 - **404**: missing id (roles verified first: requester → 403 before existence is probed — no leakage, §6.2).
 
 ---
@@ -138,7 +141,11 @@ Body: `{ "itPriority": "HIGH" }` (valid enum, required).
 
 ### PATCH /api/staff/tickets/:id/status — controlled transition
 Body: `{ "status": "RESOLVED" }`.
-- Allowed only along the BR-17 matrix → **200** with updated ticket. Off-matrix → **400** `VALIDATION_ERROR` (`"Transition from X to Y is not permitted"`). Requester → 403 (BR-05, AC-17). Terminal CANCELLED and CLOSED tickets reject comment/note writes (BR-22) but remain readable.
+- Allowed only along the BR-17 matrix → **200** with updated ticket. Off-matrix → **400** `VALIDATION_ERROR` (`"Transition from X to Y is not permitted"`). Requester → 403 (BR-05, AC-17). Destructive targets (CANCELLED) must be confirmed client-side (BR-17); the server validates the matrix regardless. Terminal CANCELLED tickets reject comment/note writes (BR-22) but remain readable.
+
+### GET /api/staff/attachments/:id/download — staff read-only download (AC-31)
+- **200**: binary stream of any ticket's attachment (same Content-Type/Disposition rules as the Lab 2 download). No upload/remove here — evidence is never altered staff-side.
+- **401/403**: session / non-staff-admin role. **404**: missing attachment id. **410**: soft-removed (`GONE`).
 
 ### GET+POST /api/staff/tickets/:id/notes — internal notes
 - Same entry shape as comments. POST validates BR-20. **201** on create. Requester callers never reach here (route role-guarded → 403, AC-04).
@@ -164,7 +171,7 @@ Body subset: `{ "name"?, "email"?, "role"?, "active"? }`.
 - **200**: updated safe user.
 
 ### POST /api/admin/users/:id/reset-password — new initial password
-Body: `{ "newInitialPassword", "confirmPassword"? }` meeting BR-09.
+Body: `{ "newPassword", "confirmPassword" }` meeting BR-09 (same field shape as change-password).
 - Sets hash + `mustChangePassword=true` (BR-27); invalidates that user's other sessions. **200** `{ ok: true }` (no password echoed). Unknown id → 404.
 
 ---

@@ -32,6 +32,7 @@ In our own words: the prototype login must go. Every user now signs in with emai
 - Department/organization/profile-photo/extended profile management; email delivery of passwords/links
 - Account unlocking / lockout (no lockout in Lab 3 — failed logins return a generic error; see BR-06); admin approval workflows
 - Mandatory admin-list pagination, multi-column sorting, multiple simultaneous filters
+- Multi-tenant organizations, departments, customer administration; production-grade deployment/cloud infrastructure changes
 
 ## 4. Functional Requirements
 
@@ -68,7 +69,7 @@ Authentication, passwords, sessions:
 - BR-03: The authenticated user identity, not any client-supplied id, determines ownership of Requester operations (sheet example). A `requesterId` in body/query is ignored, never trusted.
 - BR-04: Public Comments are visible to Requester, IT Staff, and Administrator. Internal Notes are visible only to IT Staff and Administrator (sheet example).
 - BR-05: A Requester may indicate the problem appears resolved but cannot formally set Resolved or Closed (sheet example).
-- BR-06: Failed logins (unknown email, wrong password) return an identical generic 401 — no account-enumeration signal. No lockout in Lab 3 (unlocking is excluded scope); attempts are server-logged.
+- BR-06: Failed logins (unknown email, wrong password) return an identical generic 401 — no account-enumeration signal. No lockout in Lab 3 (unlocking is excluded scope).
 - BR-07: An inactive account with otherwise-valid credentials is rejected with 403 and a clear "account deactivated, contact your administrator" message — without revealing anything beyond that.
 - BR-08: Passwords are stored as bcrypt hashes (cost 12), never plaintext; hashes never leave the server (never in responses, logs, or seed output).
 - BR-09: New/initial passwords: 8–72 chars, at least one letter and one digit; confirmation must match; the new password must differ from the current/initial one. Email addresses are unique (case-insensitive) and validated by shape.
@@ -94,7 +95,9 @@ Ticket ownership, priority, status:
 | RESOLVED | CLOSED, REOPENED | — |
 | CLOSED | REOPENED | — |
 | REOPENED | IN_PROGRESS, CANCELLED | treated as active work again |
-| CANCELLED | (terminal) | no outgoing transitions |
+| CANCELLED | (terminal) | no outgoing transitions; writes frozen (BR-22) |
+
+Destructive targets (CANCELLED status, unassign/owner-removal) require an explicit user confirmation in the UI; the server validates the matrix regardless of confirmation.
 
 - BR-18: The requester resolved-indication is allowed only when status ∈ {OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER} and the ticket is owned by the caller; it sets `requesterResolved=true` (+ timestamp) and appends an automatic public comment. Repeating it is a no-op 200. It never changes status.
 
@@ -102,7 +105,7 @@ Comments and notes:
 - BR-19: Both are append-only (no edit/delete in Lab 3). Author + server timestamp recorded by the backend; client-supplied author/time ignored.
 - BR-20: Body required, trimmed, 1–2000 chars (same bound as descriptions — justified: consistent storage/UX, safe rendering).
 - BR-21: Bodies render as plain text (escaped) — no HTML execution. Requester comment/note endpoints on non-owned tickets → 404; requester hitting Internal Note endpoints → 403 without note content.
-- BR-22: Comment/note creation on CLOSED/CANCELLED tickets is rejected (400) — history stays readable.
+- BR-22: Comment/note creation on CANCELLED tickets is rejected (400) — terminal history stays readable but frozen. CLOSED tickets still accept comments/notes (they may REOPEN, so post-closure discussion is legitimate).
 
 Administrator:
 - BR-23: Create requires name (1–100), valid unique email, one of `REQUESTER, IT_STAFF, ADMINISTRATOR`, and an initial password meeting BR-09. The account starts with `mustChangePassword=true`.
@@ -130,7 +133,7 @@ New/changed Prisma models (PostgreSQL; existing Ticket/Attachment rows preserved
 |---|---|---|
 | `User` | id, name, email (unique, case-insensitive), passwordHash, role enum (`REQUESTER, IT_STAFF, ADMINISTRATOR`), active (default true), mustChangePassword (default true for seeded/created), createdAt, updatedAt | replaces `RequesterUser`; one role per user (Lab 3) |
 | `Session` | id, tokenHash (unique), userId FK, expiresAt, createdAt | server-side session store; token = 256-bit random, only the hash stored |
-| `Ticket` | + ownerId FK→User? (nullable), + itPriority enum? (nullable → default copy of requestedPriority), + requesterResolved Boolean (default false), + requesterResolvedAt? ; requesterId FK remapped to new User ids | existing rows: ownerId NULL, itPriority = requestedPriority, status NEW stays valid |
+| `Ticket` | + ownerId FK→User? (nullable), + itPriority enum (non-nullable, default: copy of requestedPriority at migration), + requesterResolved Boolean (default false), + requesterResolvedAt? ; requesterId FK remapped to new User ids | existing rows: ownerId NULL, itPriority = requestedPriority, status NEW stays valid |
 | `TicketComment` | id, ticketId FK, authorId FK→User, visibility enum (`PUBLIC, INTERNAL`), body, createdAt | single table for comments + notes; no updatedAt (append-only) |
 | `Category`, `RelatedSystem`, `Attachment` | unchanged | — |
 | `RequesterUser` | **removed** (data migrated, table dropped) | migration maps old→new ids |
@@ -141,7 +144,7 @@ Indexes/constraints: unique on user email (case-insensitive — `citext`-style v
 
 Migration strategy (tested on a copy first, §5.2): (1) create new tables/enums; (2) insert Users from RequesterUsers (role REQUESTER, preserve active, seeded initial passwords per §5.3); (3) remap `ticket.requesterId` old→new via a mapping table in the migration script; (4) backfill `itPriority=requestedPriority`; (5) drop `RequesterUser`. Rollback = restore from pre-migration dump (documented command in README).
 
-Seed (idempotent, re-runnable, dev credentials documented in README only — never real secrets): ≥4 active + 1 inactive Requesters, ≥3 active + 1 inactive IT Staff, ≥1 active Administrator; realistic tickets across requesters × statuses × priorities × assigned/unassigned; example public comments + internal notes with no sensitive content. All seeded accounts start `mustChangePassword=true` with the documented dev initial password.
+Seed (idempotent, re-runnable, dev credentials documented in README only — never real secrets): ≥4 active + 1 inactive Requesters, ≥3 active + 1 inactive IT Staff, ≥1 active Administrator; realistic tickets across requesters × statuses × priorities × assigned/unassigned; example public comments + internal notes with no sensitive content. All seeded accounts start `mustChangePassword=true` with the documented dev initial password. Migrated Lab 2 Requesters (matched by email, active flag preserved) receive the same documented dev initial password and must change it at first Lab 3 login — this is how §5.2 "existing Requesters receive initial passwords" is satisfied; brand-new seed Staff/Admin accounts follow the identical rule, so MIG-02 tests both paths.
 
 ## 8. API Contract
 
@@ -150,7 +153,7 @@ Detailed contract in `api-spec.md`. Summary:
 | Endpoint | Method | Purpose | Success | Key errors |
 |---|---|---|---|---|
 | `/api/auth/login` | POST | email+password → session cookie + safe user | 200 (+cookie) | 401, 403 (inactive) |
-| `/api/auth/logout` | POST | invalidate session, clear cookie (idempotent) | 200 | 401 |
+| `/api/auth/logout` | POST | invalidate session, clear cookie (idempotent) | 200 | — (always 200, even without a session) |
 | `/api/auth/me` | GET | current safe identity | 200 | 401 |
 | `/api/auth/change-password` | POST | initial or voluntary change; clears flag | 200 | 400, 401, 403 |
 | `/api/tickets` | POST/GET | Lab 2 create/list under session identity (`requesterId` ignored) | 201/200 | 400, 401, 403, 404 |
@@ -165,11 +168,12 @@ Detailed contract in `api-spec.md`. Summary:
 | `/api/staff/tickets/:id/priority` | PATCH | set IT Priority | 200 | 400, 401, 403, 404 |
 | `/api/staff/tickets/:id/status` | PATCH | transition per matrix | 200 | 400, 401, 403, 404 |
 | `/api/attachments*` | * | Lab 2 lifecycle under session identity | same as Lab 2 | +401/403 |
+| `/api/staff/attachments/:id/download` | GET | staff/admin read-only download of any ticket's active file | 200 | 401, 403, 404, 410 |
 | `/api/admin/users` | GET/POST | list (search+role filter) / create | 200/201 | 400, 401, 403, 409 |
 | `/api/admin/users/:id` | PATCH | edit name/email/role/active | 200 | 400, 401, 403, 404, 409 |
 | `/api/admin/users/:id/reset-password` | POST | issue new initial password | 200 | 400, 401, 403, 404 |
 
-Authorization core: unauthenticated → 401; authenticated-but-forbidden (wrong role, requester on notes/admin, non-owned where applicable) → 403/404 per §6.2 (no leakage of other users' tickets/attachments/notes); invalid input → 400; missing → 404; admin-safety conflicts → 409.
+Authorization core: unauthenticated → 401; authenticated-but-forbidden (wrong role, requester on notes/admin, non-owned where applicable) → 403/404 per the api-spec §6 matrix (no leakage of other users' tickets/attachments/notes); invalid input → 400; missing → 404; admin-safety conflicts → 409.
 
 ## 9. Acceptance Criteria
 
@@ -203,6 +207,7 @@ Authorization core: unauthenticated → 401; authenticated-but-forbidden (wrong 
 - AC-28: Given desktop/tablet/mobile viewports, then all Lab 3 screens stay usable with no clipping/overlap/h-scroll, role nav correct, badges consistent.
 - AC-29: Given keyboard-only operation, then login → role-appropriate flows complete with visible focus.
 - AC-30: Given the implemented screens, then Zen Green tokens/classes conform to ui-spec.md (style assertions).
+- AC-31: Given a staff user, when downloading an attachment of any ticket, then the active file is served with its original name (removed → 410, missing → 404).
 
 ## 10. Definition of Done
 
@@ -234,3 +239,4 @@ Course delivery (checked separately): GitHub Issues + Kanban statuses used; feat
 - AD-10: Emails stored lowercased with a unique index — simple case-insensitive uniqueness without extensions.
 - AD-11: Existing Lab 2 tickets map to status NEW (already the only value) and unassigned owner — staff triage starts the workflow.
 - AD-12: Playwright E2E + screenshots into `artifacts/lab-03/screenshots/{authentication,staff-queue,staff-ticket-detail,user-management}/`, workers:1 (shared DB, Lab 2 lesson).
+- AD-13: Sheet §4.3 keeps Admin/Staff "conceptually separate" but allows the approved matrix to permit overlap — our matrix permits Administrators on staff ticket operations (small-team reality: an admin must be able to triage when no staff are on shift). Unassign (`ownerId: null`) is the explicit return-to-queue handover (the inverse of claim), and the NEW→OPEN move on claim/assign is an acknowledgement side-effect so triaged tickets never sit in NEW while owned. None of this adds Lab 4 scope (no Actions Taken, no SLA).

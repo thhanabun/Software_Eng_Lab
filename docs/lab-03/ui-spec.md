@@ -4,7 +4,21 @@ Reference: labsheet §7–§8. This spec extends the Lab 2 ui-spec (tokens, butt
 
 ## 1. Reused foundation (unchanged)
 
-Color tokens `--tg-primary #006B3C` through `--tg-success`, typography, spacing, radius, button variants (primary/secondary/tertiary/destructive/disabled/busy), form controls (editable white vs `--tg-readonly` shading, focus ring, invalid + `aria-live`, red asterisk), responsive breakpoints (desktop ≥992 / tablet 768–991 / mobile <768, no h-scroll), and accessibility rules (labels, focus, keyboard, native selects) all carry over verbatim. New screens must read as the same application.
+Color tokens, typography, spacing, radius, button variants (primary/secondary/tertiary/destructive/disabled/busy), form controls (editable white vs `--tg-readonly` shading, focus ring, invalid + `aria-live`, red asterisk), responsive breakpoints (desktop ≥992 / tablet 768–991 / mobile <768, no h-scroll), and accessibility rules (labels, focus, keyboard, native selects) all carry over verbatim. New screens must read as the same application.
+
+| Token | Value | Use |
+|---|---|---|
+| `--tg-primary` | `#006B3C` | App header, primary buttons, strong emphasis |
+| `--tg-secondary` | `#0B7A46` | Active tabs/nav, focus accents, links, hover states |
+| `--tg-pale` | `#EAF6EF` | Selected rows, success surfaces, subtle section emphasis |
+| `--tg-bg` | `#F5F7F6` | Page background |
+| `--tg-surface` | `#FFFFFF` | Cards/panels; border `#D8E2DC`, restrained shadow |
+| `--tg-text` | `#1F2E28` | Body text (dark charcoal-green, never pure black) |
+| `--tg-muted` | `#5C6B63` | Secondary text |
+| `--tg-readonly` | `#F1F4EF` | Read-only/system field shading (clearly distinct from editable) |
+| `--tg-error` | `#B42318` | Error text + borders |
+| `--tg-warning` | `#B54708` | Warning callouts/badges only (never decoration) |
+| `--tg-success` | `#067647` | Success text/icons (always paired with text, not color alone) |
 
 ## 2. New badges and indicators
 
@@ -19,7 +33,7 @@ Color tokens `--tg-primary #006B3C` through `--tg-success`, typography, spacing,
 
 ## 3. Application shell and role navigation
 
-- Header: `--tg-primary` bg, TokTickIT identity left; center nav is **role-specific**: Requester → My Tickets + Create Ticket; IT Staff → Ticket Queue (+ My Tickets? no — staff use the queue only); Administrator → User Management. Unauthorized destinations are never linked.
+- Header: `--tg-primary` bg, TokTickIT identity left; center nav is **role-specific**: Requester → My Tickets + Create Ticket; IT Staff → Ticket Queue; Administrator → User Management. Unauthorized destinations are never linked.
 - Right side: authenticated user name + role pill + **Logout** tertiary-on-dark action (replaces the Lab 2 Requester display + Change Requester, both removed).
 - Mobile: same collapse behavior as Lab 2; role nav + user menu reachable.
 - Guards: `RequireAuth` (no session → `/login`, post-login return-to supported), `RequireRole` (wrong role → safe forbidden panel, never a blank page or a redirect loop), `RequirePasswordChange` (pending flag → only `/change-password` reachable).
@@ -39,11 +53,11 @@ Centered card: shown forced (pending flag) or voluntary (from user menu). Fields
 - Requester Ticket Detail (`/tickets/:id`): Lab 2 read-only grid + attachments **plus**: Owner line, IT Priority badge (read-only), Resolved-indication line, **Public Comments** section (list newest-first + post box with counter 0/2000 + per-error text), and **"Problem appears resolved"** button (visible only in OPEN/IN_PROGRESS/WAITING_FOR_REQUESTER when not yet indicated; confirm inline, then replaced by the confirmation line). No status/priority/owner controls, no notes section — not even hidden placeholders that suggest them.
 
 ### 4.4 Staff Ticket Queue — `/staff/tickets`
-Toolbar: search input, Status / Category / Requested Priority / IT Priority / Owner (incl. "Unassigned") filters, Sort select, **Clear filters** (when active). Desktop: table — Ticket Number, Summary, Category, Req Priority, IT Priority, Status badge, Owner chip, Last Updated; row/Open action → detail. Mobile: cards (number + summary top, status/priority badges, owner + updated bottom, Open button ≥44px). Pagination prev/next + indicator + page-size {5,10,25} (AD-07). States: loading skeleton, empty ("No tickets in the system"), no-results ("No matches — Clear filters"), forbidden (wrong role — only via direct URL), failure + Retry. Simple result count line ("23 tickets") — counts only, no dashboard (excluded scope).
+Toolbar: search input, Status / Category / Requested Priority / IT Priority / Owner (incl. "Unassigned") filters, Sort select, **Clear filters** (when active). Desktop: table — Ticket Number, Summary, Category, Req Priority, IT Priority, Status badge, Owner chip, Last Updated; row/Open action → detail. Column justification (sheet §8.3): Number identifies, Summary describes, Category groups, the two priorities separate requester urgency from operational triage, Status + Owner answer "what state, whose hands", Last Updated drives FIFO triage — Created Date is intentionally omitted (visible on detail) to avoid a mega-grid; each column earns its width at 1280px and collapses to cards below 768px. Mobile: cards (number + summary top, status/priority badges, owner + updated bottom, Open button ≥44px). Pagination prev/next + indicator + page-size {5,10,25} (AD-07). States: loading skeleton, empty ("No tickets in the system"), no-results ("No matches — Clear filters"), forbidden (wrong role — only via direct URL), failure + Retry. Simple result count line ("23 tickets") — counts only, no dashboard (excluded scope).
 
 ### 4.5 Staff Ticket Detail — `/staff/tickets/:id`
-Grouped layout (Lab 2 grid extended): requester block (name/email, read-only), classification, both priorities, status badge + resolved-indication line, description, attachments (Lab 2 list, **read-only** — upload/remove stay requester-side; staff never alters evidence).
-**Operations panel** (staff/admin only, clearly grouped): Owner row (current chip + Claim button when unassigned/by-other + Assign select with active staff/admin + Unassign), IT Priority select (immediate save + saved confirmation), Status select limited to matrix-legal targets from current status (illegal options never offered; server re-validates), each action with busy/success/error feedback.
+Grouped layout (Lab 2 grid extended): requester block (name/email, read-only), classification, both priorities, status badge + resolved-indication line, description, attachments (Lab 2 list with a staff **Download** action, otherwise **read-only** — upload/remove stay requester-side; staff never alters evidence).
+**Operations panel** (staff/admin only, clearly grouped): Owner row (current chip + Claim button when unassigned/by-other + Assign select with active staff/admin + Unassign), IT Priority select (immediate save + saved confirmation), Status select limited to matrix-legal targets from current status (illegal options never offered; server re-validates; CANCELLED requires a confirm modal per BR-17), each action with busy/success/error feedback.
 **Communication**: Public Comments section (post + list) and Internal Notes section (amber/lock styling, post + list) — visually distinct per §2. Validation, 2000-char counters, safe failure text. 404 panel for missing ids; forbidden panel for requesters hitting the route.
 
 ### 4.6 Admin User Management — `/admin/users`

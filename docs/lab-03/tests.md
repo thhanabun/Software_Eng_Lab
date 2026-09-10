@@ -35,7 +35,7 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | AUTHZ-03 | API | AC-25 | Requester/staff → admin endpoints | 403, no user data | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | AUTHZ-04 | API | AC-17, BR-05 | Requester → staff ops (claim/assign/priority/status) | 403 everywhere | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | AUTHZ-05 | API | BR-12 | Cross-requester ticket/attachment/comment access | 404 everywhere, no leakage | `server/tests/lab-03/authorization.api.test.ts` | TBD |
-| AUTHZ-06 | API | §6.2 | Logged-out access to every protected route class | 401 everywhere | `server/tests/lab-03/authorization.api.test.ts` | TBD |
+| AUTHZ-06 | API | sheet §6.2 | Logged-out access to every protected route class | 401 everywhere | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | AUTHZ-07 | API | AC-19 | Requester detail payload contains comments, never notes | Notes absent even when they exist | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | RREG-01 | API | AC-12 | Lab 2 create/list/detail/attachments under cookie identity | Same behaviors/codes as Lab 2 suites | `server/tests/lab-03/authorization.api.test.ts` + Lab 2 suites green | TBD |
 | Q-01 | API | AC-13 | Queue search/filter/sort/page happy paths | Correct slices + metadata; defaults (createdAt asc, pageSize 10) | `server/tests/lab-03/staff-queue.api.test.ts` | TBD |
@@ -45,24 +45,25 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | STOP-02 | API | AC-15 | Assign/reassign/unassign validation | Bad/inactive/wrong-role target rejected; ownership unchanged | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
 | STOP-03 | API | AC-16, BR-15 | IT Priority set (staff) vs requester attempt | 200 vs 403 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
 | STOP-04 | API | AC-17, BR-17 | Status transitions legal + illegal (each matrix edge sampled) | 200 on legal; 400 on off-matrix/terminal | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
+| STOP-05 | API | AC-31 | Staff read-only attachment download | 200 active file; 410 removed; 404 missing | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
 | CN-01 | API | AC-18, BR-19..21 | Public comment post/list (requester own, staff any) | 201 server author/time; empty/overlong → 400 | `server/tests/lab-03/comments-notes.api.test.ts` | TBD |
 | CN-02 | API | AC-19 | Notes visible to staff/admin only | Full entries for staff; requester 403 | `server/tests/lab-03/comments-notes.api.test.ts` | TBD |
 | CN-03 | API | AC-20, BR-18 | Resolved-indication happy path + repeat + wrong status | Flag + auto comment; no-op repeat; 400 off-status | `server/tests/lab-03/comments-notes.api.test.ts` | TBD |
-| CN-04 | API | BR-22 | Writes on CLOSED/CANCELLED rejected | 400; history still readable | `server/tests/lab-03/comments-notes.api.test.ts` | TBD |
+| CN-04 | API | BR-22 | Writes on CANCELLED rejected | 400; history still readable | `server/tests/lab-03/comments-notes.api.test.ts` | TBD |
 | CN-05 | API | BR-20 boundary | Comment body 2000/2001 chars | 2000 accepted, 2001 rejected | `server/tests/lab-03/comments-notes.api.test.ts` | TBD |
 | ADM-01 | API | AC-21, BR-23 | Admin create valid user | 201 must-change account; no password echoed | `server/tests/lab-03/users-admin.api.test.ts` | TBD |
 | ADM-02 | API | AC-22 | Duplicate email (case variants) on create/update | 409; nothing changed | `server/tests/lab-03/users-admin.api.test.ts` | TBD |
 | ADM-03 | API | AC-23, BR-25/26 | Self-deactivate + last-admin removal | 400 / 409; admin set unchanged | `server/tests/lab-03/users-admin.api.test.ts` | TBD |
 | ADM-04 | API | AC-24 | Reset password → must-change at next login | Flag set; old sessions killed | `server/tests/lab-03/users-admin.api.test.ts` | TBD |
-| ADM-05 | API | §8.5 | List search + role filter; edit name/email/role/active | Correct subsets; 200 updates | `server/tests/lab-03/users-admin.api.test.ts` | TBD |
+| ADM-05 | API | sheet §8.5 | List search + role filter; edit name/email/role/active | Correct subsets; 200 updates | `server/tests/lab-03/users-admin.api.test.ts` | TBD |
 | MIG-01 | API | AC-26, BR-30 | Seed idempotency | Re-run: no duplicates; manual deactivation persists | `server/tests/lab-03/users-admin.api.test.ts` | TBD |
-| MIG-02 | API | AC-27, §5.2 | Migrated Lab 2 data integrity | Counts match; ownership remapped; attachments intact; seeded logins work | migration verification script + test | TBD |
+| MIG-02 | API | AC-27, sheet §5.2 | Migrated Lab 2 data integrity | Counts match; ownership remapped; attachments intact; seeded logins work | migration verification script + test | TBD |
 | UI-30 | UI | AC-01, AC-05, AC-06 | Login states | Validation, busy, generic vs deactivated messages | `client/tests/lab-03/Login.test.tsx` | TBD |
 | UI-31 | UI | AC-02, AC-10, AC-11 | Change-password forced/voluntary | Rule hints, blocking, success continuation | `client/tests/lab-03/ChangePassword.test.tsx` | TBD |
 | UI-32 | UI | AC-13 | Queue controls | Correct query params; clear-filters; empty/no-results/failure | `client/tests/lab-03/StaffTicketQueue.test.tsx` | TBD |
-| UI-33 | UI | AC-14..AC-18 | Detail ops rendering | Claim/assign/priority/status controls by state; comment+note panels; indication button rules | `client/tests/lab-03/StaffTicketDetail.test.tsx` | TBD |
+| UI-33 | UI | AC-14..AC-18, AC-31 | Detail ops rendering | Claim/assign/priority/status controls by state; comment+note panels; indication button rules; staff download action | `client/tests/lab-03/StaffTicketDetail.test.tsx` | TBD |
 | UI-34 | UI | AC-21..AC-24 | User management | Search/filter, modal validation, safety-rule messages, reset flow | `client/tests/lab-03/UserManagement.test.tsx` | TBD |
-| UI-35 | UI | guards | RequireAuth/RequireRole/RequirePasswordChange + role nav + logout | Redirects, forbidden panel, no unauthorized links | `client/tests/lab-03/` guard tests | TBD |
+| UI-35 | UI | guards | RequireAuth/RequireRole/RequirePasswordChange + role nav + logout | Redirects, forbidden panel, no unauthorized links | `client/tests/lab-03/Guards.test.tsx` | TBD |
 | STYLE-02 | UI style | AC-30, AC-28 | Zen Green + distinction | Tokens, 8 status badges, IT prefix, public-vs-internal styling, role pills | component tests | TBD |
 | E2E-01 | E2E | AC-01, AC-02, AC-07 | authentication: login variants + forced change + logout blocks back-access | Full browser flow incl. invalid/inactive cases | `e2e/lab-03/authentication.spec.ts` | TBD |
 | E2E-02 | E2E | AC-13..AC-20 | staff-ticket-flow: queue → claim → priority → status → comment + note → indication visible | End-to-end staff loop in browser | `e2e/lab-03/staff-ticket-flow.spec.ts` | TBD |
@@ -104,6 +105,7 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | AC-28 | E2E-04 |
 | AC-29 | E2E-05, manual checklist |
 | AC-30 | STYLE-02, E2E-04 |
+| AC-31 | STOP-05, UI-33 |
 
 Every AC maps to ≥1 test; every test maps to ≥1 AC/BR. Boundary coverage (labsheet §9.2 analogue): AUTH-09 (password lengths), CN-05 (comment 2000/2001).
 
