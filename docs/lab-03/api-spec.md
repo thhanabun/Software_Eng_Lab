@@ -89,8 +89,8 @@ All Lab 2 `/api/tickets*` and `/api/attachments*` endpoints behave identically e
 - GET **200**: `[{ id, body, authorName, authorRole, createdAt }]` newest-first. Non-owned → 404.
 - POST body `{ "body": "..." }` (BR-20: trim, 1–2000) → **201** with the entry (author/time from server, BR-19). Cancelled ticket → 400 (BR-22). Non-owned → 404.
 
-### GET+POST /api/tickets/:id/notes — internal notes (staff/admin only, §5.2 detail)
-- Any Requester caller → **403** `FORBIDDEN`, no note content (AC-04). (Full contract under §5.)
+### GET+POST /api/tickets/:id/notes — requester-side path (always 403 for Requesters)
+- Any Requester caller → **403** `FORBIDDEN`, no note content (AC-04). (Full contract under §4 — this path exists only to reject requesters cleanly.)
 
 ### POST /api/tickets/:id/resolved-indication — "appears resolved"
 - Requester-owned ticket with status ∈ {OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER} → **200** `{ requesterResolved: true, requesterResolvedAt }` + automatic public comment `"Requester indicated the problem appears resolved."`. Repeat call → 200 no-op. Other statuses → 400; non-owned → 404; staff calling → 403 (they use status transitions).
@@ -118,7 +118,7 @@ Unknown parameters ignored. Priority sorts use severity URGENT > HIGH > MEDIUM >
 
 ### GET /api/staff/tickets/:id — staff detail
 - **200**: full ticket incl. requester `{id,name,email}`, owner, both priorities, flags, `comments` (public) + `notes` (internal) newest-first, attachments metadata (Lab 2 shape, read-only here — file bytes via the staff download in §4).
-- **404**: missing id (roles verified first: requester → 403 before existence is probed — no leakage, §6.2).
+- **404**: missing id (roles verified first: requester → 403 before existence is probed — no leakage, §6).
 
 ---
 
@@ -132,7 +132,7 @@ Unknown parameters ignored. Priority sorts use severity URGENT > HIGH > MEDIUM >
 ### POST /api/staff/tickets/:id/assign — assign / reassign / unassign
 Body: `{ "ownerId": 7 | null }` (`null` unassigns).
 - Target must exist, be active, and hold role IT_STAFF or ADMINISTRATOR → else 400/404, ownership unchanged (AC-15).
-- Claim-side effect: assigning from NEW sets OPEN (same rule as claim). **200** with updated owner/status.
+- Claim-side effect: assigning a non-null owner from NEW sets OPEN (acknowledgement, AD-13). Unassigning (`ownerId: null`) leaves the status untouched — an unowned OPEN ticket would contradict triage, so the status only moves on genuine handover. **200** with updated owner/status.
 - Assigning the current owner → 200 no-op.
 
 ### PATCH /api/staff/tickets/:id/priority — set IT Priority
@@ -141,13 +141,13 @@ Body: `{ "itPriority": "HIGH" }` (valid enum, required).
 
 ### PATCH /api/staff/tickets/:id/status — controlled transition
 Body: `{ "status": "RESOLVED" }`.
-- Allowed only along the BR-17 matrix → **200** with updated ticket. Off-matrix → **400** `VALIDATION_ERROR` (`"Transition from X to Y is not permitted"`). Requester → 403 (BR-05, AC-17). Destructive targets (CANCELLED) must be confirmed client-side (BR-17); the server validates the matrix regardless. Terminal CANCELLED tickets reject comment/note writes (BR-22) but remain readable.
+- Allowed only along the BR-17 matrix → **200** with updated ticket. Off-matrix → **400** `VALIDATION_ERROR` (`"Transition from X to Y is not permitted"`). Requester → 403 (BR-05, AC-17). Destructive targets (CANCELLED status, unassign/owner-removal) must be confirmed client-side (BR-17); the server validates the matrix regardless. Terminal CANCELLED tickets reject comment/note writes (BR-22) but remain readable.
 
 ### GET /api/staff/attachments/:id/download — staff read-only download (AC-31)
-- **200**: binary stream of any ticket's attachment (same Content-Type/Disposition rules as the Lab 2 download). No upload/remove here — evidence is never altered staff-side.
+- **200**: binary stream of any ticket's attachment; `Content-Type` = stored MIME; `Content-Disposition: attachment; filename="<originalName>"` (Lab 2 rule). No upload/remove here — evidence is never altered staff-side.
 - **401/403**: session / non-staff-admin role. **404**: missing attachment id. **410**: soft-removed (`GONE`).
 
-### GET+POST /api/staff/tickets/:id/notes — internal notes
+### GET+POST /api/staff/tickets/:id/notes — internal notes (the primary staff path)
 - Same entry shape as comments. POST validates BR-20. **201** on create. Requester callers never reach here (route role-guarded → 403, AC-04).
 
 ---

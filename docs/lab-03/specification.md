@@ -142,9 +142,9 @@ Enums: extend `TicketStatus` to the 8 values; add `UserRole`, `CommentVisibility
 
 Indexes/constraints: unique on user email (case-insensitive — `citext`-style via lower() or application-normalized lowercase storage; decision: store emails lowercased, unique index), session tokenHash unique, comment `@@index([ticketId, createdAt])`, ticket `@@index([ownerId])`, `@@index([currentStatus, updatedAt])` for the queue default query. Rationale recorded per-field in §7 of the migration commit like Lab 2.
 
-Migration strategy (tested on a copy first, §5.2): (1) create new tables/enums; (2) insert Users from RequesterUsers (role REQUESTER, preserve active, seeded initial passwords per §5.3); (3) remap `ticket.requesterId` old→new via a mapping table in the migration script; (4) backfill `itPriority=requestedPriority`; (5) drop `RequesterUser`. Rollback = restore from pre-migration dump (documented command in README).
+Migration strategy (tested on a copy first, sheet §5.2): (1) create new tables/enums; (2) insert Users from RequesterUsers (role REQUESTER, preserve active, seeded initial passwords per sheet §5.3); (3) remap `ticket.requesterId` old→new via a mapping table in the migration script; (4) backfill `itPriority=requestedPriority`; (5) drop `RequesterUser`. Rollback = restore from pre-migration dump (documented command in README).
 
-Seed (idempotent, re-runnable, dev credentials documented in README only — never real secrets): ≥4 active + 1 inactive Requesters, ≥3 active + 1 inactive IT Staff, ≥1 active Administrator; realistic tickets across requesters × statuses × priorities × assigned/unassigned; example public comments + internal notes with no sensitive content. All seeded accounts start `mustChangePassword=true` with the documented dev initial password. Migrated Lab 2 Requesters (matched by email, active flag preserved) receive the same documented dev initial password and must change it at first Lab 3 login — this is how §5.2 "existing Requesters receive initial passwords" is satisfied; brand-new seed Staff/Admin accounts follow the identical rule, so MIG-02 tests both paths.
+Seed (idempotent, re-runnable, dev credentials documented in README only — never real secrets): ≥4 active + 1 inactive Requesters, ≥3 active + 1 inactive IT Staff, ≥1 active Administrator; realistic tickets across requesters × statuses × priorities × assigned/unassigned; example public comments + internal notes with no sensitive content. All seeded accounts start `mustChangePassword=true` with the documented dev initial password. Migrated Lab 2 Requesters (matched by email, active flag preserved) receive the same documented dev initial password and must change it at first Lab 3 login — this is how sheet §5.2 "existing Requesters receive initial passwords" is satisfied; brand-new seed Staff/Admin accounts follow the identical rule, so MIG-02 tests both paths.
 
 ## 8. API Contract
 
@@ -152,6 +152,9 @@ Detailed contract in `api-spec.md`. Summary:
 
 | Endpoint | Method | Purpose | Success | Key errors |
 |---|---|---|---|---|
+| `/api/health` | GET | health (Lab 1, unchanged) | 200 | 503 |
+| `/api/categories` | GET | categories (Lab 1, unchanged) | 200 | 500 |
+| `/api/related-systems` | GET | active related systems (Lab 2, unchanged) | 200 | 500 |
 | `/api/auth/login` | POST | email+password → session cookie + safe user | 200 (+cookie) | 401, 403 (inactive) |
 | `/api/auth/logout` | POST | invalidate session, clear cookie (idempotent) | 200 | — (always 200, even without a session) |
 | `/api/auth/me` | GET | current safe identity | 200 | 401 |
@@ -159,7 +162,8 @@ Detailed contract in `api-spec.md`. Summary:
 | `/api/tickets` | POST/GET | Lab 2 create/list under session identity (`requesterId` ignored) | 201/200 | 400, 401, 403, 404 |
 | `/api/tickets/:id` | GET | owned detail + public comments | 200 | 400, 401, 403, 404 |
 | `/api/tickets/:id/comments` | GET/POST | list/add public comments | 200/201 | 400, 401, 403, 404 |
-| `/api/tickets/:id/notes` | GET/POST | list/add internal notes (staff/admin) | 200/201 | 401, 403, 404 |
+| `/api/tickets/:id/notes` | GET/POST | requester-side path: always 403 for Requesters (exists only to reject cleanly); staff use the staff path below | — | 403 |
+| `/api/staff/tickets/:id/notes` | GET/POST | list/add internal notes — the primary staff path (staff/admin) | 200/201 | 401, 403, 404 |
 | `/api/tickets/:id/resolved-indication` | POST | requester "appears resolved" (BR-18) | 200 | 400, 401, 403, 404 |
 | `/api/staff/tickets` | GET | queue: search/filter/sort/page | 200 | 400, 401, 403 |
 | `/api/staff/tickets/:id` | GET | staff detail (all fields + notes) | 200 | 401, 403, 404 |
@@ -240,3 +244,4 @@ Course delivery (checked separately): GitHub Issues + Kanban statuses used; feat
 - AD-11: Existing Lab 2 tickets map to status NEW (already the only value) and unassigned owner — staff triage starts the workflow.
 - AD-12: Playwright E2E + screenshots into `artifacts/lab-03/screenshots/{authentication,staff-queue,staff-ticket-detail,user-management}/`, workers:1 (shared DB, Lab 2 lesson).
 - AD-13: Sheet §4.3 keeps Admin/Staff "conceptually separate" but allows the approved matrix to permit overlap — our matrix permits Administrators on staff ticket operations (small-team reality: an admin must be able to triage when no staff are on shift). Unassign (`ownerId: null`) is the explicit return-to-queue handover (the inverse of claim), and the NEW→OPEN move on claim/assign is an acknowledgement side-effect so triaged tickets never sit in NEW while owned. None of this adds Lab 4 scope (no Actions Taken, no SLA).
+- AD-14: Hardening defaults with test cover (not sheet-mandated, kept deliberately): password change/reset invalidates sibling sessions (AUTH-08/ADM-04); inactive users keep read-only access to owned history (Lab 2 BR-23 carryover, RREG-01); the new password must differ from the old (AUTH-07). All three are asserted by tests, so they are contract, not accident.

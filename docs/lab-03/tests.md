@@ -57,14 +57,14 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | ADM-04 | API | AC-24 | Reset password → must-change at next login | Flag set; old sessions killed | `server/tests/lab-03/users-admin.api.test.ts` | TBD |
 | ADM-05 | API | sheet §8.5 | List search + role filter; edit name/email/role/active | Correct subsets; 200 updates | `server/tests/lab-03/users-admin.api.test.ts` | TBD |
 | MIG-01 | API | AC-26, BR-30 | Seed idempotency | Re-run: no duplicates; manual deactivation persists | `server/tests/lab-03/users-admin.api.test.ts` | TBD |
-| MIG-02 | API | AC-27, sheet §5.2 | Migrated Lab 2 data integrity | Counts match; ownership remapped; attachments intact; seeded logins work | migration verification script + test | TBD |
+| MIG-02 | API | AC-27, sheet §5.2 | Migrated Lab 2 data integrity | Counts match; ownership remapped; attachments intact; seeded logins work | `server/tests/lab-03/migration.api.test.ts` | TBD |
 | UI-30 | UI | AC-01, AC-05, AC-06 | Login states | Validation, busy, generic vs deactivated messages | `client/tests/lab-03/Login.test.tsx` | TBD |
 | UI-31 | UI | AC-02, AC-10, AC-11 | Change-password forced/voluntary | Rule hints, blocking, success continuation | `client/tests/lab-03/ChangePassword.test.tsx` | TBD |
 | UI-32 | UI | AC-13 | Queue controls | Correct query params; clear-filters; empty/no-results/failure | `client/tests/lab-03/StaffTicketQueue.test.tsx` | TBD |
-| UI-33 | UI | AC-14..AC-18, AC-31 | Detail ops rendering | Claim/assign/priority/status controls by state; comment+note panels; indication button rules; staff download action | `client/tests/lab-03/StaffTicketDetail.test.tsx` | TBD |
+| UI-33 | UI | AC-14..AC-18, AC-31 | Detail ops rendering | Claim/assign/priority/status controls by state; comment+note panels; indication button rules; staff download action; confirm modal for CANCELLED/unassign | `client/tests/lab-03/StaffTicketDetail.test.tsx` | TBD |
 | UI-34 | UI | AC-21..AC-24 | User management | Search/filter, modal validation, safety-rule messages, reset flow | `client/tests/lab-03/UserManagement.test.tsx` | TBD |
 | UI-35 | UI | guards | RequireAuth/RequireRole/RequirePasswordChange + role nav + logout | Redirects, forbidden panel, no unauthorized links | `client/tests/lab-03/Guards.test.tsx` | TBD |
-| STYLE-02 | UI style | AC-30, AC-28 | Zen Green + distinction | Tokens, 8 status badges, IT prefix, public-vs-internal styling, role pills | component tests | TBD |
+| STYLE-02 | UI style | AC-30, AC-28 | Zen Green + distinction | Tokens, 8 status badges, IT prefix, public-vs-internal styling, role pills | `client/tests/lab-03/StaffTicketQueue.test.tsx`, `client/tests/lab-03/StaffTicketDetail.test.tsx` | TBD |
 | E2E-01 | E2E | AC-01, AC-02, AC-07 | authentication: login variants + forced change + logout blocks back-access | Full browser flow incl. invalid/inactive cases | `e2e/lab-03/authentication.spec.ts` | TBD |
 | E2E-02 | E2E | AC-13..AC-20 | staff-ticket-flow: queue → claim → priority → status → comment + note → indication visible | End-to-end staff loop in browser | `e2e/lab-03/staff-ticket-flow.spec.ts` | TBD |
 | E2E-03 | E2E | AC-21..AC-25 | user-administration: create → edit → reset → forced change → safety rejections → non-admin 403 | Full admin loop in browser | `e2e/lab-03/user-administration.spec.ts` | TBD |
