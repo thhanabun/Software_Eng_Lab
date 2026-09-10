@@ -73,7 +73,7 @@ Authentication, passwords, sessions:
 - BR-07: An inactive account with otherwise-valid credentials is rejected with 403 and a clear "account deactivated, contact your administrator" message — without revealing anything beyond that.
 - BR-08: Passwords are stored as bcrypt hashes (cost 12), never plaintext; hashes never leave the server (never in responses, logs, or seed output).
 - BR-09: New/initial passwords: 8–72 chars, at least one letter and one digit; confirmation must match; the new password must differ from the current/initial one. Email addresses are unique (case-insensitive) and validated by shape.
-- BR-10: Sessions: opaque random token in cookie `toktickit_session` (httpOnly, SameSite=Lax, Secure in production, path `/`), server-side `Session` row with 8-hour absolute expiry; logout deletes the row (cookie cleared); expired/unknown token → 401. CSRF posture: SameSite=Lax + JSON APIs that reject non-JSON content types — documented in api-spec §0; no separate CSRF token at lab scale (AD-02).
+- BR-10: Sessions: opaque random token in cookie `toktickit_session` (httpOnly, SameSite=Lax, Secure in production, path `/`), server-side `Session` row with 8-hour absolute expiry (30 minutes for pending-change sessions); logout deletes the row (cookie cleared); expired/unknown token → 401. CSRF posture: SameSite=Lax + JSON APIs that reject non-JSON content types — documented in api-spec §0; no separate CSRF token at lab scale (AD-02).
 - BR-11: `GET /api/auth/me` returns only safe identity fields (id, name, email, role, active, mustChangePassword) — never hashes or tokens.
 
 Requester regression:
@@ -244,7 +244,7 @@ Issue decomposition (sheet §11) — each required area maps to a tracked issue:
 | E2E testing + visual inspection (screenshots, checklist) | #35 |
 | release integration (reviewer.md, ai-use.md, final tests.md, README, merge to main) | #36 |
 
-- AD-01: Cookie session (httpOnly + SameSite=Lax, server `Session` rows, 8h absolute expiry) over JWT — simpler for same-origin MVP, no client token handling, logout = row delete. Revisit only if cross-origin needs arise.
+- AD-01: Cookie session (httpOnly + SameSite=Lax, server `Session` rows, 8h absolute expiry — 30 min for pending-change sessions) over JWT — simpler for same-origin MVP, no client token handling, logout = row delete. Revisit only if cross-origin needs arise.
 - AD-02: No dedicated CSRF token at lab scale: SameSite=Lax cookies + JSON-only state-changing APIs (+ explicit `Content-Type: application/json` requirement) — documented; a token would be added before any production use.
 - AD-03: bcrypt cost 12 — OWASP-adequate for lab login volumes without slowing tests excessively (auth tests use cost 4 via env override — documented in tests.md).
 - AD-04: Password rules (8–72 chars, letter+digit) — memorable for graders, blocks trivial passwords; 72 = bcrypt input limit.
