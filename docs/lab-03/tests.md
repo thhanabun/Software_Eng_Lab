@@ -25,7 +25,7 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | AUTH-03 | API | AC-06, BR-07 | Inactive account, valid credentials | 403 deactivated message | `server/tests/lab-03/auth.api.test.ts` | TBD |
 | AUTH-04 | API | AC-07 | Logout invalidates session | Post-logout `me` + protected call → 401; logout idempotent 200 | `server/tests/lab-03/auth.api.test.ts` | TBD |
 | AUTH-05 | API | AC-08 | Expired/unknown token | 401 on protected endpoints | `server/tests/lab-03/auth.api.test.ts` | TBD |
-| AUTH-06 | API | AC-02, AC-09, BR-02 | Must-change session gate | Normal APIs → 403 PASSWORD_CHANGE_REQUIRED; me/change-password/logout allowed | `server/tests/lab-03/auth.api.test.ts` | TBD |
+| AUTH-06 | API | AC-02, AC-09, BR-02 | Must-change session gate | Normal APIs → 403 PASSWORD_CHANGE_REQUIRED; me/change-password/logout allowed; pending session expires after 30 min | `server/tests/lab-03/auth.api.test.ts` | TBD |
 | AUTH-07 | API | AC-10, BR-09 | Change-password validation (weak/mismatch/same-as-current, missing current when required) | 400 field details; hash unchanged | `server/tests/lab-03/auth.api.test.ts` | TBD |
 | AUTH-08 | API | AC-11 | Valid change clears flag | 200; bcrypt hash updated; sibling sessions killed; app APIs work | `server/tests/lab-03/auth.api.test.ts` | TBD |
 | AUTH-09 | API | BR-09 boundary | Password boundaries (7/8/72/73 chars, digit-only, letter-only) | 7/73/digit-only/letter-only rejected; 8/72 valid-shape accepted | `server/tests/lab-03/auth.api.test.ts` | TBD |
@@ -37,12 +37,13 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | AUTHZ-05 | API | BR-12 | Cross-requester ticket/attachment/comment access | 404 everywhere, no leakage | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | AUTHZ-06 | API | sheet §6.2 | Logged-out access to every protected route class | 401 everywhere | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | AUTHZ-07 | API | AC-19 | Requester detail payload contains comments, never notes | Notes absent even when they exist | `server/tests/lab-03/authorization.api.test.ts` | TBD |
+| AUTHZ-08 | API | AC-31 | Requester → staff download path | 403, no file bytes | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | RREG-01 | API | AC-12 | Lab 2 create/list/detail/attachments under cookie identity | Same behaviors/codes as Lab 2 suites; `server/tests/lab-02/` + `client/tests/lab-02/` suites stay green | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | Q-01 | API | AC-13 | Queue search/filter/sort/page happy paths | Correct slices + metadata; defaults (createdAt asc, pageSize 10) | `server/tests/lab-03/staff-queue.api.test.ts` | TBD |
 | Q-02 | API | AC-13 | Queue invalid params / unknown ignored | 400 per-field; unknown params ignored | `server/tests/lab-03/staff-queue.api.test.ts` | TBD |
 | Q-03 | API | AC-13 | Owner filter incl. `unassigned` | Correct subsets | `server/tests/lab-03/staff-queue.api.test.ts` | TBD |
 | STOP-01 | API | AC-14, AD-09 | Claim unassigned (NEW→OPEN side effect) | 200 owner+status; repeat self-claim no-op; foreign-owned → 409 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
-| STOP-02 | API | AC-15 | Assign/reassign/unassign validation | Bad/inactive/wrong-role target rejected; ownership unchanged | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
+| STOP-02 | API | AC-15 | Assign/reassign/unassign validation | Bad/inactive/wrong-role target rejected, ownership unchanged; unassign clears owner and returns active-work status to NEW | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
 | STOP-03 | API | AC-16, BR-15 | IT Priority set (staff) vs requester attempt | 200 vs 403 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
 | STOP-04 | API | AC-17, BR-17 | Status transitions legal + illegal (each matrix edge sampled) | 200 on legal; 400 on off-matrix/terminal | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
 | STOP-05 | API | AC-31 | Staff read-only attachment download | 200 active file; 410 removed; 404 missing | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
@@ -105,7 +106,7 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | AC-28 | E2E-04 |
 | AC-29 | E2E-05, manual checklist |
 | AC-30 | STYLE-02, E2E-04 |
-| AC-31 | STOP-05, UI-33 |
+| AC-31 | STOP-05, AUTHZ-08, UI-33 |
 
 Every AC maps to ≥1 test; every test maps to ≥1 AC/BR. Boundary coverage (sheet §9.2 analogue): AUTH-09 (password lengths), CN-05 (comment 2000/2001).
 

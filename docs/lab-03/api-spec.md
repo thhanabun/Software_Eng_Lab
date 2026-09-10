@@ -52,7 +52,7 @@ CSRF posture (BR-10): the session cookie is `SameSite=Lax`; all state-changing J
 
 ### POST /api/auth/login — establish session
 Body: `{ "email": "...", "password": "..." }` (email normalized to lowercase, trimmed).
-- **200**: sets `toktickit_session` cookie + returns `{ "user": <safe user> }`. If `mustChangePassword` is true, the session is flagged pending-change (BR-02): the client must route to `/change-password`; normal APIs return `PASSWORD_CHANGE_REQUIRED`.
+- **200**: sets `toktickit_session` cookie + returns `{ "user": <safe user> }`. If `mustChangePassword` is true, the session is flagged pending-change (BR-02): the client must route to `/change-password`; normal APIs return `PASSWORD_CHANGE_REQUIRED`. Pending-change sessions expire after 30 minutes (vs 8h normal) — a half-finished first login must not linger.
 - **401** `UNAUTHENTICATED` with the generic message `"Invalid email or password"` — identical for unknown email, wrong password (BR-06).
 - **403** `FORBIDDEN` `"This account has been deactivated. Contact your administrator."` — only when credentials are otherwise valid (BR-07).
 - **400**: malformed body (missing fields).
@@ -132,7 +132,7 @@ Unknown parameters ignored. Priority sorts use severity URGENT > HIGH > MEDIUM >
 ### POST /api/staff/tickets/:id/assign — assign / reassign / unassign
 Body: `{ "ownerId": 7 | null }` (`null` unassigns).
 - Target must exist, be active, and hold role IT_STAFF or ADMINISTRATOR → else 400/404, ownership unchanged (AC-15).
-- Claim-side effect: assigning a non-null owner from NEW sets OPEN (acknowledgement, AD-13). Unassigning (`ownerId: null`) leaves the status untouched — an unowned OPEN ticket would contradict triage, so the status only moves on genuine handover. **200** with updated owner/status.
+- Ownership/status coupling: assigning a non-null owner from NEW sets OPEN (acknowledgement, AD-13). Unassigning sets owner NULL and returns an active-work status (OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER, REOPENED) to NEW — back to the triage pool; RESOLVED/CLOSED/CANCELLED keep their status with owner cleared. **200** with updated owner/status.
 - Assigning the current owner → 200 no-op.
 
 ### PATCH /api/staff/tickets/:id/priority — set IT Priority
