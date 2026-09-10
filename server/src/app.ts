@@ -26,5 +26,25 @@ export function createApp(): express.Express {
   app.use("/api/tickets/:id/attachments", ticketAttachmentsRouter);
   app.use("/api/attachments", attachmentsRouter);
 
+  // BR-29: never leak stacks/SQL/paths — malformed JSON and unexpected
+  // errors both answer with the safe error shape, never the Express HTML page.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    const status = (err as { status?: unknown }).status;
+    if (err instanceof SyntaxError && status === 400) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Request body is not valid JSON",
+          details: [{ field: "body", message: "Request body must be valid JSON" }],
+        },
+      });
+      return;
+    }
+    res.status(500).json({
+      error: { code: "INTERNAL_ERROR", message: "Unexpected server error" },
+    });
+  });
+
   return app;
 }

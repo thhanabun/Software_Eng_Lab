@@ -65,6 +65,16 @@ describe("POST /api/auth/login (AUTH-01)", () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("VALIDATION_ERROR");
   });
+
+  it("answers malformed JSON with the safe error shape, never HTML (BR-29)", async () => {
+    const res = await request(app)
+      .post("/api/auth/login")
+      .set("Content-Type", "application/json")
+      .send("{not-valid-json");
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+    expect(JSON.stringify(res.body)).not.toMatch(/stack|node_modules/i);
+  });
 });
 
 describe("login failures (AUTH-02, AUTH-03)", () => {
