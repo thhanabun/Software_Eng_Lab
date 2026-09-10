@@ -12,7 +12,7 @@ Test-Driven Development plan for Lab 3. Created **before implementation** (with 
 - **Responsive/visual** — Playwright screenshots at 1280×800 / 820×1180 / 390×844 into `artifacts/lab-03/screenshots/`, checked against ui-spec §8.
 - **E2E** — Playwright against running server+client (`e2e/lab-03/`): first-login force-change, staff flow, admin flow.
 
-Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests override bcrypt cost to 4 via env (speed; production cost stays 12 per AD-03); seeded passwords are dev-only values; no test skipped or disabled in the final state. ID numbering continues Lab 2 (UNIT-01 and UI-01..UI-24 live in `lab-02`; Lab 3 IDs start at UNIT-02/UI-30) — sequences are per-lab, nothing skipped.
+Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests override bcrypt cost to 4 via env (speed; production cost stays 12 per AD-03); seeded passwords are dev-only values; no test skipped or disabled in the final state. ID numbering continues Lab 2 sequences (UNIT-01 and UI-01..UI-24 live in `lab-02`; UI-25..UI-29 were never assigned, so Lab 3 picks up at UNIT-02/UI-30) — nothing skipped.
 
 ## 2. Planned Tests
 
@@ -37,7 +37,7 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | AUTHZ-05 | API | BR-12 | Cross-requester ticket/attachment/comment access | 404 everywhere, no leakage | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | AUTHZ-06 | API | sheet §6.2 | Logged-out access to every protected route class | 401 everywhere | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | AUTHZ-07 | API | AC-19 | Requester detail payload contains comments, never notes | Notes absent even when they exist | `server/tests/lab-03/authorization.api.test.ts` | TBD |
-| RREG-01 | API | AC-12 | Lab 2 create/list/detail/attachments under cookie identity | Same behaviors/codes as Lab 2 suites; Lab 2 suites stay green | `server/tests/lab-03/authorization.api.test.ts` | TBD |
+| RREG-01 | API | AC-12 | Lab 2 create/list/detail/attachments under cookie identity | Same behaviors/codes as Lab 2 suites; `server/tests/lab-02/` + `client/tests/lab-02/` suites stay green | `server/tests/lab-03/authorization.api.test.ts` | TBD |
 | Q-01 | API | AC-13 | Queue search/filter/sort/page happy paths | Correct slices + metadata; defaults (createdAt asc, pageSize 10) | `server/tests/lab-03/staff-queue.api.test.ts` | TBD |
 | Q-02 | API | AC-13 | Queue invalid params / unknown ignored | 400 per-field; unknown params ignored | `server/tests/lab-03/staff-queue.api.test.ts` | TBD |
 | Q-03 | API | AC-13 | Owner filter incl. `unassigned` | Correct subsets | `server/tests/lab-03/staff-queue.api.test.ts` | TBD |
@@ -68,7 +68,7 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | E2E-01 | E2E | AC-01, AC-02, AC-07 | authentication: login variants + forced change + logout blocks back-access | Full browser flow incl. invalid/inactive cases | `e2e/lab-03/authentication.spec.ts` | TBD |
 | E2E-02 | E2E | AC-13..AC-20 | staff-ticket-flow: queue → claim → priority → status → comment + note → indication visible | End-to-end staff loop in browser | `e2e/lab-03/staff-ticket-flow.spec.ts` | TBD |
 | E2E-03 | E2E | AC-21..AC-25 | user-administration: create → edit → reset → forced change → safety rejections → non-admin 403 | Full admin loop in browser | `e2e/lab-03/user-administration.spec.ts` | TBD |
-| E2E-04 | Responsive | AC-28, AC-30 | Screenshots 4 screen groups × 3 viewports + checklist | Saved to `artifacts/lab-03/screenshots/`; ui-spec §8 passes | `e2e/lab-03/authentication.spec.ts`, `e2e/lab-03/staff-ticket-flow.spec.ts`, `e2e/lab-03/user-administration.spec.ts` | TBD |
+| E2E-04 | Responsive | AC-28, AC-30 | Screenshots (4 screen groups × 3 viewports, produced across the e2e specs) + checklist | Saved to `artifacts/lab-03/screenshots/`; ui-spec §8 passes | `e2e/lab-03/authentication.spec.ts`, `e2e/lab-03/staff-ticket-flow.spec.ts`, `e2e/lab-03/user-administration.spec.ts` | TBD |
 | E2E-05 | E2E | AC-29 | Keyboard-only login → role flow | Reachable + completable via keyboard | `e2e/lab-03/authentication.spec.ts` | TBD |
 
 ## 3. Acceptance-Criterion Traceability

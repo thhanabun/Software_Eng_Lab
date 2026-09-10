@@ -229,6 +229,8 @@ Product Definition of Done (checked before the coding agent may report complete)
 
 Course delivery (checked separately): GitHub Issues + Kanban statuses used; feature branches; peer-reviewed PRs through `lab3-staging`; reviewer comments responded; `docs/lab-03/` complete (specification.md, tests.md, ui-spec.md, api-spec.md, reviewer.md, ai-use.md); one submission PDF.
 
+## 11. Assumptions and Decisions
+
 Issue decomposition (sheet §11) — each required area maps to a tracked issue:
 
 | Area | Issue |
@@ -241,8 +243,6 @@ Issue decomposition (sheet §11) — each required area maps to a tracked issue:
 | Administrator user management | #34 |
 | E2E testing + visual inspection (screenshots, checklist) | #35 |
 | release integration (reviewer.md, ai-use.md, final tests.md, README, merge to main) | #36 |
-
-## 11. Assumptions and Decisions
 
 - AD-01: Cookie session (httpOnly + SameSite=Lax, server `Session` rows, 8h absolute expiry) over JWT — simpler for same-origin MVP, no client token handling, logout = row delete. Revisit only if cross-origin needs arise.
 - AD-02: No dedicated CSRF token at lab scale: SameSite=Lax cookies + JSON-only state-changing APIs (+ explicit `Content-Type: application/json` requirement) — documented; a token would be added before any production use.

@@ -1,6 +1,6 @@
 # Lab 3 UI Specification — Zen Green Theme (extensions)
 
-Reference: labsheet §7–§8. This spec extends the Lab 2 ui-spec (tokens, buttons, forms, badges, shell, responsive §7, accessibility §8, feedback §9 stay in force) — only new/changed screens and components are defined here.
+Reference: sheet §7–§8. This spec extends the Lab 2 ui-spec (tokens, buttons, forms, badges, shell, responsive §7, accessibility §8, feedback §9 stay in force) — only new/changed screens and components are defined here.
 
 ## 1. Reused foundation (unchanged)
 
