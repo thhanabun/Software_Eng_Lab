@@ -20,8 +20,8 @@ let inactiveRequesterId: number;
 const createdTicketIds: number[] = [];
 
 beforeAll(async () => {
-  const active = await prisma.requesterUser.findFirst({ where: { active: true } });
-  const inactive = await prisma.requesterUser.findFirst({ where: { active: false } });
+  const active = await prisma.user.findFirst({ where: { active: true, role: "REQUESTER" } });
+  const inactive = await prisma.user.findFirst({ where: { active: false, role: "REQUESTER" } });
   if (!active || !inactive) throw new Error("seed must provide active and inactive requesters");
   requesterId = active.id;
   inactiveRequesterId = inactive.id;

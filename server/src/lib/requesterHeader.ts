@@ -24,7 +24,9 @@ export async function resolveRequesterId(req: Request, res: Response): Promise<n
     return null;
   }
 
-  const requester = await prisma.requesterUser.findUnique({ where: { id: requesterId } });
+  // Lab 3 compat shim (Issue #30): the header now resolves against User.
+  // Issue #31 removes this mechanism entirely in favor of cookie identity.
+  const requester = await prisma.user.findUnique({ where: { id: requesterId } });
   if (!requester) {
     res.status(404).json({
       error: { code: "NOT_FOUND", message: "Requester not found" },
