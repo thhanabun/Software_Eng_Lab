@@ -65,8 +65,8 @@ Body: `{ "email": "...", "password": "..." }` (email normalized to lowercase, tr
 - **401**: no/invalid/expired session.
 
 ### POST /api/auth/change-password — initial or voluntary change
-Body: `{ "currentPassword"?: "...", "newPassword": "...", "confirmPassword": "..." }`.
-- `currentPassword` is **required** except when the session is pending-change (initial login proves identity via the just-validated credential).
+Body: `{ "currentPassword": "...", "newPassword": "...", "confirmPassword": "..." }`.
+- `currentPassword` is always required and verified — in the pending-initial flow it is the issued initial password, which lets the BR-09 differ-check apply uniformly (re-choosing the initial password is rejected).
 - New password rules (BR-09): 8–72 chars, ≥1 letter + ≥1 digit, must differ from current; `confirmPassword` must match.
 - **200**: `{ "user": <safe user with mustChangePassword:false> }`; pending flag cleared; other sessions of the same user are invalidated (password change kills siblings — safe default).
 - **400**: rule violations with field `details`. **401**: bad session. **403**: `currentPassword` wrong (generic `"Current password is incorrect"`).

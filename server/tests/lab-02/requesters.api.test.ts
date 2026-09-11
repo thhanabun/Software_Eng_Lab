@@ -23,8 +23,8 @@ describe("GET /api/requesters (API-01)", () => {
   });
 
   it("excludes inactive requesters from the response", async () => {
-    const inactive = await prisma.requesterUser.findMany({
-      where: { active: false },
+    const inactive = await prisma.user.findMany({
+      where: { active: false, role: "REQUESTER" },
     });
     expect(inactive.length).toBeGreaterThanOrEqual(1);
 
@@ -58,7 +58,7 @@ describe("Lab 2 seed idempotency (API-02)", () => {
     const before = {
       categories: await prisma.category.count(),
       systems: await prisma.relatedSystem.count(),
-      requesters: await prisma.requesterUser.count(),
+      requesters: await prisma.user.count({ where: { role: "REQUESTER" } }),
     };
 
     await seedAll(prisma);
@@ -66,17 +66,17 @@ describe("Lab 2 seed idempotency (API-02)", () => {
 
     expect(await prisma.category.count()).toBe(before.categories);
     expect(await prisma.relatedSystem.count()).toBe(before.systems);
-    expect(await prisma.requesterUser.count()).toBe(before.requesters);
+    expect(await prisma.user.count({ where: { role: "REQUESTER" } })).toBe(before.requesters);
   });
 
   it("seeded reference data meets Lab 2 minimums", async () => {
     const categories = await prisma.category.count();
     const systems = await prisma.relatedSystem.count();
-    const activeRequesters = await prisma.requesterUser.count({
-      where: { active: true },
+    const activeRequesters = await prisma.user.count({
+      where: { active: true, role: "REQUESTER" },
     });
-    const inactiveRequesters = await prisma.requesterUser.count({
-      where: { active: false },
+    const inactiveRequesters = await prisma.user.count({
+      where: { active: false, role: "REQUESTER" },
     });
 
     expect(categories).toBeGreaterThanOrEqual(4);

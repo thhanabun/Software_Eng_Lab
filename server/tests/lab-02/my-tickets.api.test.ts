@@ -59,15 +59,15 @@ beforeAll(async () => {
   network = (await prisma.category.findUniqueOrThrow({ where: { name: "Network" } })).id;
   email = (await prisma.relatedSystem.findUniqueOrThrow({ where: { name: "Email" } })).id;
 
-  const a = await prisma.requesterUser.upsert({
+  const a = await prisma.user.upsert({
     where: { email: "list-a@student.example" },
     update: { active: true },
-    create: { name: "List Tester A", email: "list-a@student.example", active: true },
+    create: { name: "List Tester A", email: "list-a@student.example", active: true, role: "REQUESTER", passwordHash: "test-hash-not-for-login" },
   });
-  const b = await prisma.requesterUser.upsert({
+  const b = await prisma.user.upsert({
     where: { email: "list-b@student.example" },
     update: { active: true },
-    create: { name: "List Tester B", email: "list-b@student.example", active: true },
+    create: { name: "List Tester B", email: "list-b@student.example", active: true, role: "REQUESTER", passwordHash: "test-hash-not-for-login" },
   });
   requesterA = a.id;
   requesterB = b.id;
@@ -84,7 +84,7 @@ beforeEach(cleanupTickets);
 
 afterAll(async () => {
   await cleanupTickets();
-  await prisma.requesterUser.deleteMany({ where: { id: { in: [requesterA, requesterB] } } });
+  await prisma.user.deleteMany({ where: { id: { in: [requesterA, requesterB] } } });
 });
 
 describe("GET /api/tickets ownership (API-07)", () => {

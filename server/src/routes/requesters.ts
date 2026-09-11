@@ -5,8 +5,10 @@ export const requestersRouter: Router = Router();
 
 requestersRouter.get("/", async (_req, res) => {
   try {
-    const requesters = await prisma.requesterUser.findMany({
-      where: { active: true },
+    // Lab 3 compat (Issue #30): serves the Lab 2 selector from User rows.
+    // Removed in Issue #31 with the selector itself.
+    const requesters = await prisma.user.findMany({
+      where: { active: true, role: "REQUESTER" },
       orderBy: { name: "asc" },
       select: { id: true, name: true, email: true },
     });

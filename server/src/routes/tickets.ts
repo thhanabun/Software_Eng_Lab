@@ -245,7 +245,7 @@ ticketsRouter.post("/", async (req, res) => {
   }
 
   if (requesterId !== null) {
-    const requester = await prisma.requesterUser.findUnique({ where: { id: requesterId } });
+    const requester = await prisma.user.findFirst({ where: { id: requesterId, role: "REQUESTER" } });
     if (!requester) add("requesterId", "Requester not found");
     else if (!requester.active) add("requesterId", "Requester is not active");
   }
@@ -285,6 +285,8 @@ ticketsRouter.post("/", async (req, res) => {
             summary,
             description,
             requestedPriority: requestedPriority as RequestedPriority,
+            // IT Priority starts as a copy of Requested Priority (BR-15).
+            itPriority: requestedPriority as RequestedPriority,
           },
         });
         res.status(201).json(ticket);

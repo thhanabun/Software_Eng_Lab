@@ -50,17 +50,17 @@ beforeAll(async () => {
   app = createApp();
   await seedAll(prisma);
   requesterId = (
-    await prisma.requesterUser.upsert({
+    await prisma.user.upsert({
       where: { email: "attach-owner@student.example" },
       update: { active: true },
-      create: { name: "Attach Owner", email: "attach-owner@student.example", active: true },
+      create: { name: "Attach Owner", email: "attach-owner@student.example", active: true, role: "REQUESTER", passwordHash: "test-hash-not-for-login" },
     })
   ).id;
   strangerId = (
-    await prisma.requesterUser.upsert({
+    await prisma.user.upsert({
       where: { email: "attach-stranger@student.example" },
       update: { active: true },
-      create: { name: "Attach Stranger", email: "attach-stranger@student.example", active: true },
+      create: { name: "Attach Stranger", email: "attach-stranger@student.example", active: true, role: "REQUESTER", passwordHash: "test-hash-not-for-login" },
     })
   ).id;
   ticketId = await makeTicket(requesterId);
@@ -81,7 +81,7 @@ beforeEach(removeAllAttachments);
 afterAll(async () => {
   await removeAllAttachments();
   await prisma.ticket.deleteMany({ where: { requesterId: { in: [requesterId, strangerId] } } });
-  await prisma.requesterUser.deleteMany({ where: { id: { in: [requesterId, strangerId] } } });
+  await prisma.user.deleteMany({ where: { id: { in: [requesterId, strangerId] } } });
 });
 
 describe("POST /api/tickets/:id/attachments (API-17..20)", () => {

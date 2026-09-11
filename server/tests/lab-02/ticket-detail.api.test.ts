@@ -33,17 +33,17 @@ beforeAll(async () => {
   app = createApp();
   await seedAll(prisma);
   owner = (
-    await prisma.requesterUser.upsert({
+    await prisma.user.upsert({
       where: { email: "detail-owner@student.example" },
       update: { active: true },
-      create: { name: "Detail Owner", email: "detail-owner@student.example", active: true },
+      create: { name: "Detail Owner", email: "detail-owner@student.example", active: true, role: "REQUESTER", passwordHash: "test-hash-not-for-login" },
     })
   ).id;
   stranger = (
-    await prisma.requesterUser.upsert({
+    await prisma.user.upsert({
       where: { email: "detail-stranger@student.example" },
       update: { active: true },
-      create: { name: "Detail Stranger", email: "detail-stranger@student.example", active: true },
+      create: { name: "Detail Stranger", email: "detail-stranger@student.example", active: true, role: "REQUESTER", passwordHash: "test-hash-not-for-login" },
     })
   ).id;
   ticketId = (await makeTicket(owner)).id;
@@ -58,7 +58,7 @@ async function cleanup() {
 
 afterAll(async () => {
   await cleanup();
-  await prisma.requesterUser.deleteMany({ where: { id: { in: [owner, stranger] } } });
+  await prisma.user.deleteMany({ where: { id: { in: [owner, stranger] } } });
 });
 
 describe("GET /api/tickets/:id (API-14..16)", () => {
