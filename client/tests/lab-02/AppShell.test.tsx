@@ -1,80 +1,92 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../../src/App'
 import AppShell from '../../src/components/AppShell'
-import { RequesterProvider } from '../../src/requesterContext'
-import { REQUESTER_STORAGE_KEY } from '../../src/requesterStorage'
+import { AuthProvider } from '../../src/authContext'
+import { TEST_USER } from '../test-user'
 
-const REQUESTER = { id: 1, name: 'Alice Carter', email: 'alice.carter@student.example' }
+function ok(body: unknown) {
+  return { ok: true, status: 200, json: async () => body }
+}
+
+function stubMe(user: unknown) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === '/api/auth/me') {
+        if (user === null) {
+          return { ok: false, status: 401, json: async () => ({ error: { code: 'UNAUTHENTICATED' } }) }
+        }
+        return ok({ user })
+      }
+      if (url === '/api/auth/logout') return ok({ ok: true })
+      throw new Error(`unexpected ${url}`)
+    }),
+  )
+}
 
 function renderShell(initialPath = '/tickets') {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
-      <RequesterProvider>
+      <AuthProvider>
         <Routes>
+          <Route path="/login" element={<div>LOGIN STUB</div>} />
           <Route element={<AppShell />}>
             <Route path="/tickets" element={<div>TICKETS STUB</div>} />
             <Route path="/tickets/new" element={<div>CREATE STUB</div>} />
           </Route>
-          <Route path="/select-requester" element={<div>SELECTION STUB</div>} />
         </Routes>
-      </RequesterProvider>
+      </AuthProvider>
     </MemoryRouter>,
   )
 }
 
 describe('Application shell (UI-06, STYLE-01)', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    localStorage.setItem(REQUESTER_STORAGE_KEY, JSON.stringify(REQUESTER))
-  })
-
   afterEach(() => {
     vi.unstubAllGlobals()
-    localStorage.clear()
   })
 
-  it('UI-06: shows the current requester and clears context via Change Requester', async () => {
+  it('UI-06: shows the authenticated user, role, and logs out', async () => {
+    stubMe(TEST_USER)
     renderShell()
 
-    expect(screen.getByTestId('current-requester')).toHaveTextContent('Alice Carter')
+    expect(await screen.findByTestId('current-user')).toHaveTextContent('Alice Carter')
+    expect(screen.getByTestId('current-role')).toHaveTextContent('REQUESTER')
 
-    await userEvent.click(screen.getByRole('button', { name: 'Change Requester' }))
-
-    expect(screen.getByText('SELECTION STUB')).toBeInTheDocument()
-    expect(localStorage.getItem(REQUESTER_STORAGE_KEY)).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Logout' }))
+    expect(await screen.findByText('LOGIN STUB')).toBeInTheDocument()
   })
 
-  it('UI-06: marks the active page in the navigation', () => {
+  it('UI-06: marks the active page in the navigation', async () => {
+    stubMe(TEST_USER)
     renderShell('/tickets/new')
 
-    const createLink = screen.getByRole('link', { name: 'Create Ticket' })
+    const createLink = await screen.findByRole('link', { name: 'Create Ticket' })
     expect(createLink).toHaveClass('active')
     expect(createLink).toHaveAttribute('aria-current', 'page')
   })
 
-  it('STYLE-01: header uses the Zen Green primary token class', () => {
+  it('STYLE-01: header uses the Zen Green primary token class', async () => {
+    stubMe(TEST_USER)
     renderShell()
 
+    await screen.findByTestId('current-user')
     const header = screen.getByText('TokTickIT', { selector: '.tg-brand' }).closest('header')
     expect(header).not.toBeNull()
     expect(header).toHaveClass('tg-header')
   })
 })
 
-describe('Requester guard (AC-02)', () => {
-  beforeEach(() => {
-    localStorage.clear()
-  })
-
+describe('Auth guard (AC-02 analogue)', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it('redirects ticket screens to the Selection screen when no requester is selected', () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }))
+  it('redirects ticket screens to Login when no session exists', async () => {
+    stubMe(null)
 
     render(
       <MemoryRouter initialEntries={['/tickets']}>
@@ -82,8 +94,18 @@ describe('Requester guard (AC-02)', () => {
       </MemoryRouter>,
     )
 
-    expect(
-      screen.getByText(/Select a Development Requester to test requester-specific ticket behavior/i),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/sign in with your email/i)).toBeInTheDocument()
+  })
+
+  it('forces pending-change users to the change-password screen', async () => {
+    stubMe({ ...TEST_USER, mustChangePassword: true })
+
+    render(
+      <MemoryRouter initialEntries={['/tickets']}>
+        <App />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText(/choose a new password/i)).toBeInTheDocument()
   })
 })

@@ -1,11 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import AttachmentSection from '../../src/components/AttachmentSection'
-import { RequesterProvider } from '../../src/requesterContext'
-import { REQUESTER_STORAGE_KEY } from '../../src/requesterStorage'
+import { mockUseAuth } from '../test-user'
 
-const requester = { id: 1, name: 'Alice Carter', email: 'alice.carter@student.example' }
+vi.mock('../../src/authContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/authContext')>()
+  return { ...actual, useAuth: () => mockUseAuth() }
+})
 
 const active = {
   id: 31,
@@ -74,19 +76,10 @@ function stubFetch(overrides: { uploadStatus?: number; uploadMessage?: string } 
 }
 
 function renderSection() {
-  return render(
-    <RequesterProvider>
-      <AttachmentSection ticketId={5} />
-    </RequesterProvider>,
-  )
+  return render(<AttachmentSection ticketId={5} />)
 }
 
 describe('Attachment section', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    localStorage.setItem(REQUESTER_STORAGE_KEY, JSON.stringify(requester))
-  })
-
   afterEach(() => {
     vi.unstubAllGlobals()
   })

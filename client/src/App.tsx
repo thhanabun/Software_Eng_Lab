@@ -1,30 +1,43 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
-import RequireRequester from './components/RequireRequester'
+import { RequireAuth } from './components/RequireAuth'
 import SystemStatusCard from './components/SystemStatusCard'
+import ChangePassword from './pages/ChangePassword'
 import CreateTicket from './pages/CreateTicket'
+import Login from './pages/Login'
 import MyTickets from './pages/MyTickets'
-import RequesterSelection from './pages/RequesterSelection'
 import TicketDetail from './pages/TicketDetail'
-import { RequesterProvider, useRequester } from './requesterContext'
+import { AuthProvider, useAuth } from './authContext'
 
 function RootRedirect() {
-  const { requester } = useRequester()
-  return <Navigate to={requester ? '/tickets' : '/select-requester'} replace />
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  if (user.mustChangePassword) return <Navigate to="/change-password" replace />
+  // Staff/admin homes land in later issues; requesters start at My Tickets.
+  return <Navigate to="/tickets" replace />
 }
 
 function App() {
   return (
-    <RequesterProvider>
+    <AuthProvider>
       <Routes>
         <Route path="/" element={<RootRedirect />} />
-        <Route path="/select-requester" element={<RequesterSelection />} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/change-password"
+          element={
+            <RequireAuth>
+              <ChangePassword />
+            </RequireAuth>
+          }
+        />
         <Route path="/system" element={<SystemStatusCard />} />
         <Route
           element={
-            <RequireRequester>
+            <RequireAuth>
               <AppShell />
-            </RequireRequester>
+            </RequireAuth>
           }
         >
           <Route path="/tickets" element={<MyTickets />} />
@@ -33,7 +46,7 @@ function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </RequesterProvider>
+    </AuthProvider>
   )
 }
 

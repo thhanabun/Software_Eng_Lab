@@ -4,21 +4,23 @@ import type { Express } from "express";
 import { createApp } from "../../src/app";
 import { prisma } from "../../src/db";
 import { seedAll } from "../../prisma/seed";
+import { createLoginUser, loginAgent, type TestAgent } from "../helpers";
 
 let app: Express;
 let owner: number;
 let stranger: number;
 let ticketId: number;
+let ownerAgent: TestAgent;
+let strangerAgent: TestAgent;
 
-async function makeTicket(requesterId: number): Promise<{ id: number; ticketNumber: string }> {
+async function makeTicket(): Promise<{ id: number; ticketNumber: string }> {
   const hardware = await prisma.category.findUniqueOrThrow({ where: { name: "Hardware" } });
   const laptop = await prisma.relatedSystem.findUniqueOrThrow({
     where: { name: "Corporate Laptop" },
   });
-  const res = await request(app)
+  const res = await ownerAgent
     .post("/api/tickets")
     .send({
-      requesterId,
       categoryId: hardware.id,
       relatedSystemId: laptop.id,
       summary: "Battery drains within an hour",
@@ -32,21 +34,11 @@ async function makeTicket(requesterId: number): Promise<{ id: number; ticketNumb
 beforeAll(async () => {
   app = createApp();
   await seedAll(prisma);
-  owner = (
-    await prisma.user.upsert({
-      where: { email: "detail-owner@student.example" },
-      update: { active: true },
-      create: { name: "Detail Owner", email: "detail-owner@student.example", active: true, role: "REQUESTER", passwordHash: "test-hash-not-for-login" },
-    })
-  ).id;
-  stranger = (
-    await prisma.user.upsert({
-      where: { email: "detail-stranger@student.example" },
-      update: { active: true },
-      create: { name: "Detail Stranger", email: "detail-stranger@student.example", active: true, role: "REQUESTER", passwordHash: "test-hash-not-for-login" },
-    })
-  ).id;
-  ticketId = (await makeTicket(owner)).id;
+  owner = (await createLoginUser("detail-owner@student.example", "Detail Owner")).id;
+  stranger = (await createLoginUser("detail-stranger@student.example", "Detail Stranger")).id;
+  ownerAgent = await loginAgent(app, "detail-owner@student.example");
+  strangerAgent = await loginAgent(app, "detail-stranger@student.example");
+  ticketId = (await makeTicket()).id;
 });
 
 async function cleanup() {
@@ -63,9 +55,8 @@ afterAll(async () => {
 
 describe("GET /api/tickets/:id (API-14..16)", () => {
   it("returns the full detail for the owner, including names and attachments array", async () => {
-    const res = await request(app)
-      .get(`/api/tickets/${ticketId}`)
-      .set("X-Requester-Id", String(owner));
+    const res = await ownerAgent
+      .get(`/api/tickets/${ticketId}`);
 
     expect(res.status).toBe(200);
     expect(res.body.id).toBe(ticketId);
@@ -82,34 +73,30 @@ describe("GET /api/tickets/:id (API-14..16)", () => {
   });
 
   it("returns the same safe 404 for another requester's ticket and for missing ids (API-15)", async () => {
-    const foreign = await request(app)
-      .get(`/api/tickets/${ticketId}`)
-      .set("X-Requester-Id", String(stranger));
+    const foreign = await strangerAgent
+      .get(`/api/tickets/${ticketId}`);
     expect(foreign.status).toBe(404);
 
-    const missing = await request(app)
-      .get("/api/tickets/987654")
-      .set("X-Requester-Id", String(owner));
+    const missing = await ownerAgent
+      .get("/api/tickets/987654");
     expect(missing.status).toBe(404);
 
-    const badId = await request(app)
-      .get("/api/tickets/not-a-number")
-      .set("X-Requester-Id", String(owner));
+    const badId = await ownerAgent
+      .get("/api/tickets/not-a-number");
     expect(badId.status).toBe(404);
 
     expect(foreign.body.error.message).toBe(missing.body.error.message);
     expect(foreign.body.error.message).toBe(badId.body.error.message);
   });
 
-  it("rejects missing or invalid X-Requester-Id with 400 (API-16)", async () => {
+  it("rejects missing or invalid sessions with 401 (API-16)", async () => {
     const missing = await request(app).get(`/api/tickets/${ticketId}`);
-    expect(missing.status).toBe(400);
-    expect(missing.body.error.code).toBe("VALIDATION_ERROR");
-    expect(missing.body.error.details[0].field).toBe("requesterId");
+    expect(missing.status).toBe(401);
+    expect(missing.body.error.code).toBe("UNAUTHENTICATED");
 
     const invalid = await request(app)
       .get(`/api/tickets/${ticketId}`)
-      .set("X-Requester-Id", "zero");
-    expect(invalid.status).toBe(400);
+      .set("Cookie", "toktickit_session=deadbeef");
+    expect(invalid.status).toBe(401);
   });
 });

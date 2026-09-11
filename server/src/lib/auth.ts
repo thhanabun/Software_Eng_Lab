@@ -37,26 +37,34 @@ export function passwordChangeRequired(res: Response): void {
   });
 }
 
-async function attachUser(req: Request): Promise<SessionUser | "inactive" | "none"> {
+// Resolves the session and attaches req.user (active or not). Returns false
+// when there is no usable session at all.
+async function attachUser(req: Request): Promise<boolean> {
   // Reuse the user attached by an earlier middleware in the chain.
-  if (req.user) return req.user;
+  if (req.user) return true;
   const result = await resolveSessionStatus(req.cookies?.[SESSION_COOKIE]);
-  if (result.kind === "ok") {
-    req.user = result.user;
-    return result.user;
-  }
-  return result.kind;
+  if (result.kind === "none") return false;
+  req.user = result.user;
+  return true;
 }
 
-// Attaches req.user when the session cookie is valid; 401 for missing/expired
-// sessions, 403 (and session destroyed) when the user was deactivated.
+// Identity gate for reads: 401 only when there is no session. Inactive users
+// keep read-only access to their own history (api-spec S2 carryover).
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const user = await attachUser(req);
-  if (user === "none") {
+  if (!(await attachUser(req))) {
     unauthorized(res);
     return;
   }
-  if (user === "inactive") {
+  next();
+}
+
+// Write gate: 401 without session, 403 for deactivated accounts.
+export async function requireActive(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (!(await attachUser(req))) {
+    unauthorized(res);
+    return;
+  }
+  if (!req.user!.active) {
     deactivated(res);
     return;
   }
@@ -64,24 +72,34 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 }
 
 // Role gate for chains: requireAuth must run first (reads req.user, resolves
-// standalone when it has to). Wrong role -> 403.
+// standalone when it has to). Inactive role-holders are rejected: role routes
+// are never read-only. Wrong role -> 403.
 export function requireRole(...roles: UserRole[]) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const user = await attachUser(req);
-    if (user === "none") {
+    if (!(await attachUser(req))) {
       unauthorized(res);
       return;
     }
-    if (user === "inactive") {
+    if (!req.user!.active) {
       deactivated(res);
       return;
     }
-    if (!roles.includes(user.role)) {
+    if (!roles.includes(req.user!.role)) {
       forbidden(res);
       return;
     }
     next();
   };
+}
+
+// Requester-only gate for requester routes: staff/admin must use their own
+// APIs (matrix). Chains after requireAuth.
+export function requireRequesterRole(req: Request, res: Response, next: NextFunction): void {
+  if (req.user?.role !== "REQUESTER") {
+    forbidden(res);
+    return;
+  }
+  next();
 }
 
 // Blocks must-change sessions from normal APIs (BR-02). Auth routes stay open.

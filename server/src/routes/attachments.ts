@@ -3,36 +3,37 @@ import path from "node:path";
 import { Router, type Request, type Response } from "express";
 import type { Attachment } from "@prisma/client";
 import { prisma } from "../db";
-import { parsePositiveIntParam, resolveRequesterId, validationError } from "../lib/requesterHeader";
+import { requireActive, requireAuth, requireFreshPassword, requireRequesterRole } from "../lib/auth";
+import { internalError, notFound, parsePositiveIntParam, validationError } from "../lib/validation";
 import { UPLOADS_DIR } from "../lib/attachments";
 import { attachmentMeta } from "./ticketAttachments";
 
 export const attachmentsRouter: Router = Router();
 
 async function ownedAttachment(req: Request, res: Response): Promise<Attachment | null> {
-  const requesterId = await resolveRequesterId(req, res);
-  if (requesterId === null) return null;
-
   const id = parsePositiveIntParam(req.params.id);
   if (id === null) {
-    res.status(404).json({ error: { code: "NOT_FOUND", message: "Attachment not found" } });
+    notFound(res, "Attachment not found");
     return null;
   }
 
   const attachment = await prisma.attachment.findUnique({ where: { id }, include: { ticket: true } });
-  if (!attachment || attachment.ticket.requesterId !== requesterId) {
-    res.status(404).json({ error: { code: "NOT_FOUND", message: "Attachment not found" } });
+  if (!attachment || attachment.ticket.requesterId !== req.user!.id) {
+    notFound(res, "Attachment not found");
     return null;
   }
   return attachment;
 }
 
-attachmentsRouter.get("/:id", async (req, res) => {
+const attachmentRead = [requireAuth, requireRequesterRole, requireFreshPassword];
+const attachmentWrite = [requireAuth, requireRequesterRole, requireActive, requireFreshPassword];
+
+attachmentsRouter.get("/:id", ...attachmentRead, async (req, res) => {
   const attachment = await ownedAttachment(req, res);
   if (attachment) res.json(attachmentMeta(attachment));
 });
 
-attachmentsRouter.get("/:id/download", async (req, res) => {
+attachmentsRouter.get("/:id/download", ...attachmentRead, async (req, res) => {
   const attachment = await ownedAttachment(req, res);
   if (!attachment) return;
 
@@ -52,7 +53,7 @@ attachmentsRouter.get("/:id/download", async (req, res) => {
   res.download(storedPath, attachment.originalName);
 });
 
-attachmentsRouter.delete("/:id", async (req, res) => {
+attachmentsRouter.delete("/:id", ...attachmentWrite, async (req, res) => {
   const attachment = await ownedAttachment(req, res);
   if (!attachment) return;
 

@@ -48,7 +48,7 @@ export async function createSession(userId: number, pendingChange: boolean): Pro
 
 export type SessionResolution =
   | { kind: "ok"; user: SessionUser }
-  | { kind: "inactive" }
+  | { kind: "inactive"; user: SessionUser }
   | { kind: "none" };
 
 async function lookupSession(token: string) {
@@ -64,7 +64,9 @@ export async function resolveSession(token: string | undefined): Promise<Session
 }
 
 // Full resolution: missing/expired -> none; live session of a deactivated
-// user -> inactive (session row destroyed so it can never be reused).
+// user -> inactive. The session is preserved (not destroyed) so the
+// spec-mandated read-only history access (api-spec S2, Lab 2 BR-23 carryover)
+// keeps working; all writes are blocked by requireActive and login is blocked.
 export async function resolveSessionStatus(token: string | undefined): Promise<SessionResolution> {
   if (!token) return { kind: "none" };
   const session = await lookupSession(token);
@@ -74,8 +76,7 @@ export async function resolveSessionStatus(token: string | undefined): Promise<S
     return { kind: "none" };
   }
   if (!session.user.active) {
-    await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
-    return { kind: "inactive" };
+    return { kind: "inactive", user: safeUser(session.user) };
   }
   return { kind: "ok", user: safeUser(session.user) };
 }

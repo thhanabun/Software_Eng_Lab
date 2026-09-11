@@ -3,7 +3,8 @@ import path from "node:path";
 import { Router, type Request, type Response } from "express";
 import multer, { MulterError } from "multer";
 import { prisma } from "../db";
-import { parsePositiveIntParam, resolveRequesterId, validationError } from "../lib/requesterHeader";
+import { requireActive, requireAuth, requireFreshPassword, requireRequesterRole } from "../lib/auth";
+import { internalError, notFound, parsePositiveIntParam, validationError } from "../lib/validation";
 import {
   MAX_ACTIVE_ATTACHMENTS,
   MAX_FILE_BYTES,
@@ -48,22 +49,22 @@ export function sortAttachments(attachments: Attachment[]): Attachment[] {
 }
 
 async function ownedTicketId(req: Request, res: Response): Promise<number | null> {
-  const requesterId = await resolveRequesterId(req, res);
-  if (requesterId === null) return null;
-
   const ticketId = parsePositiveIntParam(req.params.id);
   if (ticketId === null) {
-    res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found" } });
+    notFound(res, "Ticket not found");
     return null;
   }
 
-  const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId } });
+  const ticket = await prisma.ticket.findFirst({ where: { id: ticketId, requesterId: req.user!.id } });
   if (!ticket) {
-    res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found" } });
+    notFound(res, "Ticket not found");
     return null;
   }
   return ticketId;
 }
+
+const attachmentRead = [requireAuth, requireRequesterRole, requireFreshPassword];
+const attachmentWrite = [requireAuth, requireRequesterRole, requireActive, requireFreshPassword];
 
 function uploadSingle(req: Request, res: Response, next: () => void): void {
   upload.single("file")(req, res, (err: unknown) => {
@@ -83,6 +84,7 @@ function uploadSingle(req: Request, res: Response, next: () => void): void {
 
 ticketAttachmentsRouter.post(
   "/",
+  ...attachmentWrite,
   async (req, res, next) => {
     const ticketId = await ownedTicketId(req, res);
     if (ticketId === null) return;
@@ -136,7 +138,7 @@ ticketAttachmentsRouter.post(
   },
 );
 
-ticketAttachmentsRouter.get("/", async (req, res) => {
+ticketAttachmentsRouter.get("/", ...attachmentRead, async (req, res) => {
   const ticketId = await ownedTicketId(req, res);
   if (ticketId === null) return;
 

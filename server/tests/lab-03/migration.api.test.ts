@@ -52,6 +52,11 @@ describe("seed idempotency (MIG-01)", () => {
     }
   });
 
+  it("seeded reference data meets Lab 2 minimums (API-02)", async () => {
+    expect(await prisma.category.count()).toBeGreaterThanOrEqual(4);
+    expect(await prisma.relatedSystem.count()).toBeGreaterThanOrEqual(6);
+  });
+
   it("seed provides the required account mix", async () => {
     const count = (role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR", active: boolean) =>
       prisma.user.count({ where: { role, active } });
