@@ -21,7 +21,25 @@ export async function hashPassword(plain: string): Promise<string> {
 
 export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
   if (!hash || hash === PLACEHOLDER_HASH) return false;
-  return bcrypt.compare(plain, hash);
+  try {
+    return await bcrypt.compare(plain, hash);
+  } catch {
+    // Garbage stored hash: fail closed, never throw (BR-29).
+    return false;
+  }
+}
+
+// Precomputed cost-12 hash of a random dummy password. Compared when the
+// account does not exist so unknown-email and wrong-password logins cost the
+// same time (no enumeration oracle, BR-06).
+const DUMMY_HASH = "$2b$12$R437yr2Mdpnc2GFp05GJCeUMktd/R89v62eUMUWRKsP5ew2R5p6jW";
+
+export async function verifyLoginPassword(plain: string, storedHash: string | null): Promise<boolean> {
+  try {
+    return await bcrypt.compare(plain, storedHash ?? DUMMY_HASH);
+  } catch {
+    return false;
+  }
 }
 
 // BR-09: 8-72 chars, at least one letter and one digit.

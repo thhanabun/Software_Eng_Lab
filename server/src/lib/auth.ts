@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import type { UserRole } from "@prisma/client";
-import { SESSION_COOKIE, resolveSession, type SessionUser } from "./session";
+import { SESSION_COOKIE, resolveSessionStatus, type SessionUser } from "./session";
 
 declare global {
   namespace Express {
@@ -13,6 +13,12 @@ declare global {
 function unauthorized(res: Response): void {
   res.status(401).json({
     error: { code: "UNAUTHENTICATED", message: "Sign in required" },
+  });
+}
+
+export function deactivated(res: Response): void {
+  res.status(403).json({
+    error: { code: "FORBIDDEN", message: "This account has been deactivated. Contact your administrator." },
   });
 }
 
@@ -31,30 +37,49 @@ export function passwordChangeRequired(res: Response): void {
   });
 }
 
-// Attaches req.user when the session cookie is valid; 401 otherwise.
+async function attachUser(req: Request): Promise<SessionUser | "inactive" | "none"> {
+  // Reuse the user attached by an earlier middleware in the chain.
+  if (req.user) return req.user;
+  const result = await resolveSessionStatus(req.cookies?.[SESSION_COOKIE]);
+  if (result.kind === "ok") {
+    req.user = result.user;
+    return result.user;
+  }
+  return result.kind;
+}
+
+// Attaches req.user when the session cookie is valid; 401 for missing/expired
+// sessions, 403 (and session destroyed) when the user was deactivated.
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const user = await resolveSession(req.cookies?.[SESSION_COOKIE]);
-  if (!user) {
+  const user = await attachUser(req);
+  if (user === "none") {
     unauthorized(res);
     return;
   }
-  req.user = user;
+  if (user === "inactive") {
+    deactivated(res);
+    return;
+  }
   next();
 }
 
-// requireAuth + role gate. Requesters hitting staff/admin routes get 403 here.
+// Role gate for chains: requireAuth must run first (reads req.user, resolves
+// standalone when it has to). Wrong role -> 403.
 export function requireRole(...roles: UserRole[]) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const user = await resolveSession(req.cookies?.[SESSION_COOKIE]);
-    if (!user) {
+    const user = await attachUser(req);
+    if (user === "none") {
       unauthorized(res);
+      return;
+    }
+    if (user === "inactive") {
+      deactivated(res);
       return;
     }
     if (!roles.includes(user.role)) {
       forbidden(res);
       return;
     }
-    req.user = user;
     next();
   };
 }

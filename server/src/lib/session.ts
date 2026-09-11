@@ -46,18 +46,38 @@ export async function createSession(userId: number, pendingChange: boolean): Pro
   return { token, expiresAt };
 }
 
-export async function resolveSession(token: string | undefined): Promise<SessionUser | null> {
-  if (!token) return null;
-  const session = await prisma.session.findUnique({
+export type SessionResolution =
+  | { kind: "ok"; user: SessionUser }
+  | { kind: "inactive" }
+  | { kind: "none" };
+
+async function lookupSession(token: string) {
+  return prisma.session.findUnique({
     where: { tokenHash: hashToken(token) },
     include: { user: true },
   });
-  if (!session) return null;
+}
+
+export async function resolveSession(token: string | undefined): Promise<SessionUser | null> {
+  const result = await resolveSessionStatus(token);
+  return result.kind === "ok" ? result.user : null;
+}
+
+// Full resolution: missing/expired -> none; live session of a deactivated
+// user -> inactive (session row destroyed so it can never be reused).
+export async function resolveSessionStatus(token: string | undefined): Promise<SessionResolution> {
+  if (!token) return { kind: "none" };
+  const session = await lookupSession(token);
+  if (!session) return { kind: "none" };
   if (session.expiresAt.getTime() <= Date.now()) {
     await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
-    return null;
+    return { kind: "none" };
   }
-  return safeUser(session.user);
+  if (!session.user.active) {
+    await prisma.session.delete({ where: { id: session.id } }).catch(() => undefined);
+    return { kind: "inactive" };
+  }
+  return { kind: "ok", user: safeUser(session.user) };
 }
 
 export async function destroySession(token: string | undefined): Promise<void> {

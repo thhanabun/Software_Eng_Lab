@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../db";
-import { forbidden, requireAuth } from "../lib/auth";
-import { hashPassword, normalizeEmail, validateNewPassword, verifyPassword } from "../lib/password";
+import { deactivated, requireAuth } from "../lib/auth";
+import { hashPassword, normalizeEmail, validateNewPassword, verifyLoginPassword, verifyPassword } from "../lib/password";
 import {
   SESSION_COOKIE,
   PENDING_TTL_MS,
@@ -38,15 +38,16 @@ authRouter.post("/login", async (req, res) => {
   }
 
   const user = await prisma.user.findUnique({ where: { email } });
-  // Identical generic 401 for unknown email and wrong password (BR-06).
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  // Identical generic 401 for unknown email and wrong password (BR-06):
+  // the dummy-hash compare keeps both paths equally expensive.
+  if (!user || !(await verifyLoginPassword(password, user.passwordHash))) {
     res.status(401).json({
       error: { code: "UNAUTHENTICATED", message: "Invalid email or password" },
     });
     return;
   }
   if (!user.active) {
-    forbidden(res, "This account has been deactivated. Contact your administrator.");
+    deactivated(res);
     return;
   }
 
@@ -77,7 +78,7 @@ authRouter.get("/me", requireAuth, (req, res) => {
 authRouter.post("/change-password", requireAuth, async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
   if (!user || !user.active) {
-    forbidden(res, "This account has been deactivated. Contact your administrator.");
+    deactivated(res);
     return;
   }
 

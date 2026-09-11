@@ -13,7 +13,9 @@ import { attachmentsRouter } from "./routes/attachments";
 export function createApp(): express.Express {
   const app = express();
 
-  app.use(cors());
+  // Same-origin in dev via the Vite proxy; explicit origin + credentials so
+  // direct cross-origin clients (and production) can use cookie auth.
+  app.use(cors({ origin: process.env.CLIENT_URL ?? "http://localhost:5173", credentials: true }));
   app.use(cookieParser());
   app.use(express.json());
 
