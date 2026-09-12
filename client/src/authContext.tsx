@@ -63,7 +63,10 @@ export function useAuth(): AuthContextValue {
   return useContext(AuthContext)
 }
 
-// Role home: requesters start at My Tickets, staff/admin at the Ticket Queue.
+// Role home: requesters start at My Tickets, staff at the queue, admins at
+// User Management.
 export function homePath(role: string): string {
-  return role === 'REQUESTER' ? '/tickets' : '/staff/tickets'
+  if (role === 'ADMINISTRATOR') return '/admin/users'
+  if (role !== 'REQUESTER') return '/staff/tickets'
+  return '/tickets'
 }

@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import MyTickets from './pages/MyTickets'
 import StaffTicketQueue from './pages/StaffTicketQueue'
 import StaffTicketDetail from './pages/StaffTicketDetail'
+import UserManagement from './pages/UserManagement'
 import TicketDetail from './pages/TicketDetail'
 import { AuthProvider, homePath, useAuth } from './authContext'
 
@@ -57,6 +58,14 @@ function App() {
             element={
               <RequireRole roles={['IT_STAFF', 'ADMINISTRATOR']}>
                 <StaffTicketDetail />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <RequireRole roles={['ADMINISTRATOR']}>
+                <UserManagement />
               </RequireRole>
             }
           />
