@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import type { Location } from 'react-router-dom'
 import { ApiRequestError } from '../api'
-import { useAuth } from '../authContext'
+import { homePath, useAuth } from '../authContext'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -17,7 +17,7 @@ export default function Login() {
 
   // Already signed in (e.g. back-button to /login): leave the form.
   if (user && !user.mustChangePassword) {
-    return <Navigate to="/tickets" replace />
+    return <Navigate to={homePath(user.role)} replace />
   }
   if (user && user.mustChangePassword) {
     return <Navigate to="/change-password" replace />
@@ -37,6 +37,9 @@ export default function Login() {
       const user = await login(email.trim(), password)
       if (user.mustChangePassword) {
         navigate('/change-password', { replace: true })
+      } else if (user.role !== 'REQUESTER') {
+        const returnTo = location.state?.returnTo
+        navigate(returnTo?.startsWith('/staff') ? returnTo : homePath(user.role), { replace: true })
       } else {
         navigate(location.state?.returnTo ?? '/tickets', { replace: true })
       }
