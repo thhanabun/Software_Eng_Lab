@@ -7,7 +7,6 @@ import {
   uploadAttachment,
   type AttachmentMeta,
 } from '../api'
-import { useRequester } from '../requesterContext'
 import { formatDate, formatSize } from '../lib/format'
 
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'pdf']
@@ -21,7 +20,6 @@ function extensionOf(name: string): string {
 }
 
 export default function AttachmentSection({ ticketId }: { ticketId: number }) {
-  const { requester } = useRequester()
   const [items, setItems] = useState<AttachmentMeta[]>([])
   const [loadError, setLoadError] = useState('')
   const [actionError, setActionError] = useState('')
@@ -33,14 +31,13 @@ export default function AttachmentSection({ ticketId }: { ticketId: number }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const reload = useCallback(() => {
-    if (!requester) return
-    listAttachments(ticketId, requester.id)
+    listAttachments(ticketId)
       .then((next) => {
         setItems(next)
         setLoadError('')
       })
       .catch(() => setLoadError('Unable to load attachments.'))
-  }, [requester, ticketId])
+  }, [ticketId])
 
   useEffect(() => {
     reload()
@@ -62,7 +59,7 @@ export default function AttachmentSection({ ticketId }: { ticketId: number }) {
   const handleFiles = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
-    if (!file || !requester) return
+    if (!file) return
 
     if (!ALLOWED_EXTENSIONS.includes(extensionOf(file.name)) || !ALLOWED_MIME.includes(file.type)) {
       setActionError(`"${file.name}" is not an allowed file type. Use JPG, PNG, WEBP or PDF.`)
@@ -76,7 +73,7 @@ export default function AttachmentSection({ ticketId }: { ticketId: number }) {
     setUploading(true)
     setActionError('')
     try {
-      const created = await uploadAttachment(ticketId, requester.id, file)
+      const created = await uploadAttachment(ticketId, file)
       setItems((prev) => [created, ...prev])
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Attachment upload failed.')
@@ -86,10 +83,9 @@ export default function AttachmentSection({ ticketId }: { ticketId: number }) {
   }
 
   const handleDownload = async (item: AttachmentMeta) => {
-    if (!requester) return
     setActionError('')
     try {
-      const blob = await downloadAttachment(item.id, requester.id)
+      const blob = await downloadAttachment(item.id)
       if (typeof URL.createObjectURL !== 'function') return
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
@@ -116,14 +112,14 @@ export default function AttachmentSection({ ticketId }: { ticketId: number }) {
       setReasonError('A removal reason is required.')
       return
     }
-    if (trimmed.length > REASON_MAX || !removing || !requester) {
+    if (trimmed.length > REASON_MAX || !removing) {
       setReasonError(`Removal reason must be ${REASON_MAX} characters or fewer.`)
       return
     }
 
     setRemoveBusy(true)
     try {
-      const updated = await removeAttachment(removing.id, requester.id, trimmed)
+      const updated = await removeAttachment(removing.id, trimmed)
       setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)))
       closeRemove()
     } catch (error) {

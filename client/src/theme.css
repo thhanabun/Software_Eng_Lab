@@ -252,6 +252,28 @@ textarea.tg-field {
   color: var(--tg-muted);
 }
 
+.tg-badge-role-requester {
+  background-color: var(--tg-pale);
+  color: var(--tg-primary);
+}
+
+.tg-badge-role-it-staff {
+  background-color: #d1e9ff;
+  color: #1849a9;
+}
+
+.tg-badge-role-administrator {
+  background-color: #ebe9fe;
+  color: #5925dc;
+}
+
+.tg-comment-card {
+  background-color: var(--tg-surface);
+  border: 1px solid #d8e2dc;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
 .tg-error-banner {
   border: 1px solid var(--tg-error);
   color: var(--tg-error);

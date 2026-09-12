@@ -3,7 +3,7 @@ import express from "express";
 import request from "supertest";
 import { createApp } from "../../src/app";
 import { prisma } from "../../src/db";
-import { requireAuth, requireFreshPassword, requireRole } from "../../src/lib/auth";
+import { requireActive, requireAuth, requireFreshPassword, requireRole } from "../../src/lib/auth";
 import { hashPassword } from "../../src/lib/password";
 import { SEED_INITIAL_PASSWORD, seedAll } from "../../prisma/seed";
 
@@ -37,6 +37,9 @@ beforeAll(async () => {
     res.status(200).json({ ok: true });
   });
   probe.get("/admin-probe", requireAuth, requireRole("ADMINISTRATOR"), (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
+  probe.post("/write-probe", requireAuth, requireActive, (_req, res) => {
     res.status(200).json({ ok: true });
   });
 
@@ -127,18 +130,22 @@ describe("logout + session lifecycle (AUTH-04, AUTH-05)", () => {
     expect(res.body.error.code).toBe("UNAUTHENTICATED");
   });
 
-  it("deactivating a user invalidates live sessions with 403 (blocker 1)", async () => {
+  it("deactivated users keep reads but lose writes (api-spec S2)", async () => {
     const agent = request.agent(app);
     const login = await agent.post("/api/auth/login").send({ email: "auth-req@example.test", password: KNOWN_PASSWORD });
     expect(login.status).toBe(200);
     await prisma.user.update({ where: { email: "auth-req@example.test" }, data: { active: false } });
     try {
-      const me = await agent.get("/api/auth/me");
-      expect(me.status).toBe(403);
-      expect(me.body.error.code).toBe("FORBIDDEN");
-      // Session row destroyed: re-activating does not resurrect the token.
+      const cookie = login.headers["set-cookie"] as unknown as string[];
+      // Reads still work (audit retention).
+      expect((await request(probe).get("/probe").set("Cookie", cookie)).status).toBe(200);
+      // Writes are blocked.
+      const blocked = await request(probe).post("/write-probe").set("Cookie", cookie);
+      expect(blocked.status).toBe(403);
+      expect(blocked.body.error.code).toBe("FORBIDDEN");
+      // Session survives: re-activating restores full access, no re-login.
       await prisma.user.update({ where: { email: "auth-req@example.test" }, data: { active: true } });
-      expect((await agent.get("/api/auth/me")).status).toBe(401);
+      expect((await request(probe).post("/write-probe").set("Cookie", cookie)).status).toBe(200);
     } finally {
       await prisma.user.update({ where: { email: "auth-req@example.test" }, data: { active: true } });
     }

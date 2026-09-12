@@ -3,7 +3,6 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import { healthRouter } from "./routes/health";
 import { categoriesRouter } from "./routes/categories";
-import { requestersRouter } from "./routes/requesters";
 import { relatedSystemsRouter } from "./routes/relatedSystems";
 import { authRouter } from "./routes/auth";
 import { ticketsRouter } from "./routes/tickets";
@@ -21,12 +20,16 @@ export function createApp(): express.Express {
 
   app.use("/api/health", healthRouter);
   app.use("/api/categories", categoriesRouter);
-  app.use("/api/requesters", requestersRouter);
   app.use("/api/related-systems", relatedSystemsRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/tickets", ticketsRouter);
   app.use("/api/tickets/:id/attachments", ticketAttachmentsRouter);
   app.use("/api/attachments", attachmentsRouter);
+
+  // BR-29: unmatched routes answer with the safe shape too (no HTML leak).
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: { code: "NOT_FOUND", message: "Not found" } });
+  });
 
   // BR-29: never leak stacks/SQL/paths — malformed JSON and unexpected
   // errors both answer with the safe error shape, never the Express HTML page.

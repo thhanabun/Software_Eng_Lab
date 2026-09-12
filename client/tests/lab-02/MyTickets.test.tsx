@@ -1,12 +1,14 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import MyTickets from '../../src/pages/MyTickets'
-import { RequesterProvider } from '../../src/requesterContext'
-import { REQUESTER_STORAGE_KEY } from '../../src/requesterStorage'
+import { mockUseAuth } from '../test-user'
 
-const requester = { id: 1, name: 'Alice Carter', email: 'alice.carter@student.example' }
+vi.mock('../../src/authContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/authContext')>()
+  return { ...actual, useAuth: () => mockUseAuth() }
+})
 const categories = [
   { id: 1, name: 'Account and Access' },
   { id: 2, name: 'Hardware' },
@@ -72,23 +74,16 @@ function stubList(overrides: { empty?: boolean; failFirstCall?: boolean } = {}) 
 function renderPage(entry = '/tickets') {
   return render(
     <MemoryRouter initialEntries={[entry]}>
-      <RequesterProvider>
-        <Routes>
-          <Route path="/tickets" element={<MyTickets />} />
-          <Route path="/tickets/new" element={<div>NEW STUB</div>} />
-          <Route path="/tickets/:id" element={<div>DETAIL STUB</div>} />
-        </Routes>
-      </RequesterProvider>
+      <Routes>
+        <Route path="/tickets" element={<MyTickets />} />
+        <Route path="/tickets/new" element={<div>NEW STUB</div>} />
+        <Route path="/tickets/:id" element={<div>DETAIL STUB</div>} />
+      </Routes>
     </MemoryRouter>,
   )
 }
 
 describe('My Tickets screen', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    localStorage.setItem(REQUESTER_STORAGE_KEY, JSON.stringify(requester))
-  })
-
   afterEach(() => {
     vi.unstubAllGlobals()
   })

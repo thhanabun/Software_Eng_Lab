@@ -4,13 +4,18 @@ import { Link, useParams } from 'react-router-dom'
 import {
   ApiRequestError,
   getTicketDetail,
+  indicateResolved,
+  postComment,
+  type TicketComment,
   type TicketDetail as TicketDetailData,
 } from '../api'
 import AttachmentSection from '../components/AttachmentSection'
-import { useRequester } from '../requesterContext'
 import { formatDate } from '../lib/format'
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
+
+const COMMENT_MAX = 2000
+const INDICATABLE_STATUSES = ['OPEN', 'IN_PROGRESS', 'WAITING_FOR_REQUESTER']
 
 function ReadOnlyField({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -24,15 +29,32 @@ function ReadOnlyField({ label, children }: { label: string; children: ReactNode
 export default function TicketDetail() {
   const { id } = useParams()
   const ticketId = Number(id)
-  const { requester } = useRequester()
   const [detail, setDetail] = useState<TicketDetailData | null>(null)
   const [state, setState] = useState<LoadState>('loading')
 
+  const [commentBody, setCommentBody] = useState('')
+  const [commentError, setCommentError] = useState<string | null>(null)
+  const [commentBusy, setCommentBusy] = useState(false)
+  const [indicateBusy, setIndicateBusy] = useState(false)
+  const [indicateError, setIndicateError] = useState<string | null>(null)
+
+  const reload = (ticket: number) => {
+    setState('loading')
+    getTicketDetail(ticket)
+      .then((next) => {
+        setDetail(next)
+        setState('ready')
+      })
+      .catch((error: unknown) => {
+        setState(error instanceof ApiRequestError && error.status === 404 ? 'not-found' : 'error')
+      })
+  }
+
   useEffect(() => {
-    if (!requester || !Number.isInteger(ticketId) || ticketId <= 0) return
+    if (!Number.isInteger(ticketId) || ticketId <= 0) return
     let cancelled = false
     setState('loading')
-    getTicketDetail(ticketId, requester.id)
+    getTicketDetail(ticketId)
       .then((next) => {
         if (cancelled) return
         setDetail(next)
@@ -45,14 +67,61 @@ export default function TicketDetail() {
     return () => {
       cancelled = true
     }
-  }, [requester, ticketId])
+  }, [ticketId])
+
+  const handleComment = async () => {
+    const text = commentBody.trim()
+    if (!text) {
+      setCommentError('Comment must not be empty.')
+      return
+    }
+    if (text.length > COMMENT_MAX) {
+      setCommentError(`Comment must be ${COMMENT_MAX} characters or fewer.`)
+      return
+    }
+    setCommentBusy(true)
+    setCommentError(null)
+    try {
+      const created: TicketComment = await postComment(ticketId, text)
+      setDetail((prev) =>
+        prev ? { ...prev, comments: [created, ...(prev.comments ?? [])] } : prev,
+      )
+      setCommentBody('')
+    } catch (error) {
+      setCommentError(error instanceof Error ? error.message : 'Unable to post comment.')
+    } finally {
+      setCommentBusy(false)
+    }
+  }
+
+  const handleIndicate = async () => {
+    setIndicateBusy(true)
+    setIndicateError(null)
+    try {
+      const result = await indicateResolved(ticketId)
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              requesterResolved: result.requesterResolved,
+              requesterResolvedAt: result.requesterResolvedAt,
+            }
+          : prev,
+      )
+      reload(ticketId)
+    } catch (error) {
+      setIndicateError(error instanceof Error ? error.message : 'Unable to record indication.')
+    } finally {
+      setIndicateBusy(false)
+    }
+  }
 
   if (state === 'not-found' || (!Number.isInteger(ticketId) && ticketId !== undefined)) {
     return (
       <div className="tg-card" style={{ maxWidth: '720px', margin: '0 auto' }} data-testid="not-found-panel">
         <h1 className="h4">Ticket not found</h1>
         <p style={{ color: 'var(--tg-muted)' }}>
-          This ticket does not exist or does not belong to the selected requester.
+          This ticket does not exist or does not belong to your account.
         </p>
         <Link to="/tickets" className="tg-btn tg-btn-primary">
           Back to My Tickets
@@ -83,6 +152,9 @@ export default function TicketDetail() {
     )
   }
 
+  const comments = detail.comments ?? []
+  const canIndicate = INDICATABLE_STATUSES.includes(detail.currentStatus) && !detail.requesterResolved
+
   return (
     <div style={{ maxWidth: '820px', margin: '0 auto' }}>
       <div className="tg-card">
@@ -97,6 +169,13 @@ export default function TicketDetail() {
             </span>
           </div>
         </div>
+
+        {detail.requesterResolved && (
+          <p className="mb-3" data-testid="resolved-indication-line" style={{ color: 'var(--tg-success)' }}>
+            ✓ Requester confirms resolved
+            {detail.requesterResolvedAt ? ` · ${formatDate(detail.requesterResolvedAt)}` : ''}
+          </p>
+        )}
 
         <div className="row g-3 mb-3">
           <div className="col-12 col-md-4">
@@ -114,6 +193,12 @@ export default function TicketDetail() {
           <div className="col-12 col-md-6">
             <ReadOnlyField label="Related System">{detail.relatedSystemName}</ReadOnlyField>
           </div>
+          <div className="col-12 col-md-6">
+            <ReadOnlyField label="Ticket Owner">{detail.owner ? detail.owner.name : 'Unassigned'}</ReadOnlyField>
+          </div>
+          <div className="col-12 col-md-6">
+            <ReadOnlyField label="IT Priority">{detail.itPriority}</ReadOnlyField>
+          </div>
         </div>
 
         <div className="mb-3">
@@ -126,7 +211,82 @@ export default function TicketDetail() {
             {detail.description}
           </p>
         </div>
+
+        {canIndicate && (
+          <div className="mt-3">
+            <button
+              type="button"
+              className="tg-btn tg-btn-secondary"
+              disabled={indicateBusy}
+              onClick={() => void handleIndicate()}
+            >
+              {indicateBusy ? 'Recording…' : 'Problem appears resolved'}
+            </button>
+            {indicateError && (
+              <p className="tg-field-error" role="alert">
+                {indicateError}
+              </p>
+            )}
+          </div>
+        )}
       </div>
+
+      <section className="tg-card mt-3" aria-labelledby="comments-heading" data-testid="comments-section">
+        <h2 id="comments-heading" className="h6 mb-3">
+          Public Comments
+        </h2>
+        <div className="mb-3">
+          <label className="tg-label" htmlFor="comment-body">
+            Add a comment
+          </label>
+          <textarea
+            id="comment-body"
+            className="tg-field w-100"
+            rows={3}
+            value={commentBody}
+            onChange={(event) => setCommentBody(event.target.value)}
+            aria-describedby="comment-counter"
+          />
+          <p id="comment-counter" className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
+            {commentBody.trim().length}/{COMMENT_MAX}
+          </p>
+          {commentError && (
+            <p className="tg-field-error" role="alert">
+              {commentError}
+            </p>
+          )}
+          <button
+            type="button"
+            className="tg-btn tg-btn-primary mt-2"
+            disabled={commentBusy}
+            onClick={() => void handleComment()}
+          >
+            {commentBusy ? 'Posting…' : 'Post comment'}
+          </button>
+        </div>
+        {comments.length === 0 ? (
+          <p data-testid="comments-empty" style={{ color: 'var(--tg-muted)' }}>
+            No comments yet.
+          </p>
+        ) : (
+          <ul className="mb-0" style={{ listStyle: 'none', paddingLeft: 0 }}>
+            {comments.map((comment) => (
+              <li
+                key={comment.id}
+                data-testid={`comment-row-${comment.id}`}
+                className="tg-comment-card mb-2"
+              >
+                <p className="mb-1" style={{ whiteSpace: 'pre-wrap' }}>
+                  {comment.body}
+                </p>
+                <p className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
+                  {comment.authorName} · {comment.authorRole} · {formatDate(comment.createdAt)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <AttachmentSection ticketId={detail.id} />
 
