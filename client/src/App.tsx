@@ -15,7 +15,7 @@ function RootRedirect() {
   if (loading) return null
   if (!user) return <Navigate to="/login" replace />
   if (user.mustChangePassword) return <Navigate to="/change-password" replace />
-  // Staff/admin homes land in later issues; requesters start at My Tickets.
+  if (user.role !== 'REQUESTER') return <Navigate to="/staff/tickets" replace />
   return <Navigate to="/tickets" replace />
 }
 
