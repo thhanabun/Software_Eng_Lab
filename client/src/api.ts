@@ -283,3 +283,58 @@ export async function downloadAttachment(attachmentId: number): Promise<Blob> {
   if (!res.ok) throw await apiError(res, 'Attachment download failed')
   return res.blob()
 }
+
+// --- IT Staff queue ---
+
+export interface StaffQueueItem {
+  id: number
+  ticketNumber: string
+  summary: string
+  categoryName: string
+  requestedPriority: string
+  itPriority: string
+  currentStatus: string
+  owner: string | null
+  requesterName: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StaffQueueResult {
+  items: StaffQueueItem[]
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+}
+
+export interface StaffQueueParams {
+  search?: string
+  status?: string
+  categoryId?: number | ''
+  requestedPriority?: string
+  itPriority?: string
+  ownerId?: number | 'unassigned' | ''
+  sort?: string
+  page?: number
+  pageSize?: number
+}
+
+export async function listStaffTickets(params: StaffQueueParams): Promise<StaffQueueResult> {
+  const query = new URLSearchParams()
+  if (params.search) query.set('search', params.search)
+  if (params.status) query.set('status', params.status)
+  if (params.categoryId) query.set('categoryId', String(params.categoryId))
+  if (params.requestedPriority) query.set('requestedPriority', params.requestedPriority)
+  if (params.itPriority) query.set('itPriority', params.itPriority)
+  if (params.ownerId) query.set('ownerId', String(params.ownerId))
+  if (params.sort) query.set('sort', params.sort)
+  if (params.page && params.page > 1) query.set('page', String(params.page))
+  if (params.pageSize && params.pageSize !== 10) query.set('pageSize', String(params.pageSize))
+
+  const res = await fetch(`/api/staff/tickets?${query.toString()}`)
+  if (!res.ok) {
+    throw new ApiRequestError('Ticket queue failed', res.status)
+  }
+  return res.json()
+}

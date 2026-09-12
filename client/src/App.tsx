@@ -1,11 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
-import { RequireAuth } from './components/RequireAuth'
+import { RequireAuth, RequireRole } from './components/RequireAuth'
 import SystemStatusCard from './components/SystemStatusCard'
 import ChangePassword from './pages/ChangePassword'
 import CreateTicket from './pages/CreateTicket'
 import Login from './pages/Login'
 import MyTickets from './pages/MyTickets'
+import StaffTicketQueue from './pages/StaffTicketQueue'
 import TicketDetail from './pages/TicketDetail'
 import { AuthProvider, useAuth } from './authContext'
 
@@ -43,6 +44,14 @@ function App() {
           <Route path="/tickets" element={<MyTickets />} />
           <Route path="/tickets/new" element={<CreateTicket />} />
           <Route path="/tickets/:id" element={<TicketDetail />} />
+          <Route
+            path="/staff/tickets"
+            element={
+              <RequireRole roles={['IT_STAFF', 'ADMINISTRATOR']}>
+                <StaffTicketQueue />
+              </RequireRole>
+            }
+          />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
