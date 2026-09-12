@@ -5,6 +5,7 @@ import { healthRouter } from "./routes/health";
 import { categoriesRouter } from "./routes/categories";
 import { relatedSystemsRouter } from "./routes/relatedSystems";
 import { authRouter } from "./routes/auth";
+import { staffRouter } from "./routes/staff";
 import { staffTicketsRouter } from "./routes/staffTickets";
 import { ticketsRouter } from "./routes/tickets";
 import { ticketAttachmentsRouter } from "./routes/ticketAttachments";
@@ -23,6 +24,7 @@ export function createApp(): express.Express {
   app.use("/api/categories", categoriesRouter);
   app.use("/api/related-systems", relatedSystemsRouter);
   app.use("/api/auth", authRouter);
+  app.use("/api/staff", staffRouter);
   app.use("/api/staff/tickets", staffTicketsRouter);
   app.use("/api/tickets", ticketsRouter);
   app.use("/api/tickets/:id/attachments", ticketAttachmentsRouter);

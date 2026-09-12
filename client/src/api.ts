@@ -320,8 +320,7 @@ export interface StaffQueueParams {
   pageSize?: number
 }
 
-export async function listStaffTickets(params: StaffQueueParams): Promise<StaffQueueResult> {
-  const query = new URLSearchParams()
+export async function listStaffTickets(params: StaffQueueParams): Promise<StaffQueueResult> {  const query = new URLSearchParams()
   if (params.search) query.set('search', params.search)
   if (params.status) query.set('status', params.status)
   if (params.categoryId) query.set('categoryId', String(params.categoryId))
@@ -337,4 +336,126 @@ export async function listStaffTickets(params: StaffQueueParams): Promise<StaffQ
     throw new ApiRequestError('Ticket queue failed', res.status)
   }
   return res.json()
+}
+
+// --- IT Staff ticket operations ---
+
+export interface StaffTicketDetail extends Ticket {
+  categoryName: string
+  relatedSystemName: string
+  requester: { id: number; name: string; email: string }
+  owner: { id: number; name: string } | null
+  itPriority: string
+  requesterResolved: boolean
+  requesterResolvedAt: string | null
+  comments: TicketComment[]
+  notes: TicketComment[]
+  attachments: AttachmentMeta[]
+}
+
+export interface StaffUser {
+  id: number
+  name: string
+  role: string
+}
+
+export async function getStaffTicketDetail(id: number): Promise<StaffTicketDetail> {
+  const res = await fetch(`/api/staff/tickets/${id}`)
+  if (!res.ok) throw await apiError(res, 'Staff ticket detail failed')
+  return res.json()
+}
+
+export async function claimTicket(
+  id: number,
+): Promise<{ owner: { id: number; name: string } | null; currentStatus: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/claim`, { method: 'POST' })
+  if (!res.ok) throw await apiError(res, 'Claim failed')
+  return res.json()
+}
+
+export async function assignTicket(
+  id: number,
+  ownerId: number | null,
+): Promise<{ owner: { id: number; name: string } | null; currentStatus: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/assign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ownerId }),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Assign failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function setItPriority(id: number, itPriority: string): Promise<{ itPriority: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/priority`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itPriority }),
+  })
+  if (!res.ok) throw await apiError(res, 'Priority update failed')
+  return res.json()
+}
+
+export async function setTicketStatus(
+  id: number,
+  status: string,
+): Promise<{ currentStatus: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Status update failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function postNote(ticketId: number, body: string): Promise<TicketComment> {  const res = await fetch(`/api/staff/tickets/${ticketId}/notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Note failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function postStaffComment(ticketId: number, body: string): Promise<TicketComment> {
+  const res = await fetch(`/api/staff/tickets/${ticketId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Comment failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function listStaffUsers(): Promise<StaffUser[]> {
+  const res = await fetch('/api/staff/users')
+  if (!res.ok) throw await apiError(res, 'User directory failed')
+  return res.json()
+}
+
+export async function staffDownloadAttachment(attachmentId: number): Promise<Blob> {
+  const res = await fetch(`/api/staff/attachments/${attachmentId}/download`)
+  if (!res.ok) throw await apiError(res, 'Attachment download failed')
+  return res.blob()
 }

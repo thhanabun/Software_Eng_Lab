@@ -7,6 +7,7 @@ import CreateTicket from './pages/CreateTicket'
 import Login from './pages/Login'
 import MyTickets from './pages/MyTickets'
 import StaffTicketQueue from './pages/StaffTicketQueue'
+import StaffTicketDetail from './pages/StaffTicketDetail'
 import TicketDetail from './pages/TicketDetail'
 import { AuthProvider, homePath, useAuth } from './authContext'
 
@@ -48,6 +49,14 @@ function App() {
             element={
               <RequireRole roles={['IT_STAFF', 'ADMINISTRATOR']}>
                 <StaffTicketQueue />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/staff/tickets/:id"
+            element={
+              <RequireRole roles={['IT_STAFF', 'ADMINISTRATOR']}>
+                <StaffTicketDetail />
               </RequireRole>
             }
           />

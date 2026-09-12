@@ -274,6 +274,11 @@ textarea.tg-field {
   padding: 8px 12px;
 }
 
+.tg-notes-panel {
+  background-color: #fffaeb;
+  border-left: 4px solid var(--tg-warning);
+}
+
 .tg-error-banner {
   border: 1px solid var(--tg-error);
   color: var(--tg-error);
