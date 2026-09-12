@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiRequestError, changePassword } from '../api'
-import { useAuth } from '../authContext'
+import { homePath, useAuth } from '../authContext'
 
 export default function ChangePassword() {
   const navigate = useNavigate()
@@ -29,9 +29,9 @@ export default function ChangePassword() {
     setBusy(true)
     setFormError(null)
     try {
-      await changePassword(currentPassword, newPassword, confirmPassword)
+      const { user: updated } = await changePassword(currentPassword, newPassword, confirmPassword)
       await refresh()
-      navigate('/tickets', { replace: true })
+      navigate(homePath(updated.role), { replace: true })
     } catch (err) {
       if (err instanceof ApiRequestError && err.details) {
         const mapped: { currentPassword?: string; newPassword?: string; confirmPassword?: string } = {}

@@ -62,3 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth(): AuthContextValue {
   return useContext(AuthContext)
 }
+
+// Role home: requesters start at My Tickets, staff/admin at the Ticket Queue.
+export function homePath(role: string): string {
+  return role === 'REQUESTER' ? '/tickets' : '/staff/tickets'
+}

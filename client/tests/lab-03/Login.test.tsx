@@ -13,6 +13,7 @@ function renderLogin() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/tickets" element={<div>TICKETS STUB</div>} />
+          <Route path="/staff/tickets" element={<div>QUEUE STUB</div>} />
           <Route path="/change-password" element={<div>CHANGE STUB</div>} />
         </Routes>
       </AuthProvider>
@@ -97,6 +98,33 @@ describe('Login screen (UI-30)', () => {
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
 
     expect(await screen.findByTestId('login-error')).toHaveTextContent('Invalid email or password')
+  })
+
+  it('UI-30: staff login lands on the queue, not requester tickets', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url === '/api/auth/me') {
+          return { ok: false, status: 401, json: async () => ({ error: {} }) }
+        }
+        if (url === '/api/auth/login') {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ user: { ...TEST_USER, role: 'IT_STAFF', name: 'Mina Staff' } }),
+          }
+        }
+        throw new Error(`unexpected ${url}`)
+      }),
+    )
+    renderLogin()
+
+    await userEvent.type(screen.getByLabelText(/email/i), 'mina@example.test')
+    await userEvent.type(screen.getByLabelText(/password/i), 'MinaStaff1!')
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+
+    expect(await screen.findByText('QUEUE STUB')).toBeInTheDocument()
   })
 
   it('UI-30: must-change login continues to change-password', async () => {

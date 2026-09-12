@@ -78,6 +78,25 @@ describe('Application shell (UI-06, STYLE-01)', () => {
     expect(header).not.toBeNull()
     expect(header).toHaveClass('tg-header')
   })
+
+  it('shows role-specific navigation for staff (Ticket Queue, no requester links)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url === '/api/auth/me') {
+          return ok({ user: { ...TEST_USER, role: 'IT_STAFF', name: 'Mina Staff' } })
+        }
+        if (url === '/api/auth/logout') return ok({ ok: true })
+        throw new Error(`unexpected ${url}`)
+      }),
+    )
+    renderShell()
+
+    expect(await screen.findByRole('link', { name: 'Ticket Queue' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'My Tickets' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Create Ticket' })).not.toBeInTheDocument()
+  })
 })
 
 describe('Auth guard (AC-02 analogue)', () => {

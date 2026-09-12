@@ -80,14 +80,13 @@ describe("requester isolation (AUTHZ-05, BR-12)", () => {
   });
 });
 
-describe("absent staff/admin routes stay silent (AUTHZ-02/03/04, AUTHZ-08)", () => {
-  it("requester probing notes/admin/staff paths gets safe 404s with no content", async () => {
+describe("absent staff/admin routes stay silent (AUTHZ-02/03, AUTHZ-08)", () => {
+  it("requester probing notes/admin/future-staff paths gets safe 404s with no content", async () => {
     for (const [method, path, body] of [
       ["get", "/api/tickets/1/notes", undefined],
       ["post", "/api/tickets/1/notes", { body: "x" }],
       ["get", "/api/admin/users", undefined],
       ["post", "/api/admin/users", {}],
-      ["get", "/api/staff/tickets", undefined],
       ["post", "/api/staff/tickets/1/claim", {}],
       ["get", "/api/staff/attachments/1/download", undefined],
     ] as const) {
@@ -98,6 +97,12 @@ describe("absent staff/admin routes stay silent (AUTHZ-02/03/04, AUTHZ-08)", () 
       expect(res.body.error.code).toBe("NOT_FOUND");
       expect(JSON.stringify(res.body)).not.toMatch(/note|password|token/i);
     }
+  });
+
+  it("requester is forbidden on the live staff queue (AUTHZ-04)", async () => {
+    const res = await agentA.get("/api/staff/tickets");
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("FORBIDDEN");
   });
 });
 
