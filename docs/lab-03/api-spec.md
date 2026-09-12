@@ -83,7 +83,7 @@ All Lab 2 `/api/tickets*` and `/api/attachments*` endpoints behave identically e
 - Error set gains 401/403; all Lab 2 codes (400/404/409/410/413/415) unchanged.
 
 ### GET /api/tickets/:id — owned detail (extended)
-- **200**: Lab 2 detail shape **plus** `owner` (`{id,name,email} | null`), `itPriority`, `requesterResolved`, `requesterResolvedAt`, and `comments` (public only) newest-first. Internal notes are **never** included here (BR-04, AC-19).
+- **200**: Lab 2 detail shape **plus** `owner` (`{id,name} | null`), `itPriority`, `requesterResolved`, `requesterResolvedAt`, and `comments` (public only) newest-first. Internal notes are **never** included here (BR-04, AC-19).
 
 ### GET+POST /api/tickets/:id/comments — public comments
 - GET **200**: `[{ id, body, authorName, authorRole, createdAt }]` newest-first. Non-owned → 404.
@@ -117,7 +117,7 @@ Unknown parameters ignored. Priority sorts use severity URGENT > HIGH > MEDIUM >
 - **401/403**: session / role failures. Requester role → 403.
 
 ### GET /api/staff/tickets/:id — staff detail
-- **200**: full ticket incl. requester `{id,name,email}`, owner, both priorities, flags, `comments` (public) + `notes` (internal) newest-first, attachments metadata (Lab 2 shape, read-only here — file bytes via the staff download in §4).
+- **200**: full ticket incl. requester `{id,name,email}`, owner (`{id,name} | null` — email stripped per review), both priorities, flags, `comments` (public) + `notes` (internal) newest-first, attachments metadata (Lab 2 shape, read-only here — file bytes via the staff download in §4).
 - **404**: missing id (roles verified first: requester → 403 before existence is probed — no leakage, §6).
 
 ---
@@ -149,6 +149,13 @@ Body: `{ "status": "RESOLVED" }`.
 
 ### GET+POST /api/staff/tickets/:id/notes — internal notes (the primary staff path)
 - Same entry shape as comments. POST validates BR-20. **201** on create. Requester callers never reach here (route role-guarded → 403, AC-04).
+
+### POST /api/staff/tickets/:id/comments — public comments (staff path, Issue #33 gap fix)
+- The requester route is requester-only, so staff post public replies here; both write the PUBLIC channel with identical validation (BR-20) and CANCELLED-freeze (BR-22). **201** on create.
+
+### GET /api/staff/users — assignable directory (Issue #33 contract delta)
+- Active IT Staff + Administrators only, ordered by name: `[{ id, name, role }]`.
+- Minimal read-only list enabling the assign/owner controls; full user management (search, create, edit, deactivation) stays in Issue #34. Requester → 403.
 
 ---
 

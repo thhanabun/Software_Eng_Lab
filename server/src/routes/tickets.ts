@@ -133,7 +133,7 @@ ticketsRouter.get("/:id", ...requesterRead, async (req, res) => {
       categoryName: category.name,
       relatedSystemName: relatedSystem.name,
       requesterName: requester.name,
-      owner: owner ? { id: owner.id, name: owner.name, email: owner.email } : null,
+      owner: owner ? { id: owner.id, name: owner.name } : null,
       attachments: sortAttachments(attachments).map(attachmentMeta),
       comments: serializeComments(comments),
     });

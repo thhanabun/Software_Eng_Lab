@@ -163,6 +163,7 @@ Detailed contract in `api-spec.md`. Summary:
 | `/api/tickets/:id` | GET | owned detail + public comments | 200 | 400, 401, 403, 404 |
 | `/api/tickets/:id/comments` | GET/POST | list/add public comments | 200/201 | 400, 401, 403, 404 |
 | `/api/tickets/:id/notes` | GET/POST | requester-side path: always 403 for Requesters (exists only to reject cleanly); staff use the staff path below | — | 403 |
+| `/api/staff/tickets/:id/comments` | POST | staff public replies (requester route is requester-only; Issue #33 gap fix) | 201 | 400, 401, 403, 404 |
 | `/api/staff/tickets/:id/notes` | GET/POST | list/add internal notes — the primary staff path (staff/admin) | 200/201 | 401, 403, 404 |
 | `/api/tickets/:id/resolved-indication` | POST | requester "appears resolved" (BR-18) | 200 | 400, 401, 403, 404 |
 | `/api/staff/tickets` | GET | queue: search/filter/sort/page | 200 | 400, 401, 403 |
@@ -173,6 +174,7 @@ Detailed contract in `api-spec.md`. Summary:
 | `/api/staff/tickets/:id/status` | PATCH | transition per matrix | 200 | 400, 401, 403, 404 |
 | `/api/attachments*` | * | Lab 2 lifecycle under session identity | same as Lab 2 | +401/403 |
 | `/api/staff/attachments/:id/download` | GET | staff/admin read-only download of any ticket's active file | 200 | 401, 403, 404, 410 |
+| `/api/staff/users` | GET | assignable directory (active staff/admin, Issue #33 delta) | 200 | 401, 403 |
 | `/api/admin/users` | GET/POST | list (search+role filter) / create | 200/201 | 400, 401, 403, 409 |
 | `/api/admin/users/:id` | PATCH | edit name/email/role/active | 200 | 400, 401, 403, 404, 409 |
 | `/api/admin/users/:id/reset-password` | POST | issue new initial password | 200 | 400, 401, 403, 404 |

@@ -47,6 +47,7 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | STOP-03 | API | AC-16, BR-15 | IT Priority set (staff) vs requester attempt | 200 vs 403 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
 | STOP-04 | API | AC-17, BR-17 | Status transitions legal + illegal (each matrix edge sampled) | 200 on legal; 400 on off-matrix/terminal | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
 | STOP-05 | API | AC-31 | Staff read-only attachment download | 200 active file; 410 removed; 404 missing | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
+| STOP-06 | API | FR-09 | Staff users directory (Issue #33 delta) | Active staff/admin ordered by name; requester 403 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | TBD |
 | CN-01 | API | AC-18, BR-19..21 | Public comment post/list (requester own, staff any) | 201 server author/time; empty/overlong → 400 | `server/tests/lab-03/comments-notes.api.test.ts` | TBD |
 | CN-02 | API | AC-19 | Notes visible to staff/admin only | Full entries for staff; requester 403 | `server/tests/lab-03/comments-notes.api.test.ts` | TBD |
 | CN-03 | API | AC-20, BR-18 | Resolved-indication happy path + repeat + wrong status | Flag + auto comment; no-op repeat; 400 off-status | `server/tests/lab-03/comments-notes.api.test.ts` | TBD |
