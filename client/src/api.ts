@@ -459,3 +459,79 @@ export async function staffDownloadAttachment(attachmentId: number): Promise<Blo
   if (!res.ok) throw await apiError(res, 'Attachment download failed')
   return res.blob()
 }
+
+// --- Administrator user management ---
+
+export interface AdminUser {
+  id: number
+  name: string
+  email: string
+  role: 'REQUESTER' | 'IT_STAFF' | 'ADMINISTRATOR'
+  active: boolean
+  mustChangePassword: boolean
+  createdAt: string
+}
+
+export async function listAdminUsers(params: { search?: string; role?: string } = {}): Promise<{
+  items: AdminUser[]
+}> {
+  const query = new URLSearchParams()
+  if (params.search) query.set('search', params.search)
+  if (params.role) query.set('role', params.role)
+  const res = await fetch(`/api/admin/users?${query.toString()}`)
+  if (!res.ok) throw await apiError(res, 'User list failed')
+  return res.json()
+}
+
+export async function createAdminUser(input: {
+  name: string
+  email: string
+  role: string
+  active: boolean
+  initialPassword: string
+}): Promise<AdminUser> {
+  const res = await fetch('/api/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('User creation failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function updateAdminUser(
+  id: number,
+  input: { name?: string; email?: string; role?: string; active?: boolean },
+): Promise<AdminUser> {
+  const res = await fetch(`/api/admin/users/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('User update failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function resetAdminPassword(id: number, newPassword: string): Promise<void> {
+  const res = await fetch(`/api/admin/users/${id}/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newPassword, confirmPassword: newPassword }),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Password reset failed', res.status, errBody?.error?.details)
+  }
+}

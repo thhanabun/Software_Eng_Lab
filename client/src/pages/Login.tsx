@@ -37,11 +37,12 @@ export default function Login() {
       const user = await login(email.trim(), password)
       if (user.mustChangePassword) {
         navigate('/change-password', { replace: true })
-      } else if (user.role !== 'REQUESTER') {
-        const returnTo = location.state?.returnTo
-        navigate(returnTo?.startsWith('/staff') ? returnTo : homePath(user.role), { replace: true })
-      } else {
+      } else if (user.role === 'REQUESTER') {
         navigate(location.state?.returnTo ?? '/tickets', { replace: true })
+      } else {
+        const returnTo = location.state?.returnTo
+        const prefix = user.role === 'ADMINISTRATOR' ? '/admin' : '/staff'
+        navigate(returnTo?.startsWith(prefix) ? returnTo : homePath(user.role), { replace: true })
       }
     } catch (err) {
       // Generic vs deactivated messages come from the server (BR-06/BR-07);

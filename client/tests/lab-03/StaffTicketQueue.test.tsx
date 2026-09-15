@@ -38,9 +38,9 @@ function ok(body: unknown) {
 }
 
 let queueUrls: string[] = []
+let failQueue = false
 
-function stubQueue(overrides: { empty?: boolean; failFirstCall?: boolean } = {}) {
-  let calls = 0
+function stubQueue(overrides: { empty?: boolean } = {}) {
   queueUrls = []
   vi.stubGlobal(
     'fetch',
@@ -49,9 +49,8 @@ function stubQueue(overrides: { empty?: boolean; failFirstCall?: boolean } = {})
       if (url === '/api/auth/me') return ok({ user: STAFF })
       if (url.startsWith('/api/categories')) return ok(categories)
       if (url.startsWith('/api/staff/tickets')) {
-        calls += 1
         queueUrls.push(url)
-        if (overrides.failFirstCall && calls === 1) {
+        if (failQueue) {
           throw new TypeError('Failed to fetch')
         }
         return ok(
@@ -87,6 +86,7 @@ function renderPage(entry = '/staff/tickets') {
 describe('Staff Ticket Queue (UI-32)', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    failQueue = false
   })
 
   it('UI-32: rows, count, badges, and pagination/filter query params', async () => {
@@ -131,11 +131,17 @@ describe('Staff Ticket Queue (UI-32)', () => {
   })
 
   it('UI-32: failure shows retry', async () => {
-    stubQueue({ failFirstCall: true })
-    renderPage()
+    stubQueue()
+    failQueue = true
+    try {
+      renderPage()
 
-    expect(await screen.findByTestId('error-state')).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
-    expect(await screen.findByTestId('queue-row-101')).toBeInTheDocument()
+      expect(await screen.findByTestId('error-state')).toBeInTheDocument()
+      failQueue = false
+      await userEvent.click(screen.getByRole('button', { name: 'Retry' }))
+      expect(await screen.findByTestId('queue-row-101')).toBeInTheDocument()
+    } finally {
+      failQueue = false
+    }
   })
 })

@@ -19,6 +19,7 @@ export default function AppShell() {
   }
 
   const isStaff = user?.role === 'IT_STAFF' || user?.role === 'ADMINISTRATOR'
+  const isAdmin = user?.role === 'ADMINISTRATOR'
 
   return (
     <div>
@@ -39,6 +40,11 @@ export default function AppShell() {
             {isStaff && (
               <NavLink to="/staff/tickets" className="tg-nav-link" end>
                 Ticket Queue
+              </NavLink>
+            )}
+            {isAdmin && (
+              <NavLink to="/admin/users" className="tg-nav-link" end>
+                User Management
               </NavLink>
             )}
           </nav>

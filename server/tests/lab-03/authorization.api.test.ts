@@ -80,13 +80,11 @@ describe("requester isolation (AUTHZ-05, BR-12)", () => {
   });
 });
 
-describe("absent staff/admin routes stay silent (AUTHZ-02/03, AUTHZ-08)", () => {
-  it("requester probing notes/admin paths gets safe 404s with no content", async () => {
+describe("absent routes stay silent (AUTHZ-02)", () => {
+  it("requester probing future notes paths gets safe 404s with no content", async () => {
     for (const [method, path, body] of [
       ["get", "/api/tickets/1/notes", undefined],
       ["post", "/api/tickets/1/notes", { body: "x" }],
-      ["get", "/api/admin/users", undefined],
-      ["post", "/api/admin/users", {}],
     ] as const) {
       const res = body === undefined
         ? await agentA[method](path)
@@ -97,11 +95,14 @@ describe("absent staff/admin routes stay silent (AUTHZ-02/03, AUTHZ-08)", () => 
     }
   });
 
-  it("requester is forbidden on live staff ops (AUTHZ-04)", async () => {
+  it("requester is forbidden on live staff ops and admin APIs (AUTHZ-03, AUTHZ-04)", async () => {
     expect((await agentA.post("/api/staff/tickets/1/claim")).status).toBe(403);
     expect((await agentA.get("/api/staff/attachments/1/download")).status).toBe(403);
     expect((await agentA.post("/api/staff/tickets/1/comments").send({ body: "x" })).status).toBe(403);
     expect((await agentA.get("/api/staff/tickets/1/notes")).status).toBe(403);
+    expect((await agentA.get("/api/admin/users")).status).toBe(403);
+    expect((await agentA.post("/api/admin/users").send({})).status).toBe(403);
+    expect(JSON.stringify((await agentA.get("/api/admin/users")).body)).not.toMatch(/password|hash|token/i);
   });
 });
 
