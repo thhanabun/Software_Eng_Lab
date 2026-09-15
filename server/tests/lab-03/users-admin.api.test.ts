@@ -183,14 +183,14 @@ describe("duplicate emails (ADM-02)", () => {
     });
     expect(created.status).toBe(201);
 
-    expect(
-      (await admin.post("/api/admin/users").send({
-        name: "Adm Dup Two",
-        email: "ADM-DUP@EXAMPLE.TEST",
-        role: "REQUESTER",
-        initialPassword: "BrandNew123",
-      })).status,
-    ).toBe(409);
+    const dupCreate = await admin.post("/api/admin/users").send({
+      name: "Adm Dup Two",
+      email: "ADM-DUP@EXAMPLE.TEST",
+      role: "REQUESTER",
+      initialPassword: "BrandNew123",
+    });
+    expect(dupCreate.status).toBe(409);
+    expect(dupCreate.body.error.details).toEqual([{ field: "email", message: "Email is already in use" }]);
 
     const other = "adm-other@example.test";
     createdEmails.push(other);
@@ -201,9 +201,9 @@ describe("duplicate emails (ADM-02)", () => {
       initialPassword: "BrandNew123",
     });
     expect(otherRes.status).toBe(201);
-    expect(
-      (await admin.patch(`/api/admin/users/${otherRes.body.id}`).send({ email: "Adm-Dup@Example.Test" })).status,
-    ).toBe(409);
+    const dupUpdate = await admin.patch(`/api/admin/users/${otherRes.body.id}`).send({ email: "Adm-Dup@Example.Test" });
+    expect(dupUpdate.status).toBe(409);
+    expect(dupUpdate.body.error.details).toEqual([{ field: "email", message: "Email is already in use" }]);
   });
 });
 

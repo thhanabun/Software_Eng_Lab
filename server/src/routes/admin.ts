@@ -83,7 +83,13 @@ adminRouter.post("/users", ...adminOnly, async (req, res) => {
   try {
     const duplicate = await prisma.user.findUnique({ where: { email } });
     if (duplicate) {
-      res.status(409).json({ error: { code: "CONFLICT", message: "Email is already in use" } });
+      res.status(409).json({
+        error: {
+          code: "CONFLICT",
+          message: "Email is already in use",
+          details: [{ field: "email", message: "Email is already in use" }],
+        },
+      });
       return;
     }
     const created = await prisma.user.create({
@@ -134,7 +140,13 @@ adminRouter.patch("/users/:id", ...adminOnly, async (req, res) => {
       }
       const duplicate = await prisma.user.findFirst({ where: { email, id: { not: id } } });
       if (duplicate) {
-        res.status(409).json({ error: { code: "CONFLICT", message: "Email is already in use" } });
+        res.status(409).json({
+          error: {
+            code: "CONFLICT",
+            message: "Email is already in use",
+            details: [{ field: "email", message: "Email is already in use" }],
+          },
+        });
         return;
       }
       data.email = email;
