@@ -3,12 +3,12 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test, expect, type Page } from '@playwright/test'
 
-const E2E_PASSWORD = process.env.E2E_PASSWORD ?? 'E2eTest123!'
 const ALICE = 'e2e.alice@example.test'
 const STAFF = 'e2e.staff@example.test'
 const ADMIN = 'e2e.admin@example.test'
 const MUSTCHANGE = 'e2e.mustchange@example.test'
 const INACTIVE = 'e2e.inactive@example.test'
+const E2E_PASSWORD = process.env.E2E_PASSWORD ?? 'E2eTest123!'
 const CHANGED_PASSWORD = 'E2eChanged123!'
 
 async function fillLogin(page: Page, email: string, password: string = E2E_PASSWORD): Promise<void> {
@@ -56,6 +56,11 @@ test('E2E-01: inactive account is rejected with the deactivated message (AC-06)'
   await expect(page.getByTestId('login-error')).toContainText(/deactivat/i)
 })
 
+// Must-change flow: pinE2EUsers (globalSetup) re-pins mustChangePassword:true
+// and resets the hash to E2eTest123! on every full run, so this test is
+// self-healing.  If someone runs ONLY this file without globalSetup, the
+// mustchange user will remain in changed state — not a real concern in CI
+// (always full) but worth noting for isolated debugging.
 test('E2E-01: must-change account is gated until a valid new password is saved (AC-02)', async ({
   page,
 }) => {
@@ -104,7 +109,7 @@ test('E2E-05 (AC-29): login completes keyboard-only with visible focus', async (
   await expect(page).toHaveURL(/\/tickets$/)
 })
 
-test('E2E-04: authentication screenshots at three viewports', async ({ browser }) => {
+test('E2E-04: authentication screenshots at three viewports (login + change-password)', async ({ browser }) => {
   const viewports: [string, number, number][] = [
     ['desktop', 1280, 800],
     ['tablet', 820, 1180],
@@ -115,10 +120,22 @@ test('E2E-04: authentication screenshots at three viewports', async ({ browser }
   for (const [name, width, height] of viewports) {
     const context = await browser.newContext({ viewport: { width, height } })
     const page = await context.newPage()
+    fs.mkdirSync(outDir, { recursive: true })
+
+    // Login screenshot
     await page.goto('/login')
     await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible()
-    fs.mkdirSync(outDir, { recursive: true })
     await page.screenshot({ path: path.join(outDir, `${name}.png`) })
+
+    // Change-password screenshot (logged-in user navigating to /change-password)
+    await page.getByLabel(/email/i).fill(ALICE)
+    await page.getByLabel(/password/i).fill(E2E_PASSWORD)
+    await page.getByRole('button', { name: /sign in/i }).click()
+    await expect(page).toHaveURL(/\/tickets$/)
+    await page.goto('/change-password')
+    await expect(page.getByLabel(/current password/i)).toBeVisible()
+    await page.screenshot({ path: path.join(outDir, `change-password-${name}.png`) })
+
     await context.close()
   }
 })
