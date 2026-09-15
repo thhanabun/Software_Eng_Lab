@@ -1,34 +1,29 @@
-# Lab 3 — Peer Review Record
+# Lab 3 Peer Review
 
-**Author:** Thanaboon Tikaew — GitHub: @thhanabun
-**Peer reviewer:** Siriwan Yindeepot— GitHub: @ssiriwan
+## My Reviewer (reviewed my Pull Requests)
 
-## Pull Requests I authored (reviewed by my partner)
+- Name: Thanabun Tikaew
+- Student ID: 67070501021
+- GitHub username: thhanabun
 
-| PR | Issue | Reviewer feedback (from GitHub thread) | Status at merge |
-|---|---|---|---|
-| #37 | #29 Spec contract (docs) | TBD | TBD |
-| TBD | #30 Auth foundation | TBD | TBD |
-| TBD | #31 Requester regression | TBD | TBD |
-| TBD | #32 Staff queue | TBD | TBD |
-| TBD | #33 Staff detail ops | TBD | TBD |
-| TBD | #34 Admin users | TBD | TBD |
-| TBD | #35 E2E + visual | TBD | TBD |
-| TBD | #36 Final docs + release | TBD | TBD |
+### My Pull Requests Reviewed (reviewer repo: ssiriwan/toktickit)
 
-Reviewer comments I received: TBD.
-How I responded: TBD.
+| PR | Issue | Title | Status |
+| --- | --- | --- | --- |
+| https://github.com/ssiriwan/toktickit/pull/32 | #32 | docs(lab-03): Sprint 3 spec contract | Merged — 8 fixes |
+| https://github.com/ssiriwan/toktickit/pull/33 | #33 | docs(lab-03): test plan with AC traceability | Merged — 5 fixes |
+| https://github.com/ssiriwan/toktickit/pull/34 | #34 | feat(lab-03): auth foundation + migration + seed | Open — pending review |
 
-## Open review items
+### Reviews Received — Details
 
-TBD — filled as reviews arrive; all closed by Issue #36.
+- **PR #32 (Spec contract):** 8 fixes — (1) removed `resolutionSummary` from Ticket + UI (scope creep, deferred to Lab 4), (2) brand typo `TikTockIT` → `TokTickIT`, (3) Admin table now `Name | Email | Role | Status | Edit` on desktop, (4) seed credential placeholder table added, (5) queue search back to `ticketNumber+summary+description`, sort aligned to `ticketDate/updatedAt`, (6) added `relatedSystemId` filter, (7) AC traceability marked as Phase 2, (8) added BR-21 login-attempts (no lockout) + BR-22 CSRF.
+- **PR #33 (Test plan):** 5 fixes — (1) non-English leftover `чуж` → `other owner's` (2 spots), (2) added UI-07 role-nav/forbidden cards (AC-06/16), (3) added UI-08 requester regression mapped to Lab 2 UI suite, (4) added VIS-01 screenshots row (AC-18), (5) split UNIT-01 → `password.unit.test.ts` and UI-06 → `theme.style.test.tsx`.
+- **PR #34 (Auth foundation):** pending friend review.
 
-## Pull Requests I reviewed for my partner
+## Pull Requests I Reviewed (in my partner's repository, thhanabun/Software_Eng_Lab)
 
-Partner's repository: https://github.com/ssiriwan/toktickit
+| PR | Issue | Title | My Review |
+| --- | --- | --- | --- |
+| — | — | Lab 3 reviews pending (partner PRs not opened yet at time of writing) | TBD |
 
-| PR | Title | My Comment | Partner's Response |
-|---|---|---|---|
-| TBD | TBD | TBD | TBD |
-
-Filled as partner PRs arrive; final record completed by the Issue #36 docs PR.
+> This file is updated continuously as reviews happen.
