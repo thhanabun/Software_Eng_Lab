@@ -8,9 +8,25 @@ import { hashPassword } from "../src/lib/password.js";
 const prisma = new PrismaClient();
 
 export const E2E_PASSWORD = process.env.E2E_PASSWORD ?? "E2eTest123!";
-export const E2E_USERS = [
-  { email: "e2e.alice@example.test", name: "E2E Alice" },
-  { email: "e2e.carlos@example.test", name: "E2E Carlos" },
+
+type E2ESeedUser = {
+  email: string;
+  name: string;
+  role: "REQUESTER" | "IT_STAFF" | "ADMINISTRATOR";
+  active: boolean;
+  mustChangePassword: boolean;
+};
+
+export const E2E_USERS: E2ESeedUser[] = [
+  { email: "e2e.alice@example.test", name: "E2E Alice", role: "REQUESTER", active: true, mustChangePassword: false },
+  { email: "e2e.carlos@example.test", name: "E2E Carlos", role: "REQUESTER", active: true, mustChangePassword: false },
+  // Lab 3 roles: dedicated staff + admin logins for the Playwright suites.
+  { email: "e2e.staff@example.test", name: "E2E Staff", role: "IT_STAFF", active: true, mustChangePassword: false },
+  { email: "e2e.admin@example.test", name: "E2E Admin", role: "ADMINISTRATOR", active: true, mustChangePassword: false },
+  // Forced-change flow: reset to pending on every setup run so E2E-01 is deterministic.
+  { email: "e2e.mustchange@example.test", name: "E2E Mustchange", role: "REQUESTER", active: true, mustChangePassword: true },
+  // Inactive login rejection (BR-07): always pinned deactivated.
+  { email: "e2e.inactive@example.test", name: "E2E Inactive", role: "REQUESTER", active: false, mustChangePassword: false },
 ];
 
 export async function pinE2EUsers(db: PrismaClient = prisma): Promise<void> {
@@ -18,8 +34,21 @@ export async function pinE2EUsers(db: PrismaClient = prisma): Promise<void> {
   for (const user of E2E_USERS) {
     await db.user.upsert({
       where: { email: user.email },
-      update: { name: user.name, active: true, role: "REQUESTER", passwordHash, mustChangePassword: false },
-      create: { ...user, active: true, role: "REQUESTER", passwordHash, mustChangePassword: false },
+      update: {
+        name: user.name,
+        active: user.active,
+        role: user.role,
+        passwordHash,
+        mustChangePassword: user.mustChangePassword,
+      },
+      create: {
+        email: user.email,
+        name: user.name,
+        active: user.active,
+        role: user.role,
+        passwordHash,
+        mustChangePassword: user.mustChangePassword,
+      },
     });
   }
   console.log(`Pinned E2E logins for ${E2E_USERS.length} users`);

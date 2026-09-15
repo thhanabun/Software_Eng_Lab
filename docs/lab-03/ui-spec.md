@@ -89,16 +89,16 @@ All controls labeled; modals `role=dialog` with Escape/overlay close and focus t
 
 | Check | Desktop | Tablet | Mobile |
 |---|---|---|---|
-| Colors match tokens (§1) | ☐ | ☐ | ☐ |
-| Editable vs read-only distinct | ☐ | ☐ | ☐ |
-| Validation messages below fields | ☐ | ☐ | ☐ |
-| Button hierarchy clear | ☐ | ☐ | ☐ |
-| No clipping / overlap | ☐ | ☐ | ☐ |
-| No horizontal scroll | ☐ | ☐ | ☐ |
-| Status/priority/role/owner badges consistent | ☐ | ☐ | ☐ |
-| Public vs Internal visually distinct (lock + tint + label) | ☐ | ☐ | ☐ |
-| Role nav correct per role; no unauthorized links | ☐ | ☐ | ☐ |
-| Forbidden/expired-session states safe | ☐ | ☐ | ☐ |
-| Visible keyboard focus at all viewports | ☐ | ☐ | ☐ |
+| Colors match tokens (§1) | ☑ | ☑ | ☑ |
+| Editable vs read-only distinct | ☑ | ☑ | ☑ |
+| Validation messages below fields | ☑ | ☑ | ☑ |
+| Button hierarchy clear | ☑ | ☑ | ☑ |
+| No clipping / overlap | ☑ | ☑ | ☑ |
+| No horizontal scroll | ☑ | ☑ | ☑ |
+| Status/priority/role/owner badges consistent | ☑ | ☑ | ☑ |
+| Public vs Internal visually distinct (lock + tint + label) | ☑ | ☑ | ☑ |
+| Role nav correct per role; no unauthorized links | ☑ | ☑ | ☑ |
+| Forbidden/expired-session states safe | ☑ | ☑ | ☑ |
+| Visible keyboard focus at all viewports | ☑ | ☑ | ☑ |
 
 Screenshot paths: `artifacts/lab-03/screenshots/{authentication,staff-queue,staff-ticket-detail,user-management}/{desktop,tablet,mobile}.png`

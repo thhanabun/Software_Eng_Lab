@@ -1,13 +1,13 @@
 import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
-  testDir: './lab-02',
+  testDir: '.',
   timeout: 90_000,
   workers: 1,
   fullyParallel: false,
   reporter: [
     ['list'],
-    ['html', { open: 'never', outputFolder: '../artifacts/lab-02/playwright-report' }],
+    ['html', { open: 'never', outputFolder: '../artifacts/playwright-report' }],
   ],
   globalSetup: './lab-02/global-setup.ts',
   use: {
