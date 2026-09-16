@@ -115,16 +115,16 @@ Every AC maps to ≥1 test; every test maps to ≥1 AC/BR. Boundary coverage (sh
 
 Executed in Issue #35 against ui-spec §8 with the E2E-04 screenshots (desktop 1280×800, tablet 820×1180, mobile 390×844):
 
-- [ ] Colors/tokens match ui-spec §1; new badges consistent everywhere
-- [ ] Editable vs read-only distinct on all Lab 3 screens
-- [ ] Validation messages below fields; asterisks; role=alert errors
-- [ ] Button hierarchy + busy states verified
-- [ ] No clipping/overlap; queue table collapses to cards on mobile
-- [ ] No page-level horizontal scrolling at 390px
-- [ ] Public vs Internal visually distinct (lock + tint + label, not color alone)
-- [ ] Role nav correct per role; guards render safe panels
-- [ ] Visible keyboard focus indicators at all three viewports
-- [ ] Forbidden/expired-session states safe and readable
+- [x] Colors/tokens match ui-spec §1; new badges consistent everywhere
+- [x] Editable vs read-only distinct on all Lab 3 screens
+- [x] Validation messages below fields; asterisks; role=alert errors
+- [x] Button hierarchy + busy states verified
+- [x] No clipping/overlap; queue table collapses to cards on mobile
+- [x] No page-level horizontal scrolling at 390px
+- [x] Public vs Internal visually distinct (lock + tint + label, not color alone)
+- [x] Role nav correct per role; guards render safe panels
+- [x] Visible keyboard focus indicators at all three viewports
+- [x] Forbidden/expired-session states safe and readable
 
 Screenshot paths: `artifacts/lab-03/screenshots/{authentication,staff-queue,staff-ticket-detail,user-management}/{desktop,tablet,mobile}.png`
 
