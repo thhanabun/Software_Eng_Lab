@@ -279,9 +279,17 @@ export default function StaffTicketQueue() {
       </form>
 
       {loadState === 'loading' && (
-        <p data-testid="loading-state" style={{ color: 'var(--tg-muted)' }}>
-          Loading queue…
-        </p>
+        <div data-testid="loading-state" aria-busy="true">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="d-flex gap-3 mb-2 align-items-center">
+              <div className="tg-skeleton" style={{ width: 100, height: 18 }} />
+              <div className="tg-skeleton flex-grow-1" style={{ height: 18 }} />
+              <div className="tg-skeleton" style={{ width: 80, height: 18 }} />
+              <div className="tg-skeleton" style={{ width: 60, height: 18 }} />
+              <div className="tg-skeleton" style={{ width: 50, height: 24, borderRadius: 999 }} />
+            </div>
+          ))}
+        </div>
       )}
 
       {loadState === 'error' && (
@@ -349,9 +357,9 @@ export default function StaffTicketQueue() {
                       </span>
                     </td>
                     <td>
-                      <span className="tg-badge">{ticket.currentStatus}</span>
+                      <span className={`tg-badge tg-badge-status-${ticket.currentStatus.toLowerCase()}`}>{ticket.currentStatus}</span>
                     </td>
-                    <td>{ticket.owner ?? 'Unassigned'}</td>
+                    <td>{ticket.owner ? <span className="tg-owner-chip-filled">{ticket.owner}</span> : <span className="tg-owner-chip">Unassigned</span>}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{formatDate(ticket.updatedAt)}</td>
                     <td>
                       <Link to={`/staff/tickets/${ticket.id}`} className="tg-btn tg-btn-secondary">
@@ -369,7 +377,7 @@ export default function StaffTicketQueue() {
               <div key={ticket.id} className="tg-card mb-2" data-testid={`queue-card-${ticket.id}`}>
                 <div className="d-flex justify-content-between gap-2 mb-1">
                   <Link to={`/staff/tickets/${ticket.id}`}>{ticket.ticketNumber}</Link>
-                  <span className="tg-badge">{ticket.currentStatus}</span>
+                  <span className={`tg-badge tg-badge-status-${ticket.currentStatus.toLowerCase()}`}>{ticket.currentStatus}</span>
                 </div>
                 <p className="mb-1">{ticket.summary}</p>
                 <div className="d-flex gap-2 flex-wrap align-items-center">

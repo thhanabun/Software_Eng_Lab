@@ -1,7 +1,14 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiRequestError, changePassword } from '../api'
 import { homePath, useAuth } from '../authContext'
+
+function hasLetter(s: string) {
+  return /[a-zA-Z]/.test(s)
+}
+function hasDigit(s: string) {
+  return /[0-9]/.test(s)
+}
 
 export default function ChangePassword() {
   const navigate = useNavigate()
@@ -15,6 +22,14 @@ export default function ChangePassword() {
   const [fieldErrors, setFieldErrors] = useState<{ currentPassword?: string; newPassword?: string; confirmPassword?: string }>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const rules = useMemo(() => ({
+    length: newPassword.length >= 8,
+    letter: hasLetter(newPassword),
+    digit: hasDigit(newPassword),
+    differ: newPassword.length > 0 && newPassword !== currentPassword,
+    match: confirmPassword.length > 0 && confirmPassword === newPassword,
+  }), [newPassword, confirmPassword, currentPassword])
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -50,6 +65,12 @@ export default function ChangePassword() {
     } finally {
       setBusy(false)
     }
+  }
+
+  function ruleIcon(ok: boolean) {
+    return ok
+      ? <span style={{ color: 'var(--tg-success)' }}>&#10003;</span>
+      : <span style={{ color: 'var(--tg-muted)' }}>&#9675;</span>
   }
 
   return (
@@ -90,9 +111,15 @@ export default function ChangePassword() {
             aria-invalid={Boolean(fieldErrors.newPassword)}
             aria-describedby="new-password-hint"
           />
-          <p id="new-password-hint" className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
+          <p id="new-password-hint" className="mb-1 small" style={{ color: 'var(--tg-muted)' }}>
             8–72 characters, at least one letter and one digit, different from the current password.
           </p>
+          <ul className="list-unstyled small mb-1" aria-label="Password rules">
+            <li>{ruleIcon(rules.length)} At least 8 characters</li>
+            <li>{ruleIcon(rules.letter)} At least one letter</li>
+            <li>{ruleIcon(rules.digit)} At least one digit</li>
+            <li>{ruleIcon(rules.differ)} Different from current password</li>
+          </ul>
           {fieldErrors.newPassword && <p className="tg-field-error">{fieldErrors.newPassword}</p>}
         </div>
         <div className="mb-3">
@@ -108,6 +135,13 @@ export default function ChangePassword() {
             onChange={(event) => setConfirmPassword(event.target.value)}
             aria-invalid={Boolean(fieldErrors.confirmPassword)}
           />
+          {confirmPassword.length > 0 && (
+            <p className="small mb-0 mt-1">
+              {rules.match
+                ? <span style={{ color: 'var(--tg-success)' }}>&#10003; Passwords match</span>
+                : <span style={{ color: 'var(--tg-muted)' }}>&#9675; Passwords do not match</span>}
+            </p>
+          )}
           {fieldErrors.confirmPassword && <p className="tg-field-error">{fieldErrors.confirmPassword}</p>}
         </div>
         {formError && (

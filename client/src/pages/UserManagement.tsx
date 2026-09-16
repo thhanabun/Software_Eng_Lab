@@ -401,7 +401,10 @@ export default function UserManagement() {
                     className="form-check-input"
                     type="checkbox"
                     checked={form.active}
-                    disabled={modal.mode === 'edit' && modal.user.id === me?.id}
+                    disabled={
+                      (modal.mode === 'edit' && modal.user.id === me?.id) ||
+                      (modal.mode === 'edit' && !form.active && users.filter((u) => u.active && u.role === 'ADMINISTRATOR').length <= 1)
+                    }
                     onChange={(event) => setForm({ ...form, active: event.target.checked })}
                   />
                   <label className="form-check-label" htmlFor="user-active">
@@ -411,6 +414,11 @@ export default function UserManagement() {
                 {modal.mode === 'edit' && modal.user.id === me?.id && (
                   <p className="small mb-0" style={{ color: 'var(--tg-muted)' }}>
                     You cannot deactivate your own account.
+                  </p>
+                )}
+                {modal.mode === 'edit' && modal.user.id !== me?.id && !form.active && users.filter((u) => u.active && u.role === 'ADMINISTRATOR').length <= 1 && (
+                  <p className="small mb-0" style={{ color: 'var(--tg-muted)' }}>
+                    Cannot deactivate — at least one active Administrator is required.
                   </p>
                 )}
               </div>

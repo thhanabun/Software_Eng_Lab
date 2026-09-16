@@ -252,7 +252,7 @@ export default function StaffTicketDetail() {
             {detail.ticketNumber}
           </h1>
           <div className="d-flex gap-2">
-            <span className="tg-badge">{detail.currentStatus}</span>
+            <span className={`tg-badge tg-badge-status-${detail.currentStatus.toLowerCase()}`}>{detail.currentStatus}</span>
             <span className={`tg-badge tg-badge-${detail.requestedPriority.toLowerCase()}`}>
               {detail.requestedPriority}
             </span>
