@@ -69,7 +69,7 @@ describe('Change Password screen (UI-31)', () => {
     await userEvent.type(screen.getByLabelText(/confirm new password/i), 'different')
     await userEvent.click(screen.getByRole('button', { name: /save new password/i }))
 
-    expect(await screen.findByText(/passwords do not match/i)).toBeInTheDocument()
+    expect(await screen.findAllByText(/passwords do not match/i)).toHaveLength(2)
     expect(fetchMock).not.toHaveBeenCalledWith(
       '/api/auth/change-password',
       expect.objectContaining({ method: 'POST' }),
