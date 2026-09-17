@@ -136,7 +136,7 @@ export default function ChangePassword() {
             aria-invalid={Boolean(fieldErrors.confirmPassword)}
           />
           {confirmPassword.length > 0 && (
-            <p className="small mb-0 mt-1">
+            <p className="small mb-0 mt-1" aria-live="polite">
               {rules.match
                 ? <span style={{ color: 'var(--tg-success)' }}>&#10003; Passwords match</span>
                 : <span style={{ color: 'var(--tg-muted)' }}>&#9675; Passwords do not match</span>}
