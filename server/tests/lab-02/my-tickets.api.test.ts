@@ -4,6 +4,7 @@ import type { Express } from "express";
 import { createApp } from "../../src/app";
 import { prisma } from "../../src/db";
 import { seedAll } from "../../prisma/seed";
+import { createLoginUser, loginAgent, type TestAgent } from "../helpers";
 
 interface ListBody {
   items: Array<{
@@ -25,22 +26,27 @@ interface ListBody {
 let app: Express;
 let requesterA: number;
 let requesterB: number;
+let agentA: TestAgent;
+let agentB: TestAgent;
 let hardware: number;
 let network: number;
 let email: number;
 
-function list(headers: Record<string, string> = {}) {
-  return request(app).get("/api/tickets").set({ "X-Requester-Id": String(requesterA), ...headers });
+function list() {
+  return agentA.get("/api/tickets");
+}
+
+function listB() {
+  return agentB.get("/api/tickets");
 }
 
 async function createTicket(
-  requesterId: number,
+  agent: TestAgent,
   overrides: Record<string, unknown> = {},
 ): Promise<{ id: number; ticketNumber: string }> {
-  const res = await request(app)
+  const res = await agent
     .post("/api/tickets")
     .send({
-      requesterId,
       categoryId: hardware,
       relatedSystemId: email,
       summary: `Baseline ticket ${Date.now()} ${Math.random()}`,
@@ -59,18 +65,12 @@ beforeAll(async () => {
   network = (await prisma.category.findUniqueOrThrow({ where: { name: "Network" } })).id;
   email = (await prisma.relatedSystem.findUniqueOrThrow({ where: { name: "Email" } })).id;
 
-  const a = await prisma.requesterUser.upsert({
-    where: { email: "list-a@student.example" },
-    update: { active: true },
-    create: { name: "List Tester A", email: "list-a@student.example", active: true },
-  });
-  const b = await prisma.requesterUser.upsert({
-    where: { email: "list-b@student.example" },
-    update: { active: true },
-    create: { name: "List Tester B", email: "list-b@student.example", active: true },
-  });
+  const a = await createLoginUser("list-a@student.example", "List Tester A");
+  const b = await createLoginUser("list-b@student.example", "List Tester B");
   requesterA = a.id;
   requesterB = b.id;
+  agentA = await loginAgent(app, "list-a@student.example");
+  agentB = await loginAgent(app, "list-b@student.example");
 });
 
 async function cleanupTickets() {
@@ -84,14 +84,14 @@ beforeEach(cleanupTickets);
 
 afterAll(async () => {
   await cleanupTickets();
-  await prisma.requesterUser.deleteMany({ where: { id: { in: [requesterA, requesterB] } } });
+  await prisma.user.deleteMany({ where: { id: { in: [requesterA, requesterB] } } });
 });
 
 describe("GET /api/tickets ownership (API-07)", () => {
   it("returns only the selected requester's tickets", async () => {
-    await createTicket(requesterA, { summary: "Owned by A one" });
-    await createTicket(requesterA, { summary: "Owned by A two" });
-    await createTicket(requesterB, { summary: "Owned by B" });
+    await createTicket(agentA, { summary: "Owned by A one" });
+    await createTicket(agentA, { summary: "Owned by A two" });
+    await createTicket(agentB, { summary: "Owned by B" });
 
     const resA = await list();
     expect(resA.status).toBe(200);
@@ -99,35 +99,28 @@ describe("GET /api/tickets ownership (API-07)", () => {
     expect(bodyA.totalItems).toBe(2);
     expect(bodyA.items.map((t) => t.summary).sort()).toEqual(["Owned by A one", "Owned by A two"]);
 
-    const resB = await list({ "X-Requester-Id": String(requesterB) });
+    const resB = await listB();
     expect((resB.body as ListBody).totalItems).toBe(1);
   });
 
-  it("rejects missing and invalid X-Requester-Id with 400", async () => {
+  it("rejects missing and invalid sessions with 401", async () => {
     const missing = await request(app).get("/api/tickets");
-    expect(missing.status).toBe(400);
-    expect(missing.body.error.code).toBe("VALIDATION_ERROR");
-    expect(missing.body.error.details[0].field).toBe("requesterId");
+    expect(missing.status).toBe(401);
+    expect(missing.body.error.code).toBe("UNAUTHENTICATED");
 
-    const invalid = await list({ "X-Requester-Id": "not-a-number" });
-    expect(invalid.status).toBe(400);
-    expect(invalid.body.error.details[0].field).toBe("requesterId");
-  });
-
-  it("returns 404 for an unknown requester", async () => {
-    const res = await list({ "X-Requester-Id": "999999" });
-    expect(res.status).toBe(404);
-    expect(res.body.error.code).toBe("NOT_FOUND");
+    const invalid = await request(app).get("/api/tickets").set("Cookie", "toktickit_session=deadbeef");
+    expect(invalid.status).toBe(401);
+    expect(invalid.body.error.code).toBe("UNAUTHENTICATED");
   });
 });
 
 describe("GET /api/tickets search (API-08)", () => {
   it("is a case-insensitive substring over summary and description only", async () => {
-    const target = await createTicket(requesterA, {
+    const target = await createTicket(agentA, {
       summary: "Printer jam on floor 2",
       description: "the INK CARTRIDGE sticks every morning",
     });
-    await createTicket(requesterA, { summary: "Battery drains fast", description: "unrelated" });
+    await createTicket(agentA, { summary: "Battery drains fast", description: "unrelated" });
 
     const bySummary = await list().query({ search: "PRINTER jam" });
     expect(bySummary.status).toBe(200);
@@ -146,9 +139,9 @@ describe("GET /api/tickets search (API-08)", () => {
 
 describe("GET /api/tickets filters (API-09)", () => {
   it("filters by categoryId, status and priority, including combinations", async () => {
-    await createTicket(requesterA, { summary: "Network one", categoryId: network, requestedPriority: "URGENT" });
-    await createTicket(requesterA, { summary: "Hardware one", categoryId: hardware, requestedPriority: "LOW" });
-    await createTicket(requesterA, { summary: "Hardware urgent", categoryId: hardware, requestedPriority: "URGENT" });
+    await createTicket(agentA, { summary: "Network one", categoryId: network, requestedPriority: "URGENT" });
+    await createTicket(agentA, { summary: "Hardware one", categoryId: hardware, requestedPriority: "LOW" });
+    await createTicket(agentA, { summary: "Hardware urgent", categoryId: hardware, requestedPriority: "URGENT" });
 
     const byCategory = await list().query({ categoryId: String(network) });
     expect((byCategory.body as ListBody).items.map((t) => t.summary)).toEqual(["Network one"]);
@@ -169,12 +162,12 @@ describe("GET /api/tickets filters (API-09)", () => {
 
 describe("GET /api/tickets sorting (API-10)", () => {
   it("defaults to newest first, supports allowed sorts with stable secondary order, rejects invalid", async () => {
-    await createTicket(requesterA, { summary: "Oldest entry" });
-    await createTicket(requesterA, { summary: "Middle entry" });
-    await createTicket(requesterA, { summary: "Priority urgent", requestedPriority: "URGENT" });
-    await createTicket(requesterA, { summary: "Priority low", requestedPriority: "LOW" });
-    await createTicket(requesterA, { summary: "Priority medium", requestedPriority: "MEDIUM" });
-    await createTicket(requesterA, { summary: "Priority high", requestedPriority: "HIGH" });
+    await createTicket(agentA, { summary: "Oldest entry" });
+    await createTicket(agentA, { summary: "Middle entry" });
+    await createTicket(agentA, { summary: "Priority urgent", requestedPriority: "URGENT" });
+    await createTicket(agentA, { summary: "Priority low", requestedPriority: "LOW" });
+    await createTicket(agentA, { summary: "Priority medium", requestedPriority: "MEDIUM" });
+    await createTicket(agentA, { summary: "Priority high", requestedPriority: "HIGH" });
 
     const newestFirst = await list();
     const ordered = (newestFirst.body as ListBody).items;
@@ -213,7 +206,7 @@ describe("GET /api/tickets sorting (API-10)", () => {
 describe("GET /api/tickets pagination (API-11, API-12, API-13)", () => {
   it("slices pages, honours pageSize {5,10,25} and reports metadata", async () => {
     for (let i = 0; i < 12; i++) {
-      await createTicket(requesterA, { summary: `Paged ticket ${String(i + 1).padStart(2, "0")}` });
+      await createTicket(agentA, { summary: `Paged ticket ${String(i + 1).padStart(2, "0")}` });
     }
 
     const page1 = await list().query({ pageSize: "5" });
@@ -241,7 +234,7 @@ describe("GET /api/tickets pagination (API-11, API-12, API-13)", () => {
   });
 
   it("rejects invalid query values with 400 but ignores unknown params", async () => {
-    await createTicket(requesterA, { summary: "One row" });
+    await createTicket(agentA, { summary: "One row" });
 
     const badPage = await list().query({ page: "0" });
     expect(badPage.status).toBe(400);
@@ -265,7 +258,7 @@ describe("GET /api/tickets pagination (API-11, API-12, API-13)", () => {
   });
 
   it("returns an empty list with zero totals when the requester has no tickets (API-13)", async () => {
-    const res = await list({ "X-Requester-Id": String(requesterB) });
+    const res = await listB();
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ items: [], page: 1, totalItems: 0 });
     expect((res.body as ListBody).totalPages).toBeLessThanOrEqual(1);

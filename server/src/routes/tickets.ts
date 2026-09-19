@@ -1,8 +1,9 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { Prisma, RequestedPriority } from "@prisma/client";
 import { prisma } from "../db";
 import { generateTicketNumber } from "../lib/ticketNumber";
-import { parsePositiveIntParam, resolveRequesterId } from "../lib/requesterHeader";
+import { requireActive, requireAuth, requireFreshPassword, requireRequesterRole } from "../lib/auth";
+import { internalError, notFound, parsePositiveIntParam, validationError } from "../lib/validation";
 import { attachmentMeta, sortAttachments } from "./ticketAttachments";
 
 export const ticketsRouter: Router = Router();
@@ -10,7 +11,9 @@ export const ticketsRouter: Router = Router();
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 const SUMMARY_MAX = 120;
 const DESCRIPTION_MAX = 2000;
+const COMMENT_MAX = 2000;
 const NUMBER_ATTEMPTS = 5;
+const INDICATABLE_STATUSES = ["OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER"];
 
 interface FieldError {
   field: string;
@@ -49,6 +52,12 @@ function queryString(req: { query: unknown }, name: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+// Requester chains: reads keep working for inactive accounts (audit
+// retention, api-spec S2); every write additionally requires an active
+// account. Identity always comes from the session (BR-03).
+const requesterRead = [requireAuth, requireRequesterRole, requireFreshPassword];
+const requesterWrite = [requireAuth, requireRequesterRole, requireActive, requireFreshPassword];
+
 interface TicketListRow {
   id: number;
   ticketNumber: string;
@@ -61,13 +70,39 @@ interface TicketListRow {
   updatedAt: Date;
 }
 
-ticketsRouter.get("/:id", async (req, res) => {
-  const requesterId = await resolveRequesterId(req, res);
-  if (requesterId === null) return;
+interface CommentRow {
+  id: number;
+  body: string;
+  authorName: string;
+  authorRole: string;
+  createdAt: Date;
+}
+
+async function publicComments(ticketId: number): Promise<CommentRow[]> {
+  const rows = await prisma.ticketComment.findMany({
+    where: { ticketId, visibility: "PUBLIC" },
+    include: { author: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((c) => ({
+    id: c.id,
+    body: c.body,
+    authorName: c.author.name,
+    authorRole: c.author.role,
+    createdAt: c.createdAt,
+  }));
+}
+
+function serializeComments(rows: CommentRow[]) {
+  return rows.map((c) => ({ ...c, createdAt: c.createdAt.toISOString() }));
+}
+
+ticketsRouter.get("/:id", ...requesterRead, async (req, res) => {
+  const requesterId = req.user!.id;
 
   const id = parsePositiveIntParam(req.params.id);
   if (id === null) {
-    res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found" } });
+    notFound(res, "Ticket not found");
     return;
   }
 
@@ -78,34 +113,37 @@ ticketsRouter.get("/:id", async (req, res) => {
         category: true,
         relatedSystem: true,
         requester: true,
+        owner: true,
         attachments: true,
       },
     });
     if (!ticket) {
-      res.status(404).json({ error: { code: "NOT_FOUND", message: "Ticket not found" } });
+      notFound(res, "Ticket not found");
       return;
     }
 
-    const { category, relatedSystem, requester, attachments, ...fields } = ticket;
+    // Internal notes are never included in requester payloads (BR-04).
+    const comments = await publicComments(ticket.id);
+    const { category, relatedSystem, requester, owner, attachments, ...fields } = ticket;
     res.json({
       ...fields,
       createdAt: ticket.createdAt.toISOString(),
       updatedAt: ticket.updatedAt.toISOString(),
+      requesterResolvedAt: ticket.requesterResolvedAt ? ticket.requesterResolvedAt.toISOString() : null,
       categoryName: category.name,
       relatedSystemName: relatedSystem.name,
       requesterName: requester.name,
+      owner: owner ? { id: owner.id, name: owner.name } : null,
       attachments: sortAttachments(attachments).map(attachmentMeta),
+      comments: serializeComments(comments),
     });
   } catch {
-    res.status(500).json({
-      error: { code: "INTERNAL_ERROR", message: "Unable to load ticket" },
-    });
+    internalError(res, "Unable to load ticket");
   }
 });
 
-ticketsRouter.get("/", async (req, res) => {
-  const requesterId = await resolveRequesterId(req, res);
-  if (requesterId === null) return;
+ticketsRouter.get("/", ...requesterRead, async (req, res) => {
+  const requesterId = req.user!.id;
 
   const details: FieldError[] = [];
 
@@ -210,19 +248,18 @@ ticketsRouter.get("/", async (req, res) => {
       totalPages: Math.ceil(totalItems / pageSize),
     });
   } catch {
-    res.status(500).json({
-      error: { code: "INTERNAL_ERROR", message: "Unable to load tickets" },
-    });
+    internalError(res, "Unable to load tickets");
   }
 });
 
-ticketsRouter.post("/", async (req, res) => {
+ticketsRouter.post("/", ...requesterWrite, async (req, res) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const details: FieldError[] = [];
   const add = (field: string, message: string) => details.push({ field, message });
 
-  const requesterId = toPositiveInt(body.requesterId);
-  if (requesterId === null) add("requesterId", "Requester is required");
+  // BR-03: ownership comes from the session; a client-supplied requesterId
+  // (the Lab 2 field) is ignored, never trusted.
+  const requesterId = req.user!.id;
 
   const categoryId = toPositiveInt(body.categoryId);
   if (categoryId === null) add("categoryId", "Category is required");
@@ -242,12 +279,6 @@ ticketsRouter.post("/", async (req, res) => {
   const requestedPriority = body.requestedPriority;
   if (typeof requestedPriority !== "string" || !PRIORITIES.includes(requestedPriority)) {
     add("requestedPriority", "Requested priority must be LOW, MEDIUM, HIGH, or URGENT");
-  }
-
-  if (requesterId !== null) {
-    const requester = await prisma.requesterUser.findUnique({ where: { id: requesterId } });
-    if (!requester) add("requesterId", "Requester not found");
-    else if (!requester.active) add("requesterId", "Requester is not active");
   }
 
   if (categoryId !== null) {
@@ -279,12 +310,14 @@ ticketsRouter.post("/", async (req, res) => {
         const ticket = await prisma.ticket.create({
           data: {
             ticketNumber,
-            requesterId: requesterId as number,
+            requesterId,
             categoryId: categoryId as number,
             relatedSystemId: relatedSystemId as number,
             summary,
             description,
             requestedPriority: requestedPriority as RequestedPriority,
+            // IT Priority starts as a copy of Requested Priority (BR-15).
+            itPriority: requestedPriority as RequestedPriority,
           },
         });
         res.status(201).json(ticket);
@@ -297,11 +330,109 @@ ticketsRouter.post("/", async (req, res) => {
     }
     throw new Error("ticket number allocation exhausted");
   } catch {
-    res.status(500).json({
-      error: {
-        code: "INTERNAL_ERROR",
-        message: "Unable to create ticket",
-      },
+    internalError(res, "Unable to create ticket");
+  }
+});
+
+async function ownedTicket(req: Request, res: Response) {
+  const id = parsePositiveIntParam(req.params.id);
+  if (id === null) {
+    notFound(res, "Ticket not found");
+    return null;
+  }
+  const ticket = await prisma.ticket.findFirst({ where: { id, requesterId: req.user!.id } });
+  if (!ticket) {
+    notFound(res, "Ticket not found");
+    return null;
+  }
+  return ticket;
+}
+
+ticketsRouter.get("/:id/comments", ...requesterRead, async (req, res) => {
+  try {
+    const ticket = await ownedTicket(req, res);
+    if (!ticket) return;
+    res.json(serializeComments(await publicComments(ticket.id)));
+  } catch {
+    internalError(res, "Unable to load comments");
+  }
+});
+
+ticketsRouter.post("/:id/comments", ...requesterWrite, async (req, res) => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const text = typeof body.body === "string" ? body.body.trim() : "";
+  if (text.length === 0) {
+    validationError(res, "Comment body is required", "body", "Comment must not be empty");
+    return;
+  }
+  if (text.length > COMMENT_MAX) {
+    validationError(res, "Comment is too long", "body", `Comment must be ${COMMENT_MAX} characters or fewer`);
+    return;
+  }
+
+  try {
+    const ticket = await ownedTicket(req, res);
+    if (!ticket) return;
+    if (ticket.currentStatus === "CANCELLED") {
+      res.status(400).json({
+        error: { code: "VALIDATION_ERROR", message: "Ticket is cancelled", details: [{ field: "ticket", message: "Comments cannot be added to a cancelled ticket" }] },
+      });
+      return;
+    }
+    const created = await prisma.ticketComment.create({
+      data: { ticketId: ticket.id, authorId: req.user!.id, visibility: "PUBLIC", body: text },
+      include: { author: true },
     });
+    res.status(201).json({
+      id: created.id,
+      body: created.body,
+      authorName: created.author.name,
+      authorRole: created.author.role,
+      createdAt: created.createdAt.toISOString(),
+    });
+  } catch {
+    internalError(res, "Unable to post comment");
+  }
+});
+
+ticketsRouter.post("/:id/resolved-indication", ...requesterWrite, async (req, res) => {
+  try {
+    const ticket = await ownedTicket(req, res);
+    if (!ticket) return;
+    if (!INDICATABLE_STATUSES.includes(ticket.currentStatus)) {
+      res.status(400).json({
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Ticket cannot be marked as resolved in its current status",
+          details: [{ field: "status", message: `Allowed only in: ${INDICATABLE_STATUSES.join(", ")}` }],
+        },
+      });
+      return;
+    }
+    if (ticket.requesterResolved) {
+      res.status(200).json({
+        requesterResolved: true,
+        requesterResolvedAt: ticket.requesterResolvedAt ? ticket.requesterResolvedAt.toISOString() : null,
+      });
+      return;
+    }
+    const now = new Date();
+    await prisma.$transaction([
+      prisma.ticket.update({
+        where: { id: ticket.id },
+        data: { requesterResolved: true, requesterResolvedAt: now },
+      }),
+      prisma.ticketComment.create({
+        data: {
+          ticketId: ticket.id,
+          authorId: req.user!.id,
+          visibility: "PUBLIC",
+          body: "Requester indicated the problem appears resolved.",
+        },
+      }),
+    ]);
+    res.status(200).json({ requesterResolved: true, requesterResolvedAt: now.toISOString() });
+  } catch {
+    internalError(res, "Unable to record resolved indication");
   }
 });

@@ -1,39 +1,78 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from './components/AppShell'
-import RequireRequester from './components/RequireRequester'
+import { RequireAuth, RequireRole } from './components/RequireAuth'
 import SystemStatusCard from './components/SystemStatusCard'
+import ChangePassword from './pages/ChangePassword'
 import CreateTicket from './pages/CreateTicket'
+import Login from './pages/Login'
 import MyTickets from './pages/MyTickets'
-import RequesterSelection from './pages/RequesterSelection'
+import StaffTicketQueue from './pages/StaffTicketQueue'
+import StaffTicketDetail from './pages/StaffTicketDetail'
+import UserManagement from './pages/UserManagement'
 import TicketDetail from './pages/TicketDetail'
-import { RequesterProvider, useRequester } from './requesterContext'
+import { AuthProvider, homePath, useAuth } from './authContext'
 
 function RootRedirect() {
-  const { requester } = useRequester()
-  return <Navigate to={requester ? '/tickets' : '/select-requester'} replace />
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <Navigate to="/login" replace />
+  if (user.mustChangePassword) return <Navigate to="/change-password" replace />
+  return <Navigate to={homePath(user.role)} replace />
 }
 
 function App() {
   return (
-    <RequesterProvider>
+    <AuthProvider>
       <Routes>
         <Route path="/" element={<RootRedirect />} />
-        <Route path="/select-requester" element={<RequesterSelection />} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/change-password"
+          element={
+            <RequireAuth>
+              <ChangePassword />
+            </RequireAuth>
+          }
+        />
         <Route path="/system" element={<SystemStatusCard />} />
         <Route
           element={
-            <RequireRequester>
+            <RequireAuth>
               <AppShell />
-            </RequireRequester>
+            </RequireAuth>
           }
         >
           <Route path="/tickets" element={<MyTickets />} />
           <Route path="/tickets/new" element={<CreateTicket />} />
           <Route path="/tickets/:id" element={<TicketDetail />} />
+          <Route
+            path="/staff/tickets"
+            element={
+              <RequireRole roles={['IT_STAFF', 'ADMINISTRATOR']}>
+                <StaffTicketQueue />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/staff/tickets/:id"
+            element={
+              <RequireRole roles={['IT_STAFF', 'ADMINISTRATOR']}>
+                <StaffTicketDetail />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <RequireRole roles={['ADMINISTRATOR']}>
+                <UserManagement />
+              </RequireRole>
+            }
+          />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </RequesterProvider>
+    </AuthProvider>
   )
 }
 

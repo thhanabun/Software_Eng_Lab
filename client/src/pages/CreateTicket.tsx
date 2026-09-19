@@ -10,7 +10,7 @@ import {
   type RelatedSystem,
   type Ticket,
 } from '../api'
-import { useRequester } from '../requesterContext'
+import { useAuth } from '../authContext'
 import { formatSize } from '../lib/format'
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
@@ -35,7 +35,7 @@ function fileExtension(name: string): string {
 
 export default function CreateTicket() {
   const navigate = useNavigate()
-  const { requester } = useRequester()
+  const { user } = useAuth()
 
   const [categories, setCategories] = useState<Category[]>([])
   const [systems, setSystems] = useState<RelatedSystem[]>([])
@@ -134,7 +134,7 @@ export default function CreateTicket() {
   }
 
   const handleSubmit = async () => {
-    if (submitting || !requester) return
+    if (submitting) return
     setSubmitError(null)
     const errors = validate()
     setFieldErrors(errors)
@@ -143,7 +143,6 @@ export default function CreateTicket() {
     setSubmitting(true)
     try {
       const ticket = await createTicket({
-        requesterId: requester.id,
         categoryId: Number(categoryId),
         relatedSystemId: Number(relatedSystemId),
         summary: summary.trim(),
@@ -154,7 +153,7 @@ export default function CreateTicket() {
       const failed: string[] = []
       for (const file of files) {
         try {
-          await uploadAttachment(ticket.id, requester.id, file)
+          await uploadAttachment(ticket.id, file)
           uploaded += 1
         } catch {
           failed.push(file.name)
@@ -259,7 +258,7 @@ export default function CreateTicket() {
           <label className="tg-label" htmlFor="requester">
             Requester
           </label>
-          <input id="requester" className="tg-field" value={requester?.name ?? ''} readOnly aria-readonly="true" />
+          <input id="requester" className="tg-field" value={user?.name ?? ''} readOnly aria-readonly="true" />
         </div>
       </div>
 

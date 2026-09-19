@@ -8,15 +8,18 @@ export interface Category {
   name: string
 }
 
-export interface Requester {
-  id: number
-  name: string
-  email: string
-}
-
 export interface RelatedSystem {
   id: number
   name: string
+}
+
+export interface AuthUser {
+  id: number
+  name: string
+  email: string
+  role: 'REQUESTER' | 'IT_STAFF' | 'ADMINISTRATOR'
+  active: boolean
+  mustChangePassword: boolean
 }
 
 export interface Ticket {
@@ -50,7 +53,6 @@ export class ApiRequestError extends Error {
 }
 
 export interface CreateTicketPayload {
-  requesterId: number
   categoryId: number
   relatedSystemId: number
   summary: string
@@ -79,7 +81,6 @@ export interface TicketListResult {
 }
 
 export interface TicketListParams {
-  requesterId: number
   search?: string
   categoryId?: number | ''
   status?: string
@@ -101,15 +102,51 @@ export async function getCategories(): Promise<Category[]> {
   return res.json()
 }
 
-export async function getRequesters(): Promise<Requester[]> {
-  const res = await fetch('/api/requesters')
-  if (!res.ok) throw new Error('Requester load failed')
-  return res.json()
-}
-
 export async function getRelatedSystems(): Promise<RelatedSystem[]> {
   const res = await fetch('/api/related-systems')
   if (!res.ok) throw new Error('Related systems load failed')
+  return res.json()
+}
+
+// --- Authentication (cookie session; same-origin via Vite proxy) ---
+
+export async function login(email: string, password: string): Promise<{ user: AuthUser }> {
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!res.ok) throw await apiError(res, 'Sign in failed')
+  return res.json()
+}
+
+export async function logout(): Promise<void> {
+  const res = await fetch('/api/auth/logout', { method: 'POST' })
+  if (!res.ok) throw await apiError(res, 'Sign out failed')
+}
+
+export async function getMe(): Promise<{ user: AuthUser }> {
+  const res = await fetch('/api/auth/me')
+  if (!res.ok) throw await apiError(res, 'Session check failed')
+  return res.json()
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+  confirmPassword: string,
+): Promise<{ user: AuthUser }> {
+  const res = await fetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+  })
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Password change failed', res.status, body?.error?.details)
+  }
   return res.json()
 }
 
@@ -142,9 +179,7 @@ export async function listTickets(params: TicketListParams): Promise<TicketListR
   if (params.page && params.page > 1) query.set('page', String(params.page))
   if (params.pageSize && params.pageSize !== 10) query.set('pageSize', String(params.pageSize))
 
-  const res = await fetch(`/api/tickets?${query.toString()}`, {
-    headers: { 'X-Requester-Id': String(params.requesterId) },
-  })
+  const res = await fetch(`/api/tickets?${query.toString()}`)
   if (!res.ok) {
     throw new ApiRequestError('Ticket list failed', res.status)
   }
@@ -162,11 +197,24 @@ export interface AttachmentMeta {
   removalReason: string | null
 }
 
+export interface TicketComment {
+  id: number
+  body: string
+  authorName: string
+  authorRole: string
+  createdAt: string
+}
+
 export interface TicketDetail extends Ticket {
   categoryName: string
   relatedSystemName: string
   requesterName: string
+  owner: { id: number; name: string; email: string } | null
+  itPriority: string
+  requesterResolved: boolean
+  requesterResolvedAt: string | null
   attachments: AttachmentMeta[]
+  comments: TicketComment[]
 }
 
 async function apiError(res: Response, fallback: string): Promise<ApiRequestError> {
@@ -174,59 +222,316 @@ async function apiError(res: Response, fallback: string): Promise<ApiRequestErro
   return new ApiRequestError(body?.error?.message || fallback, res.status)
 }
 
-export async function getTicketDetail(id: number, requesterId: number): Promise<TicketDetail> {
-  const res = await fetch(`/api/tickets/${id}`, {
-    headers: { 'X-Requester-Id': String(requesterId) },
-  })
+export async function getTicketDetail(id: number): Promise<TicketDetail> {
+  const res = await fetch(`/api/tickets/${id}`)
   if (!res.ok) throw await apiError(res, 'Ticket detail failed')
   return res.json()
 }
 
-export async function listAttachments(
-  ticketId: number,
-  requesterId: number,
-): Promise<AttachmentMeta[]> {
-  const res = await fetch(`/api/tickets/${ticketId}/attachments`, {
-    headers: { 'X-Requester-Id': String(requesterId) },
+export async function postComment(ticketId: number, body: string): Promise<TicketComment> {
+  const res = await fetch(`/api/tickets/${ticketId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
   })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Comment failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function indicateResolved(
+  ticketId: number,
+): Promise<{ requesterResolved: boolean; requesterResolvedAt: string | null }> {
+  const res = await fetch(`/api/tickets/${ticketId}/resolved-indication`, { method: 'POST' })
+  if (!res.ok) throw await apiError(res, 'Indication failed')
+  return res.json()
+}
+
+export async function listAttachments(ticketId: number): Promise<AttachmentMeta[]> {
+  const res = await fetch(`/api/tickets/${ticketId}/attachments`)
   if (!res.ok) throw new ApiRequestError('Attachment list failed', res.status)
   return res.json()
 }
 
-export async function uploadAttachment(
-  ticketId: number,
-  requesterId: number,
-  file: File,
-): Promise<AttachmentMeta> {
+export async function uploadAttachment(ticketId: number, file: File): Promise<AttachmentMeta> {
   const form = new FormData()
   form.append('file', file)
   const res = await fetch(`/api/tickets/${ticketId}/attachments`, {
     method: 'POST',
-    headers: { 'X-Requester-Id': String(requesterId) },
     body: form,
   })
   if (!res.ok) throw await apiError(res, 'Attachment upload failed')
   return res.json()
 }
 
-export async function removeAttachment(
-  attachmentId: number,
-  requesterId: number,
-  reason: string,
-): Promise<AttachmentMeta> {
+export async function removeAttachment(attachmentId: number, reason: string): Promise<AttachmentMeta> {
   const res = await fetch(`/api/attachments/${attachmentId}`, {
     method: 'DELETE',
-    headers: { 'X-Requester-Id': String(requesterId), 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reason }),
   })
   if (!res.ok) throw await apiError(res, 'Attachment removal failed')
   return res.json()
 }
 
-export async function downloadAttachment(attachmentId: number, requesterId: number): Promise<Blob> {
-  const res = await fetch(`/api/attachments/${attachmentId}/download`, {
-    headers: { 'X-Requester-Id': String(requesterId) },
-  })
+export async function downloadAttachment(attachmentId: number): Promise<Blob> {
+  const res = await fetch(`/api/attachments/${attachmentId}/download`)
   if (!res.ok) throw await apiError(res, 'Attachment download failed')
   return res.blob()
+}
+
+// --- IT Staff queue ---
+
+export interface StaffQueueItem {
+  id: number
+  ticketNumber: string
+  summary: string
+  categoryName: string
+  requestedPriority: string
+  itPriority: string
+  currentStatus: string
+  owner: string | null
+  requesterName: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StaffQueueResult {
+  items: StaffQueueItem[]
+  page: number
+  pageSize: number
+  totalItems: number
+  totalPages: number
+}
+
+export interface StaffQueueParams {
+  search?: string
+  status?: string
+  categoryId?: number | ''
+  requestedPriority?: string
+  itPriority?: string
+  ownerId?: number | 'unassigned' | ''
+  sort?: string
+  page?: number
+  pageSize?: number
+}
+
+export async function listStaffTickets(params: StaffQueueParams): Promise<StaffQueueResult> {  const query = new URLSearchParams()
+  if (params.search) query.set('search', params.search)
+  if (params.status) query.set('status', params.status)
+  if (params.categoryId) query.set('categoryId', String(params.categoryId))
+  if (params.requestedPriority) query.set('requestedPriority', params.requestedPriority)
+  if (params.itPriority) query.set('itPriority', params.itPriority)
+  if (params.ownerId) query.set('ownerId', String(params.ownerId))
+  if (params.sort) query.set('sort', params.sort)
+  if (params.page && params.page > 1) query.set('page', String(params.page))
+  if (params.pageSize && params.pageSize !== 10) query.set('pageSize', String(params.pageSize))
+
+  const res = await fetch(`/api/staff/tickets?${query.toString()}`)
+  if (!res.ok) {
+    throw new ApiRequestError('Ticket queue failed', res.status)
+  }
+  return res.json()
+}
+
+// --- IT Staff ticket operations ---
+
+export interface StaffTicketDetail extends Ticket {
+  categoryName: string
+  relatedSystemName: string
+  requester: { id: number; name: string; email: string }
+  owner: { id: number; name: string } | null
+  itPriority: string
+  requesterResolved: boolean
+  requesterResolvedAt: string | null
+  comments: TicketComment[]
+  notes: TicketComment[]
+  attachments: AttachmentMeta[]
+}
+
+export interface StaffUser {
+  id: number
+  name: string
+  role: string
+}
+
+export async function getStaffTicketDetail(id: number): Promise<StaffTicketDetail> {
+  const res = await fetch(`/api/staff/tickets/${id}`)
+  if (!res.ok) throw await apiError(res, 'Staff ticket detail failed')
+  return res.json()
+}
+
+export async function claimTicket(
+  id: number,
+): Promise<{ owner: { id: number; name: string } | null; currentStatus: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/claim`, { method: 'POST' })
+  if (!res.ok) throw await apiError(res, 'Claim failed')
+  return res.json()
+}
+
+export async function assignTicket(
+  id: number,
+  ownerId: number | null,
+): Promise<{ owner: { id: number; name: string } | null; currentStatus: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/assign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ownerId }),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Assign failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function setItPriority(id: number, itPriority: string): Promise<{ itPriority: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/priority`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itPriority }),
+  })
+  if (!res.ok) throw await apiError(res, 'Priority update failed')
+  return res.json()
+}
+
+export async function setTicketStatus(
+  id: number,
+  status: string,
+): Promise<{ currentStatus: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Status update failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function postNote(ticketId: number, body: string): Promise<TicketComment> {  const res = await fetch(`/api/staff/tickets/${ticketId}/notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Note failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function postStaffComment(ticketId: number, body: string): Promise<TicketComment> {
+  const res = await fetch(`/api/staff/tickets/${ticketId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Comment failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function listStaffUsers(): Promise<StaffUser[]> {
+  const res = await fetch('/api/staff/users')
+  if (!res.ok) throw await apiError(res, 'User directory failed')
+  return res.json()
+}
+
+export async function staffDownloadAttachment(attachmentId: number): Promise<Blob> {
+  const res = await fetch(`/api/staff/attachments/${attachmentId}/download`)
+  if (!res.ok) throw await apiError(res, 'Attachment download failed')
+  return res.blob()
+}
+
+// --- Administrator user management ---
+
+export interface AdminUser {
+  id: number
+  name: string
+  email: string
+  role: 'REQUESTER' | 'IT_STAFF' | 'ADMINISTRATOR'
+  active: boolean
+  mustChangePassword: boolean
+  createdAt: string
+}
+
+export async function listAdminUsers(params: { search?: string; role?: string } = {}): Promise<{
+  items: AdminUser[]
+}> {
+  const query = new URLSearchParams()
+  if (params.search) query.set('search', params.search)
+  if (params.role) query.set('role', params.role)
+  const res = await fetch(`/api/admin/users?${query.toString()}`)
+  if (!res.ok) throw await apiError(res, 'User list failed')
+  return res.json()
+}
+
+export async function createAdminUser(input: {
+  name: string
+  email: string
+  role: string
+  active: boolean
+  initialPassword: string
+}): Promise<AdminUser> {
+  const res = await fetch('/api/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('User creation failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function updateAdminUser(
+  id: number,
+  input: { name?: string; email?: string; role?: string; active?: boolean },
+): Promise<AdminUser> {
+  const res = await fetch(`/api/admin/users/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('User update failed', res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function resetAdminPassword(id: number, newPassword: string): Promise<void> {
+  const res = await fetch(`/api/admin/users/${id}/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newPassword, confirmPassword: newPassword }),
+  })
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError('Password reset failed', res.status, errBody?.error?.details)
+  }
 }

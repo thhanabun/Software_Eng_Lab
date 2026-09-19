@@ -3,19 +3,26 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test, expect, type Page } from '@playwright/test'
 
-const ALICE = 'Alice Carter (alice.carter@student.example)'
-const CARLOS = 'Carlos Reyes (carlos.reyes@student.example)'
+const ALICE_EMAIL = 'e2e.alice@example.test'
+const CARLOS_EMAIL = 'e2e.carlos@example.test'
+const E2E_PASSWORD = process.env.E2E_PASSWORD ?? 'E2eTest123!'
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 
 function marker(label: string): string {
   return `${label} ${Date.now()} ${Math.floor(Math.random() * 1000)}`
 }
 
-async function selectRequester(page: Page, label: string): Promise<void> {
-  await page.goto('/select-requester')
-  await page.getByLabel(/Development Requester/i).selectOption({ label })
-  await page.getByRole('button', { name: 'Continue' }).click()
+async function loginAs(page: Page, email: string): Promise<void> {
+  await page.goto('/login')
+  await page.getByLabel(/email/i).fill(email)
+  await page.getByLabel(/password/i).fill(E2E_PASSWORD)
+  await page.getByRole('button', { name: /sign in/i }).click()
   await expect(page).toHaveURL(/\/tickets$/)
+}
+
+async function logout(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Logout' }).click()
+  await expect(page).toHaveURL(/\/login$/)
 }
 
 async function createTicketViaUI(page: Page, summary: string): Promise<string> {
@@ -32,7 +39,7 @@ async function createTicketViaUI(page: Page, summary: string): Promise<string> {
 }
 
 test('E2E-01: select requester, create ticket, find it in My Tickets, open detail', async ({ page }) => {
-  await selectRequester(page, ALICE)
+  await loginAs(page, ALICE_EMAIL)
 
   const summary = marker('e2e battery drain')
   const number = await createTicketViaUI(page, summary)
@@ -51,7 +58,7 @@ test('E2E-01: select requester, create ticket, find it in My Tickets, open detai
 })
 
 test('E2E-05 (AC-28): ticket can be created using only the keyboard', async ({ page }) => {
-  await selectRequester(page, ALICE)
+  await loginAs(page, ALICE_EMAIL)
 
   await page.getByRole('link', { name: 'Create Ticket' }).first().focus()
   await page.keyboard.press('Enter')
@@ -73,18 +80,16 @@ test('E2E-05 (AC-28): ticket can be created using only the keyboard', async ({ p
 
 test('E2E-02: requester B never sees requester A tickets (UI and direct API)', async ({
   page,
-  request,
 }) => {
-  await selectRequester(page, ALICE)
+  await loginAs(page, ALICE_EMAIL)
   const summary = marker('e2e private ticket')
   await createTicketViaUI(page, summary)
   await page.getByRole('button', { name: 'View Ticket' }).click()
   const ticketUrl = new URL(page.url())
   const ticketId = ticketUrl.pathname.split('/').pop() as string
 
-  await page.getByRole('button', { name: /change requester/i }).click()
-  await page.getByLabel(/Development Requester/i).selectOption({ label: CARLOS })
-  await page.getByRole('button', { name: 'Continue' }).click()
+  await logout(page)
+  await loginAs(page, CARLOS_EMAIL)
 
   await page.goto(`/tickets/${ticketId}`)
   await expect(page.getByTestId('not-found-panel')).toBeVisible()
@@ -94,23 +99,15 @@ test('E2E-02: requester B never sees requester A tickets (UI and direct API)', a
   await page.getByRole('button', { name: /apply search/i }).click()
   await expect(page.getByTestId('no-results-state')).toBeVisible()
 
-  const requesters = (await (await request.get('/api/requesters')).json()) as {
-    id: number
-    name: string
-  }[]
-  const carlosId = requesters.find((r) => r.name === 'Carlos Reyes')?.id
-  expect(carlosId).toBeTruthy()
-  const direct = await request.get(`/api/tickets/${ticketId}`, {
-    headers: { 'X-Requester-Id': String(carlosId) },
-  })
+  // Direct API with Carlos's session cookies (page.request shares them).
+  const direct = await page.request.get(`/api/tickets/${ticketId}`)
   expect(direct.status()).toBe(404)
 })
 
 test('E2E-03: attachment upload, download, soft removal and blocked download', async ({
   page,
-  request,
 }) => {
-  await selectRequester(page, ALICE)
+  await loginAs(page, ALICE_EMAIL)
   const summary = marker('e2e attachment ticket')
   await createTicketViaUI(page, summary)
   await page.getByRole('button', { name: 'View Ticket' }).click()
@@ -144,15 +141,7 @@ test('E2E-03: attachment upload, download, soft removal and blocked download', a
   const testId = (await removedRow.first().getAttribute('data-testid')) ?? ''
   const attachmentId = testId.replace('attachment-row-', '')
   expect(attachmentId).toMatch(/^\d+$/)
-  const requesters = (await (await request.get('/api/requesters')).json()) as {
-    id: number
-    name: string
-  }[]
-  const aliceId = requesters.find((r) => r.name === 'Alice Carter')?.id
-  expect(aliceId).toBeTruthy()
-  const blocked = await request.get(`/api/attachments/${attachmentId}/download`, {
-    headers: { 'X-Requester-Id': String(aliceId) },
-  })
+  const blocked = await page.request.get(`/api/attachments/${attachmentId}/download`)
   expect(blocked.status()).toBe(410)
 })
 
@@ -168,7 +157,7 @@ test('E2E-04: responsive screenshots for create, my tickets, and detail', async 
     const context = await browser.newContext({ viewport: { width, height } })
     const page = await context.newPage()
 
-    await selectRequester(page, ALICE)
+    await loginAs(page, ALICE_EMAIL)
     await expect(
       page
         .getByTestId('pagination-info')

@@ -1,12 +1,14 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import CreateTicket from '../../src/pages/CreateTicket'
-import { RequesterProvider } from '../../src/requesterContext'
-import { REQUESTER_STORAGE_KEY } from '../../src/requesterStorage'
+import { mockUseAuth } from '../test-user'
 
-const requester = { id: 1, name: 'Alice Carter', email: 'alice.carter@student.example' }
+vi.mock('../../src/authContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/authContext')>()
+  return { ...actual, useAuth: () => mockUseAuth() }
+})
 const categories = [
   { id: 1, name: 'Account and Access' },
   { id: 2, name: 'Hardware' },
@@ -59,25 +61,17 @@ async function fillValidForm() {
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/tickets/new']}>
-      <RequesterProvider>
-        <Routes>
-          <Route path="/tickets/new" element={<CreateTicket />} />
-          <Route path="/tickets/:id" element={<div>DETAIL STUB</div>} />
-        </Routes>
-      </RequesterProvider>
+      <Routes>
+        <Route path="/tickets/new" element={<CreateTicket />} />
+        <Route path="/tickets/:id" element={<div>DETAIL STUB</div>} />
+      </Routes>
     </MemoryRouter>,
   )
 }
 
 describe('Create Ticket screen', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    localStorage.setItem(REQUESTER_STORAGE_KEY, JSON.stringify(requester))
-  })
-
   afterEach(() => {
     vi.unstubAllGlobals()
-    localStorage.clear()
   })
 
   it('UI-11: system values read-only, requester prefilled, reference data from API', async () => {

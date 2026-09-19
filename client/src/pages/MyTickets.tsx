@@ -7,7 +7,6 @@ import {
   type TicketListItem,
   type TicketListResult,
 } from '../api'
-import { useRequester } from '../requesterContext'
 import { formatDate } from '../lib/format'
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
@@ -29,7 +28,6 @@ function priorityBadge(priority: string): string {
 }
 
 export default function MyTickets() {
-  const { requester } = useRequester()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const search = searchParams.get('search') ?? ''
@@ -53,11 +51,9 @@ export default function MyTickets() {
   }, [])
 
   useEffect(() => {
-    if (!requester) return
     let cancelled = false
     setLoadState('loading')
     listTickets({
-      requesterId: requester.id,
       search: search || undefined,
       categoryId: categoryId ? Number(categoryId) : undefined,
       status: statusFilter || undefined,
@@ -78,7 +74,7 @@ export default function MyTickets() {
     return () => {
       cancelled = true
     }
-  }, [requester, search, categoryId, statusFilter, priority, sort, page, pageSize, attempt])
+  }, [search, categoryId, statusFilter, priority, sort, page, pageSize, attempt])
 
   const applyFilters = useCallback(
     (patch: Record<string, string>) => {

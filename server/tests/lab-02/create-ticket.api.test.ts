@@ -1,13 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import request from "supertest";
+import type { Express } from "express";
 import { createApp } from "../../src/app";
 import { prisma } from "../../src/db";
 import { UPLOADS_DIR } from "../../src/lib/attachments";
+import { createLoginUser, loginAgent, type TestAgent } from "../helpers";
 
-const validPayload = (requesterId: number) => ({
-  requesterId,
+const validPayload = () => ({
   categoryId: 2,
   relatedSystemId: 1,
   summary: "Laptop battery drains quickly",
@@ -15,16 +15,18 @@ const validPayload = (requesterId: number) => ({
   requestedPriority: "MEDIUM",
 });
 
+let app: Express;
+let agent: TestAgent;
+let inactiveAgent: TestAgent;
 let requesterId: number;
-let inactiveRequesterId: number;
 const createdTicketIds: number[] = [];
 
 beforeAll(async () => {
-  const active = await prisma.requesterUser.findFirst({ where: { active: true } });
-  const inactive = await prisma.requesterUser.findFirst({ where: { active: false } });
-  if (!active || !inactive) throw new Error("seed must provide active and inactive requesters");
-  requesterId = active.id;
-  inactiveRequesterId = inactive.id;
+  app = createApp();
+  requesterId = (await createLoginUser("create-req@student.example", "Create Req")).id;
+  agent = await loginAgent(app, "create-req@student.example");
+  await createLoginUser("create-off@student.example", "Create Off");
+  inactiveAgent = await loginAgent(app, "create-off@student.example");
 });
 
 afterAll(async () => {
@@ -35,7 +37,7 @@ afterAll(async () => {
 
 describe("POST /api/tickets (API-03)", () => {
   it("creates a ticket and returns the official backend-generated number", async () => {
-    const res = await request(createApp()).post("/api/tickets").send(validPayload(requesterId));
+    const res = await agent.post("/api/tickets").send(validPayload());
 
     expect(res.status).toBe(201);
     createdTicketIds.push(res.body.id);
@@ -54,11 +56,11 @@ describe("POST /api/tickets (API-03)", () => {
 
   it("trims summary and description before storing", async () => {
     const payload = {
-      ...validPayload(requesterId),
+      ...validPayload(),
       summary: "   Printer jam on floor 2   ",
       description: "   The printer shows E-52 repeatedly.   ",
     };
-    const res = await request(createApp()).post("/api/tickets").send(payload);
+    const res = await agent.post("/api/tickets").send(payload);
 
     expect(res.status).toBe(201);
     createdTicketIds.push(res.body.id);
@@ -70,22 +72,22 @@ describe("POST /api/tickets (API-03)", () => {
 describe("POST /api/tickets validation (API-04)", () => {
   it("rejects missing required fields with field-level details and saves nothing", async () => {
     const before = await prisma.ticket.count();
-    const res = await request(createApp()).post("/api/tickets").send({
+    const res = await agent.post("/api/tickets").send({
       requestedPriority: "MEDIUM",
     });
 
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("VALIDATION_ERROR");
     const fields = res.body.error.details.map((d: { field: string }) => d.field);
-    for (const expected of ["requesterId", "categoryId", "relatedSystemId", "summary", "description"]) {
+    for (const expected of ["categoryId", "relatedSystemId", "summary", "description"]) {
       expect(fields).toContain(expected);
     }
     expect(await prisma.ticket.count()).toBe(before);
   });
 
   it("rejects over-length and empty-after-trim text fields", async () => {
-    const res = await request(createApp()).post("/api/tickets").send({
-      ...validPayload(requesterId),
+    const res = await agent.post("/api/tickets").send({
+      ...validPayload(),
       summary: "   ",
       description: "x".repeat(2001),
     });
@@ -97,8 +99,8 @@ describe("POST /api/tickets validation (API-04)", () => {
   });
 
   it("rejects unknown category, related system, and invalid priority", async () => {
-    const res = await request(createApp()).post("/api/tickets").send({
-      ...validPayload(requesterId),
+    const res = await agent.post("/api/tickets").send({
+      ...validPayload(),
       categoryId: 999999,
       relatedSystemId: 999999,
       requestedPriority: "WHENEVER",
@@ -114,10 +116,10 @@ describe("POST /api/tickets validation (API-04)", () => {
 
 describe("POST /api/tickets length boundaries (API-04b, BR-09/BR-10)", () => {
   it("accepts a summary of exactly 120 and a description of exactly 2000 characters", async () => {
-    const res = await request(createApp())
+    const res = await agent
       .post("/api/tickets")
       .send({
-        ...validPayload(requesterId),
+        ...validPayload(),
         summary: "s".repeat(120),
         description: "d".repeat(2000),
       });
@@ -128,9 +130,9 @@ describe("POST /api/tickets length boundaries (API-04b, BR-09/BR-10)", () => {
   });
 
   it("rejects a summary of 121 characters with a summary field detail", async () => {
-    const res = await request(createApp())
+    const res = await agent
       .post("/api/tickets")
-      .send({ ...validPayload(requesterId), summary: "s".repeat(121) });
+      .send({ ...validPayload(), summary: "s".repeat(121) });
 
     expect(res.status).toBe(400);
     const fields = res.body.error.details.map((d: { field: string }) => d.field);
@@ -138,16 +140,15 @@ describe("POST /api/tickets length boundaries (API-04b, BR-09/BR-10)", () => {
   });
 
   it("accepts the exact 5-attachment limit and rejects the sixth (BR-17 boundary)", async () => {
-    const created = await request(createApp())
+    const created = await agent
       .post("/api/tickets")
-      .send(validPayload(requesterId));
+      .send(validPayload());
     createdTicketIds.push(created.body.id);
 
     let filesStored = 0;
     for (let i = 1; i <= 5; i++) {
-      const res = await request(createApp())
+      const res = await agent
         .post(`/api/tickets/${created.body.id}/attachments`)
-        .set("X-Requester-Id", String(requesterId))
         .attach(
           "file",
           Buffer.from([0x89, 0x50, 0x4e, 0x47]),
@@ -167,8 +168,8 @@ describe("POST /api/tickets length boundaries (API-04b, BR-09/BR-10)", () => {
 
 describe("POST /api/tickets uniqueness (API-05)", () => {
   it("generates a unique number for each ticket created the same day", async () => {
-    const first = await request(createApp()).post("/api/tickets").send(validPayload(requesterId));
-    const second = await request(createApp()).post("/api/tickets").send(validPayload(requesterId));
+    const first = await agent.post("/api/tickets").send(validPayload());
+    const second = await agent.post("/api/tickets").send(validPayload());
 
     expect(first.status).toBe(201);
     expect(second.status).toBe(201);
@@ -178,13 +179,17 @@ describe("POST /api/tickets uniqueness (API-05)", () => {
 });
 
 describe("POST /api/tickets inactive requester (API-06)", () => {
-  it("rejects ticket creation for an inactive requester", async () => {
+  it("rejects ticket creation for an inactive requester with 403 (Lab 3 write gate)", async () => {
     const before = await prisma.ticket.count();
-    const res = await request(createApp()).post("/api/tickets").send(validPayload(inactiveRequesterId));
+    await prisma.user.update({ where: { email: "create-off@student.example" }, data: { active: false } });
+    try {
+      const res = await inactiveAgent.post("/api/tickets").send(validPayload());
 
-    expect(res.status).toBe(400);
-    const fields = res.body.error.details.map((d: { field: string }) => d.field);
-    expect(fields).toContain("requesterId");
-    expect(await prisma.ticket.count()).toBe(before);
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe("FORBIDDEN");
+      expect(await prisma.ticket.count()).toBe(before);
+    } finally {
+      await prisma.user.update({ where: { email: "create-off@student.example" }, data: { active: true } });
+    }
   });
 });

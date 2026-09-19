@@ -7,6 +7,7 @@ import { createApp } from "../../src/app";
 import { prisma } from "../../src/db";
 import { seedAll } from "../../prisma/seed";
 import { UPLOADS_DIR } from "../../src/lib/attachments";
+import { createLoginUser, loginAgent, type TestAgent } from "../helpers";
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const TOO_BIG = Buffer.alloc(5 * 1024 * 1024 + 1, 0x50);
@@ -15,27 +16,27 @@ let app: Express;
 let requesterId: number;
 let strangerId: number;
 let ticketId: number;
+let ownerAgent: TestAgent;
+let strangerAgent: TestAgent;
 
 function png(name: string) {
   return { filename: name, contentType: "image/png", buffer: PNG_MAGIC };
 }
 
 function upload(name = "photo.png", buffer: Buffer = PNG_MAGIC, contentType = "image/png") {
-  return request(app)
+  return ownerAgent
     .post(`/api/tickets/${ticketId}/attachments`)
-    .set("X-Requester-Id", String(requesterId))
     .attach("file", buffer, { filename: name, contentType });
 }
 
-async function makeTicket(requester: number): Promise<number> {
+async function makeTicket(): Promise<number> {
   const hardware = await prisma.category.findUniqueOrThrow({ where: { name: "Hardware" } });
   const laptop = await prisma.relatedSystem.findUniqueOrThrow({
     where: { name: "Corporate Laptop" },
   });
-  const res = await request(app)
+  const res = await ownerAgent
     .post("/api/tickets")
     .send({
-      requesterId: requester,
       categoryId: hardware.id,
       relatedSystemId: laptop.id,
       summary: "Attachment lifecycle ticket",
@@ -49,21 +50,11 @@ async function makeTicket(requester: number): Promise<number> {
 beforeAll(async () => {
   app = createApp();
   await seedAll(prisma);
-  requesterId = (
-    await prisma.requesterUser.upsert({
-      where: { email: "attach-owner@student.example" },
-      update: { active: true },
-      create: { name: "Attach Owner", email: "attach-owner@student.example", active: true },
-    })
-  ).id;
-  strangerId = (
-    await prisma.requesterUser.upsert({
-      where: { email: "attach-stranger@student.example" },
-      update: { active: true },
-      create: { name: "Attach Stranger", email: "attach-stranger@student.example", active: true },
-    })
-  ).id;
-  ticketId = await makeTicket(requesterId);
+  requesterId = (await createLoginUser("attach-owner@student.example", "Attach Owner")).id;
+  strangerId = (await createLoginUser("attach-stranger@student.example", "Attach Stranger")).id;
+  ownerAgent = await loginAgent(app, "attach-owner@student.example");
+  strangerAgent = await loginAgent(app, "attach-stranger@student.example");
+  ticketId = await makeTicket();
 });
 
 async function removeAllAttachments() {
@@ -81,7 +72,7 @@ beforeEach(removeAllAttachments);
 afterAll(async () => {
   await removeAllAttachments();
   await prisma.ticket.deleteMany({ where: { requesterId: { in: [requesterId, strangerId] } } });
-  await prisma.requesterUser.deleteMany({ where: { id: { in: [requesterId, strangerId] } } });
+  await prisma.user.deleteMany({ where: { id: { in: [requesterId, strangerId] } } });
 });
 
 describe("POST /api/tickets/:id/attachments (API-17..20)", () => {
@@ -131,14 +122,14 @@ describe("POST /api/tickets/:id/attachments (API-17..20)", () => {
     expect(sixth.status).toBe(409);
     expect(sixth.body.error.code).toBe("CONFLICT");
 
-    const list = await request(app)
+    const list = await ownerAgent
       .get(`/api/tickets/${ticketId}/attachments`)
-      .set("X-Requester-Id", String(requesterId));
+      ;
     const first = list.body[0] as { id: number };
 
-    const removed = await request(app)
+    const removed = await ownerAgent
       .delete(`/api/attachments/${first.id}`)
-      .set("X-Requester-Id", String(requesterId))
+      
       .send({ reason: "Uploaded the wrong screenshot" });
     expect(removed.status).toBe(200);
 
@@ -147,9 +138,8 @@ describe("POST /api/tickets/:id/attachments (API-17..20)", () => {
   });
 
   it("enforces ticket ownership before accepting an upload", async () => {
-    const res = await request(app)
+    const res = await strangerAgent
       .post(`/api/tickets/${ticketId}/attachments`)
-      .set("X-Requester-Id", String(strangerId))
       .attach("file", PNG_MAGIC, { filename: "steal.png", contentType: "image/png" });
     expect(res.status).toBe(404);
     expect(await prisma.attachment.count({ where: { ticketId } })).toBe(0);
@@ -166,14 +156,14 @@ describe("Attachment lifecycle endpoints (API-21..24)", () => {
   it("lists active and removed attachments with reason retained (API-21)", async () => {
     const older = await uploadOne("older.png");
     const newer = await uploadOne("newer.png");
-    await request(app)
+    await ownerAgent
       .delete(`/api/attachments/${older}`)
-      .set("X-Requester-Id", String(requesterId))
+      
       .send({ reason: "duplicate upload" });
 
-    const list = await request(app)
+    const list = await ownerAgent
       .get(`/api/tickets/${ticketId}/attachments`)
-      .set("X-Requester-Id", String(requesterId));
+      ;
     expect(list.status).toBe(200);
 
     const ids = (list.body as { id: number }[]).map((a) => a.id);
@@ -187,9 +177,9 @@ describe("Attachment lifecycle endpoints (API-21..24)", () => {
 
   it("downloads an active attachment with original name and type (API-22)", async () => {
     const id = await uploadOne("battery-report.png");
-    const res = await request(app)
+    const res = await ownerAgent
       .get(`/api/attachments/${id}/download`)
-      .set("X-Requester-Id", String(requesterId));
+      ;
 
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toContain("image/png");
@@ -199,42 +189,42 @@ describe("Attachment lifecycle endpoints (API-21..24)", () => {
 
   it("returns 410 for downloading a removed attachment (API-23)", async () => {
     const id = await uploadOne("gone.png");
-    await request(app)
+    await ownerAgent
       .delete(`/api/attachments/${id}`)
-      .set("X-Requester-Id", String(requesterId))
+      
       .send({ reason: "no longer relevant" });
 
-    const download = await request(app)
+    const download = await ownerAgent
       .get(`/api/attachments/${id}/download`)
-      .set("X-Requester-Id", String(requesterId));
+      ;
     expect(download.status).toBe(410);
     expect(download.body.error.code).toBe("GONE");
 
-    const metadata = await request(app)
+    const metadata = await ownerAgent
       .get(`/api/attachments/${id}`)
-      .set("X-Requester-Id", String(requesterId));
+      ;
     expect(metadata.status).toBe(200);
   });
 
   it("soft removal requires a reason, keeps metadata, and blocks re-removal (API-24)", async () => {
     const id = await uploadOne("remove-me.png");
 
-    const noReason = await request(app)
+    const noReason = await ownerAgent
       .delete(`/api/attachments/${id}`)
-      .set("X-Requester-Id", String(requesterId))
+      
       .send({ reason: "   " });
     expect(noReason.status).toBe(400);
     expect(noReason.body.error.details[0].field).toBe("reason");
 
-    const tooLong = await request(app)
+    const tooLong = await ownerAgent
       .delete(`/api/attachments/${id}`)
-      .set("X-Requester-Id", String(requesterId))
+      
       .send({ reason: "x".repeat(201) });
     expect(tooLong.status).toBe(400);
 
-    const removed = await request(app)
+    const removed = await ownerAgent
       .delete(`/api/attachments/${id}`)
-      .set("X-Requester-Id", String(requesterId))
+      
       .send({ reason: "contains a personal phone number" });
     expect(removed.status).toBe(200);
     expect(removed.body.removedAt).not.toBeNull();
@@ -243,9 +233,9 @@ describe("Attachment lifecycle endpoints (API-21..24)", () => {
     const row = await prisma.attachment.findUniqueOrThrow({ where: { id } });
     expect(fs.existsSync(path.join(UPLOADS_DIR, row.storedName))).toBe(true);
 
-    const again = await request(app)
+    const again = await ownerAgent
       .delete(`/api/attachments/${id}`)
-      .set("X-Requester-Id", String(requesterId))
+      
       .send({ reason: "twice" });
     expect(again.status).toBe(409);
   });
@@ -253,19 +243,16 @@ describe("Attachment lifecycle endpoints (API-21..24)", () => {
   it("never leaks another requester's attachment (404 on metadata and download)", async () => {
     const id = await uploadOne("private.png");
 
-    const meta = await request(app)
-      .get(`/api/attachments/${id}`)
-      .set("X-Requester-Id", String(strangerId));
+    const meta = await strangerAgent
+      .get(`/api/attachments/${id}`);
     expect(meta.status).toBe(404);
 
-    const download = await request(app)
-      .get(`/api/attachments/${id}/download`)
-      .set("X-Requester-Id", String(strangerId));
+    const download = await strangerAgent
+      .get(`/api/attachments/${id}/download`);
     expect(download.status).toBe(404);
 
-    const remove = await request(app)
+    const remove = await strangerAgent
       .delete(`/api/attachments/${id}`)
-      .set("X-Requester-Id", String(strangerId))
       .send({ reason: "not mine" });
     expect(remove.status).toBe(404);
   });
