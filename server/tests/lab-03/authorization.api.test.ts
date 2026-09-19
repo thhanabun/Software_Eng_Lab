@@ -194,6 +194,51 @@ describe("public comments + resolved indication (CN-01, CN-03, AC-18, AC-20)", (
   });
 });
 
+describe("writes on CANCELLED rejected (CN-04, BR-22)", () => {
+  it("rejects comment and note creation on CANCELLED tickets with 400", async () => {
+    const ticket = await createTicketAs(agentA, "cancelled ticket");
+    try {
+      // Transition to CANCELLED via staff
+      await prisma.ticket.update({ where: { id: ticket.id }, data: { currentStatus: "NEW" } });
+      await agentStaff.patch(`/api/staff/tickets/${ticket.id}/status`).send({ status: "CANCELLED" });
+
+      // Comment on CANCELLED should be 400
+      const comment = await agentA.post(`/api/tickets/${ticket.id}/comments`).send({ body: "too late" });
+      expect(comment.status).toBe(400);
+
+      // Note on CANCELLED should be 400
+      const note = await agentStaff.post(`/api/staff/tickets/${ticket.id}/notes`).send({ body: "too late" });
+      expect(note.status).toBe(400);
+
+      // History still readable
+      const listed = await agentStaff.get(`/api/staff/tickets/${ticket.id}/notes`);
+      expect(listed.status).toBe(200);
+    } finally {
+      await prisma.ticketComment.deleteMany({ where: { ticketId: ticket.id } });
+      await prisma.ticket.delete({ where: { id: ticket.id } });
+    }
+  });
+});
+
+describe("comment body length boundary (CN-05, BR-20)", () => {
+  it("accepts 2000 chars and rejects 2001 chars", async () => {
+    const ticket = await createTicketAs(agentA, "boundary ticket");
+    try {
+      const exact = "x".repeat(2000);
+      const over = "x".repeat(2001);
+
+      const ok = await agentA.post(`/api/tickets/${ticket.id}/comments`).send({ body: exact });
+      expect(ok.status).toBe(201);
+
+      const bad = await agentA.post(`/api/tickets/${ticket.id}/comments`).send({ body: over });
+      expect(bad.status).toBe(400);
+    } finally {
+      await prisma.ticketComment.deleteMany({ where: { ticketId: ticket.id } });
+      await prisma.ticket.delete({ where: { id: ticket.id } });
+    }
+  });
+});
+
 describe("Lab 2 regression under cookie identity (RREG-01, AC-12)", () => {
   it("create/list/detail/attachments behave as Lab 2 with session ownership", async () => {
     const created = await createTicketAs(agentA, "regression ticket");

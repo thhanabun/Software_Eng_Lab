@@ -14,8 +14,6 @@ export default function ChangePassword() {
   const navigate = useNavigate()
   const { user, refresh } = useAuth()
 
-  const forced = user?.mustChangePassword ?? false
-
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -77,7 +75,7 @@ export default function ChangePassword() {
     <div className="tg-card" style={{ maxWidth: '480px', margin: '0 auto' }}>
       <h1 className="h4 mb-1">Choose a new password</h1>
       <p className="mb-4" style={{ color: 'var(--tg-muted)' }}>
-        {forced
+        {user?.mustChangePassword
           ? `Welcome, ${user?.name ?? ''}. Your account uses an initial password — choose a new one to continue.`
           : 'Update your password below.'}
       </p>

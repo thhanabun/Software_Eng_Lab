@@ -48,18 +48,18 @@ Conventions: API tests reset/seed in `beforeEach`/`beforeAll`; auth tests overri
 | STOP-04 | API | AC-17, BR-17 | Status transitions legal + illegal (each matrix edge sampled) | 200 on legal; 400 on off-matrix/terminal | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
 | STOP-05 | API | AC-31 | Staff read-only attachment download | 200 active file; 410 removed; 404 missing | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
 | STOP-06 | API | FR-09 | Staff users directory (Issue #33 delta) | Active staff/admin ordered by name; requester 403 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
-| CN-01 | API | AC-18, BR-19..21 | Public comment post/list (requester own, staff any) | 201 server author/time; empty/overlong → 400 | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
-| CN-02 | API | AC-19 | Notes visible to staff/admin only | Full entries for staff; requester 403 | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
-| CN-03 | API | AC-20, BR-18 | Resolved-indication happy path + repeat + wrong status | Flag + auto comment; no-op repeat; 400 off-status | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
-| CN-04 | API | BR-22 | Writes on CANCELLED rejected | 400; history still readable | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
-| CN-05 | API | BR-20 boundary | Comment body 2000/2001 chars | 2000 accepted, 2001 rejected | `server/tests/lab-03/comments-notes.api.test.ts` | Pass |
+| CN-01 | API | AC-18, BR-19..21 | Public comment post/list (requester own, staff any) | 201 server author/time; empty → 400 | `server/tests/lab-03/authorization.api.test.ts` | Pass |
+| CN-02 | API | AC-19 | Notes visible to staff/admin only | Full entries for staff; requester 403 | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | Pass |
+| CN-03 | API | AC-20, BR-18 | Resolved-indication happy path + repeat + wrong status | Flag + auto comment; no-op repeat; 400 off-status | `server/tests/lab-03/authorization.api.test.ts` | Pass |
+| CN-04 | API | BR-22 | Writes on CANCELLED rejected | 400; history still readable | `server/tests/lab-03/authorization.api.test.ts` | Pass |
+| CN-05 | API | BR-20 boundary | Comment body 2000/2001 chars | 2000 accepted, 2001 rejected | `server/tests/lab-03/authorization.api.test.ts` | Pass |
 | ADM-01 | API | AC-21, BR-23 | Admin create valid user | 201 must-change account; no password echoed | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
 | ADM-02 | API | AC-22 | Duplicate email (case variants) on create/update | 409; nothing changed | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
 | ADM-03 | API | AC-23, BR-25/26 | Self-deactivate + last-admin removal | 400 / 409; admin set unchanged | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
 | ADM-04 | API | AC-24 | Reset password → must-change at next login | Flag set; old sessions killed | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
 | ADM-05 | API | sheet §8.5 | List search + role filter; edit name/email/role/active | Correct subsets; 200 updates | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
 | MIG-01 | API | AC-26, BR-30 | Seed idempotency | Re-run: no duplicates; manual deactivation persists | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
-| MIG-02 | API | AC-27, sheet §5.2 | Migrated Lab 2 data integrity | Counts match; ownership remapped; attachments intact; seeded logins work | `server/tests/lab-03/migration.api.test.ts` | Pass |
+| MIG-02 | API | AC-27, sheet §5.2 | Migrated Lab 2 data integrity | Counts match; ownership remapped; attachments intact; seeded logins work | `server/tests/lab-03/users-admin.api.test.ts` | Pass |
 | UI-30 | UI | AC-01, AC-05, AC-06 | Login states | Validation, busy, generic vs deactivated messages | `client/tests/lab-03/Login.test.tsx` | Pass |
 | UI-31 | UI | AC-02, AC-10, AC-11 | Change-password forced/voluntary | Rule hints, blocking, success continuation | `client/tests/lab-03/ChangePassword.test.tsx` | Pass |
 | UI-32 | UI | AC-13 | Queue controls | Correct query params; clear-filters; empty/no-results/failure | `client/tests/lab-03/StaffTicketQueue.test.tsx` | Pass |

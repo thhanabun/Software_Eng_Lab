@@ -42,7 +42,7 @@ toktickit/
 ├── e2e/                     Standalone Playwright project (own package.json)
 │   ├── lab-02/              E2E flows + responsive screenshot spec
 │   └── lab-03/              E2E auth/staff/admin flows + screenshots
-├── artifacts/               Generated: Playwright reports + screenshots (gitignored)
+├── artifacts/               Generated: Playwright reports + screenshots
 ├── docs/
 │   ├── lab-01/              Lab 1 evidence documents
 │   ├── lab-02/              Lab 2 specification, api-spec, ui-spec, tests
@@ -87,10 +87,17 @@ npm install
 npm run dev                 # http://localhost:5173 (proxies /api to :3001)
 ```
 
-Open http://localhost:5173 — the app starts on the **Development Requester Selection**
-screen (a Lab 2 testing mechanism, not authentication). Pick a requester, then create,
-list, and manage tickets and attachments. Attachment files are stored under
-`server/uploads/` as `<uuid>.<ext>`; the original filename is kept in the database only.
+Open http://localhost:5173 — the app starts on the **Login** screen. Use the demo accounts:
+
+| Role          | Email                | Password       |
+| ------------- | -------------------- | -------------- |
+| REQUESTER     | requester@test.com   | initial pw (must change) |
+| IT_STAFF      | staff@test.com       | initial pw (must change) |
+| ADMINISTRATOR | admin@test.com       | initial pw (must change) |
+
+On first login you will be forced to choose a new password. After that, the role-based
+dashboard and navigation are shown. Attachment files are stored under `server/uploads/` as
+`<uuid>.<ext>`; the original filename is kept in the database only.
 
 ### 4. Run the tests
 

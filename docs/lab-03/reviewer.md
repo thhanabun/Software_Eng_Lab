@@ -14,7 +14,7 @@
 | #40 | #32 | Lab 3 IT Staff Ticket Queue (API + UI) | `feature/lab3-staff-queue` | Merged — LGTM |
 | #41 | #33 | Lab 3 IT Staff Ticket Detail Operations | `feature/lab3-staff-detail` | Merged — LGTM |
 | #42 | #34 | Lab 3 Administrator User Management | `feature/lab3-admin-users` | Merged — 1 high fixed (409 field details) |
-| #43 | #35 | Lab 3 E2E Tests and Responsive Visual Evidence | `feature/lab3-e2e` | Open — LGTM + 3 non-blocking notes |
+| #43 | #35 | Lab 3 E2E Tests and Responsive Visual Evidence | `feature/lab3-e2e` | Merged — LGTM + 3 non-blocking notes |
 
 ### Reviews Received — Details
 

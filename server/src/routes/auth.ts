@@ -39,8 +39,9 @@ authRouter.post("/login", async (req, res) => {
 
   const user = await prisma.user.findUnique({ where: { email } });
   // Identical generic 401 for unknown email and wrong password (BR-06):
-  // the dummy-hash compare keeps both paths equally expensive.
-  if (!user || !(await verifyLoginPassword(password, user.passwordHash))) {
+  // verifyLoginPassword falls back to DUMMY_HASH when user is null, so both
+  // paths run bcrypt.compare and take the same wall-clock time.
+  if (!(await verifyLoginPassword(password, user?.passwordHash ?? null))) {
     res.status(401).json({
       error: { code: "UNAUTHENTICATED", message: "Invalid email or password" },
     });
