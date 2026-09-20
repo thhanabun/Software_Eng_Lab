@@ -126,7 +126,7 @@ Executed in Issue #35 against ui-spec §8 with the E2E-04 screenshots (desktop 1
 - [x] Visible keyboard focus indicators at all three viewports
 - [x] Forbidden/expired-session states safe and readable
 
-Screenshot paths: `artifacts/lab-03/screenshots/{authentication,staff-queue,staff-ticket-detail,user-management}/{desktop,tablet,mobile}.png`
+Screenshot paths: `docs/lab-03/evidence/*.png` (login, change-password, shell-admin, shell-staff, shell-requester, staff-queue, staff-detail, user-mgmt, create-user, edit-user, login-error, login-deactivated --- desktop/tablet/mobile)
 
 ## 5. Test Commands
 
@@ -147,9 +147,11 @@ _All tests passed; no test skipped, disabled, or commented out._
 
 | Suite | Files | Tests | Result |
 |---|---|---|---|
-| server unit + API (lab-01 + lab-02 + lab-03) | 14 (3 unit + 11 API) | 108 | Pass |
-| client UI (Vitest + Testing Library) | 14 | 59 | Pass |
-| e2e Playwright (Chromium, workers:1) | 4 | 11 | Pass |
+| server unit (password + transitions) | 2 | 10 | Pass |
+| server API (auth, authorization, staff-queue, staff-detail, users-admin) | 5 | 60 | Pass |
+| client UI (Vitest + Testing Library, incl. style + guard checks) | 6 | 26 | Pass |
+| e2e Playwright (Chromium, workers:1) | 3 | 11 | Pass |
+| **Lab 3 Total** | **16** | **107** | **Pass** |
 
 ## 7. Known Limitations or Deferred Tests
 

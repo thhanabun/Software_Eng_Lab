@@ -151,37 +151,127 @@ All eight Lab 3 issues are in \textbf{Done} (verified via GraphQL on 17 Sep).
 Board: \href{https://github.com/users/thhanabun/projects/1}{TokTickIT Individual Sprints}.
 
 \subsection*{1.4 Rendered \code{reviewer.md}}
-Full record with reviewer identity, PR links, comments given/received, responses and
-approvals:
-\href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-03/reviewer.md}{docs/lab-03/reviewer.md}.
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-03/reviewer.md}{docs/lab-03/reviewer.md}
 
-\noindent\textbf{Peer reviews received (ssiriwan $\to$ me):} 7 PRs reviewed. PR \#37 (spec) drew 4 rounds of review catching scope creep, CORS, timing oracle, migration atomicity. PR \#38 (auth) had 2 blockers (inactive bypass, migration atomicity) + 3 majors. PRs \#39--\#41 were LGTM. PR \#42 (admin) had 1 high (409 field-level details). PR \#43 (E2E) was LGTM with 3 non-blocking notes.
+\subsubsection*{My Reviewer (ssiriwan)}
 
-\noindent\textbf{Pull Requests I reviewed (ssiriwan/toktickit):} 6 PRs (\#32--\#37) covering spec, test plan, auth, requester regression, staff queue, staff detail. All approved with review comments.
+\begin{longtable}{@{} c l c p{7.5cm} c @{}}
+\toprule
+\textbf{PR} & \textbf{Issue} & \textbf{Title} & \textbf{Branch} & \textbf{Status} \\
+\midrule
+\#37 & \#29 & Sprint Specification and Test Plan (Spec DD) & \code{feature/lab3-spec-contract} & Merged --- 6 follow-ups \\
+\#38 & \#30 & Authentication Foundation (User Model, Session, Seed) & \code{feature/lab3-auth-foundation} & Merged --- 2 blockers + 3 majors \\
+\#39 & \#31 & Requester Regression (Authenticated Identity) & \code{feature/lab3-requester-regress} & Merged --- LGTM \\
+\#40 & \#32 & IT Staff Ticket Queue (API + UI) & \code{feature/lab3-staff-queue} & Merged --- LGTM \\
+\#41 & \#33 & IT Staff Ticket Detail Operations & \code{feature/lab3-staff-detail} & Merged --- LGTM \\
+\#42 & \#34 & Administrator User Management & \code{feature/lab3-admin-users} & Merged --- 1 high (409 fields) \\
+\#43 & \#35 & E2E Tests and Responsive Visual Evidence & \code{feature/lab3-e2e} & Merged --- LGTM + 3 notes \\
+\bottomrule
+\end{longtable}
+
+\noindent\textbf{Review details:}
+\begin{itemize}
+\item \textbf{PR \#37 (Spec contract):} 4 review rounds. Round 1: 8 follow-ups (scope creep, CORS, timing oracle, migration atomicity). Round 2: 6 follow-ups (unassign status rule, 30-min pending expiry, visibility, AUTHZ-08). All addressed before merge.
+\item \textbf{PR \#38 (Auth foundation):} 2 blockers --- (1) inactive bypass: resolveSession/requireAuth ignored active flag $\to$ fixed with session destroy + 403, (2) migration atomicity: 7x ADD VALUE in one txn fails on PG. 3 majors --- (3) CORS breaks cookie auth $\to$ explicit origin + credentials, (4) timing oracle + garbage-hash crash $\to$ dummy hash in try/catch, (5) middleware composition.
+\item \textbf{PR \#39 (Requester regression):} LGTM. Follow-ups: strip owner.email, inactive read-only banner, preserve returnTo, RequireRole must-change.
+\item \textbf{PR \#40 (Staff queue):} LGTM. Verified queue contract (search/filters/sort/FIFO/pages), safe raw SQL, 400 matrix, requester 403/anon 401.
+\item \textbf{PR \#41 (Staff detail):} LGTM. Follow-ups: matrix parity test, CANCELLED guard, unassign-terminal rule, refresh updatedAt.
+\item \textbf{PR \#42 (Admin users):} 1 high --- 409 duplicate must include field-level details. Fixed on both create/update. LGTM after fix.
+\item \textbf{PR \#43 (E2E tests):} LGTM. 3 non-blocking notes: mustchange test self-healing via pinE2EUsers, screenshots confirmed at artifacts, missing change-password screenshots added.
+\end{itemize}
+
+\subsubsection*{Pull Requests I Reviewed (ssiriwan/toktickit)}
+
+\begin{longtable}{@{} c l c p{7.5cm} c @{}}
+\toprule
+\textbf{PR} & \textbf{Issue} & \textbf{Title} & \textbf{Branch} & \textbf{Status} \\
+\midrule
+\#32 & \#32 & Sprint 3 spec contract & \code{feature/32-spec-contract} & Merged --- 4 comments \\
+\#33 & \#33 & Test plan with AC traceability & \code{feature/33-test-plan} & Merged --- 4 comments \\
+\#34 & \#34 & Auth foundation + migration + seed & \code{feature/34-auth-foundation} & Merged --- 4 comments \\
+\#35 & \#35 & Requester regression + auth UI + comments & \code{feature/35-requester-regression} & Merged --- 5 comments \\
+\#36 & \#36 & Staff ticket queue API + UI & \code{feature/36-staff-queue} & Merged --- 6 comments \\
+\#37 & \#37 & Staff ticket detail ops + status matrix + UI & \code{feature/37-staff-detail} & Open --- 6 comments \\
+\bottomrule
+\end{longtable}
 
 \subsection*{1.5 README --- rendered evidence (current, includes Lab 3)}
-Link: \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/README.md}{README.md on main}.
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/README.md}{README.md on main}
 
-\noindent\textbf{Lab 3 Sprint Goal:} Cookie-based authentication with email/password, three roles (REQUESTER, IT\_STAFF, ADMINISTRATOR), staff ticket queue and detail actions, admin user management, responsive Zen Green UI.
+\noindent\textbf{Lab 3 Sprint Goal:} Cookie-based authentication with email/password, three roles (REQUESTER, IT\_STAFF, ADMINISTRATOR), staff ticket queue and detail actions (claim, assign, priority, status transitions, comments, notes), admin user management (create/edit/reset/deactivate), and a responsive UI following Zen Green design tokens.
+
+\subsubsection*{Tech Stack}
+\begin{longtable}{@{} l l @{}}
+\toprule
+\textbf{Area} & \textbf{Technology} \\
+\midrule
+Frontend & React + TypeScript + Vite + Bootstrap + React Router \\
+Backend & Node.js + Express + TypeScript + Multer (uploads) \\
+Database & PostgreSQL + Prisma ORM \\
+Testing & Vitest + Supertest (unit/API/UI), Playwright (E2E + screenshots) \\
+Workflow & GitHub Issues + Projects Kanban + feature branches + PR review \\
+\bottomrule
+\end{longtable}
+
+\subsubsection*{Getting Started}
+\begin{enumerate}
+\item \textbf{Start PostgreSQL:} \code{docker compose up -d} (PostgreSQL 16 on port 5432)
+\item \textbf{Start backend:} \code{cd server \&\& npm install \&\& npx prisma generate \&\& npx prisma migrate deploy \&\& npm run prisma:seed \&\& npm run dev}
+\item \textbf{Start frontend:} \code{cd client \&\& npm install \&\& npm run dev} (Vite on port 5173)
+\end{enumerate}
+
+\subsubsection*{Dev Accounts}
+\begin{longtable}{@{} l l l @{}}
+\toprule
+\textbf{Role} & \textbf{Email} & \textbf{Password} \\
+\midrule
+REQUESTER & requester@test.com & initial pw (must change) \\
+IT\_STAFF & staff@test.com & initial pw (must change) \\
+ADMINISTRATOR & admin@test.com & initial pw (must change) \\
+\bottomrule
+\end{longtable}
+
+\subsubsection*{Test Commands}
+\begin{lstlisting}
+# Backend unit + API tests
+cd server && npm test
+
+# Frontend component/UI tests
+cd client && npm test
+
+# E2E + responsive screenshots
+cd e2e && npx playwright test lab-03
+\end{lstlisting}
+
+\subsubsection*{Git Workflow}
+\code{main} (stable) $\to$ \code{lab3-staging} $\to$ feature branches per Issue $\to$ peer-reviewed PRs.
 
 \subsection*{1.6 Repository directory structure (IDE)}
 \begin{lstlisting}
 toktickit/
   client/                  React + TypeScript + Vite frontend
-    src/components/        LoginShell, AdminScreens, StaffScreens
-    tests/lab-03/          Lab 3 UI tests (6 files)
+    src/components/        LoginShell, AppShell, StaffScreens, AdminScreens
+    tests/lab-02/          Lab 2 UI tests (Vitest + Testing Library)
+    tests/lab-03/          Lab 3 UI tests (6 files: Login, ChangePassword,
+                           StaffTicketQueue, StaffTicketDetail,
+                           UserManagement, Guards)
   server/                  Express API + Prisma
-    src/lib/               password, session, transitions, auth
-    src/routes/            auth, staff, staffTickets, admin, tickets
-    tests/lab-03/          Lab 3 API tests (5 files)
+    src/lib/               password, session, transitions, escapeLike
+    src/routes/            auth, tickets, staff, staffTickets, admin
+    prisma/                schema.prisma, migrations/, seed.ts, e2e-users.ts
+    tests/lab-03/          Lab 3 API tests (5 files: auth.api,
+                           authorization.api, staff-queue.api,
+                           staff-ticket-detail.api, users-admin.api)
   e2e/                     Playwright (lab-02 + lab-03)
-    lab-03/                authentication, staff-ticket-flow, user-admin
-  docs/lab-03/             specification, api-spec, ui-spec, tests,
-                           reviewer, ai-use
+    lab-03/                authentication, staff-ticket-flow,
+                           user-administration
+  docs/lab-03/             specification.md, api-spec.md, ui-spec.md,
+                           tests.md, reviewer.md, ai-use.md
+                           evidence/  submission.tex + 39 screenshots
   docker-compose.yml       PostgreSQL 16 container
 \end{lstlisting}
 
-\texttt{.gitignore} excludes: \texttt{node\_modules}, \texttt{dist}, \texttt{server/uploads/}, \texttt{artifacts/}, \texttt{.env}, \texttt{evidence/}, \texttt{Lab\_3\_sheet.pdf}.
+\texttt{.gitignore} excludes: \texttt{node\_modules}, \texttt{dist}, \texttt{server/uploads/}, \texttt{artifacts/lab-02/}, \texttt{.env}, \texttt{docs/lab-01/evidence/}, \texttt{docs/lab-02/evidence/}, \texttt{Lab\_3\_sheet.pdf}.
 
 % =====================================================================
 \section*{Answer Part 2: Spec DD (5 pts)}
@@ -371,8 +461,8 @@ Set-Cookie: toktickit_session=<token>; HttpOnly; SameSite=Lax; Secure(prod)
 \noindent\textbf{POST /api/auth/logout}
 \begin{lstlisting}
 Request:  (none)
-Response: 204  (no body)
-         401  { error: "Authentication required" }
+Response: 200  { ok: true }
+         (idempotent: no session → still 200 with cookie clear)
 \end{lstlisting}
 
 \noindent\textbf{GET /api/auth/me}
@@ -1006,81 +1096,60 @@ Tests:       4 passed, 4 total
 \section*{Answer Part 10: Screenshots (5 pts)}
 % =====================================================================
 
-\subsection*{10.1 Login and Change Password}
+\subsection*{10.1 Login and Change Password (3 viewports)}
 \shot{login-desktop.png}{Login screen at desktop (1280px) with email/password inputs and ``Sign in'' button}{Login screen --- desktop (1280px)}
-\shot{change-password-desktop.png}{Change Password forced screen with current/new/confirm fields and ``Update and Continue'' button}{Change Password screen --- desktop (1280px)}
+\shot{login-tablet.png}{Login screen at tablet (820px)}{Login screen --- tablet (820px)}
+\shot[0.60]{login-mobile.png}{Login screen at mobile (390px)}{Login screen --- mobile (390px)}
 
-\subsection*{10.2 App Shell and Role Navigation}
-\begin{figure}[H]\centering
-\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
-\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{shell-admin.png} next to this .tex file\\
-\emph{Show:} Admin shell with Dashboard, Staff Queue, User Management nav links; name + role chip + Logout
-\end{minipage}}
-\caption{App Shell --- Administrator view (desktop)}
-\end{figure}
+\shot{change-password-desktop.png}{Change Password forced screen with current/new/confirm fields and ``Save new password'' button}{Change Password --- desktop (1280px)}
+\shot{change-password-tablet.png}{Change Password at tablet (820px)}{Change Password --- tablet (820px)}
+\shot[0.60]{change-password-mobile.png}{Change Password at mobile (390px)}{Change Password --- mobile (390px)}
 
-\begin{figure}[H]\centering
-\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
-\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{shell-staff.png} next to this .tex file\\
-\emph{Show:} Staff shell with Dashboard, Staff Queue nav links
-\end{minipage}}
-\caption{App Shell --- IT Staff view (desktop)}
-\end{figure}
+\subsection*{10.2 App Shell and Role Navigation (3 roles, 3 viewports)}
+\shot{shell-admin-desktop.png}{Admin shell with Dashboard, Staff Queue, User Management nav links; name + role chip + Logout}{Admin Shell --- desktop (1280px)}
+\shot{shell-admin-tablet.png}{Admin shell at tablet (820px)}{Admin Shell --- tablet (820px)}
+\shot[0.60]{shell-admin-mobile.png}{Admin shell at mobile (390px)}{Admin Shell --- mobile (390px)}
 
-\begin{figure}[H]\centering
-\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
-\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{shell-requester.png} next to this .tex file\\
-\emph{Show:} Requester shell with Dashboard, Create Ticket, My Tickets nav links
-\end{minipage}}
-\caption{App Shell --- Requester view (desktop)}
-\end{figure}
+\shot{shell-staff-desktop.png}{Staff shell with Dashboard, Staff Queue nav links; name + role chip + Logout}{Staff Shell --- desktop (1280px)}
+\shot{shell-staff-tablet.png}{Staff shell at tablet (820px)}{Staff Shell --- tablet (820px)}
+\shot[0.60]{shell-staff-mobile.png}{Staff shell at mobile (390px)}{Staff Shell --- mobile (390px)}
+
+\shot{shell-requester-desktop.png}{Requester shell with Dashboard, Create Ticket, My Tickets nav links; name + role chip + Logout}{Requester Shell --- desktop (1280px)}
+\shot{shell-requester-tablet.png}{Requester shell at tablet (820px)}{Requester Shell --- tablet (820px)}
+\shot[0.60]{shell-requester-mobile.png}{Requester shell at mobile (390px)}{Requester Shell --- mobile (390px)}
 
 \subsection*{10.3 Staff Queue (3 viewports)}
 \shot{staff-queue-desktop.png}{Staff queue table with search, status/owner/priority filters, sortable columns, pagination}{Staff Queue --- desktop (1280px)}
 \shot{staff-queue-tablet.png}{Staff queue at tablet (820px), table responsive}{Staff Queue --- tablet (820px)}
 \shot[0.60]{staff-queue-mobile.png}{Staff queue at mobile (390px), table scrolls inside container}{Staff Queue --- mobile (390px)}
 
-\subsection*{10.4 Staff Ticket Detail}
+\subsection*{10.4 Staff Ticket Detail (3 viewports)}
 \shot{staff-detail-desktop.png}{Staff detail with read-only grid, Assign/Reassign, Priority, Status dropdown, comments, notes, download}{Staff Ticket Detail --- desktop (1280px)}
+\shot{staff-detail-tablet.png}{Staff detail at tablet (820px)}{Staff Ticket Detail --- tablet (820px)}
+\shot[0.60]{staff-detail-mobile.png}{Staff detail at mobile (390px)}{Staff Ticket Detail --- mobile (390px)}
 
 \subsection*{10.5 User Management (Admin, 3 viewports)}
 \shot{user-mgmt-desktop.png}{User management table with Name, Email, Role, Status, Actions; search + role filter}{User Management --- desktop (1280px)}
 \shot{user-mgmt-tablet.png}{User management at tablet (820px)}{User Management --- tablet (820px)}
 \shot[0.60]{user-mgmt-mobile.png}{User management at mobile (390px)}{User Management --- mobile (390px)}
 
-\subsection*{10.6 Create/Edit User Forms}
-\begin{figure}[H]\centering
-\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
-\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{create-user.png} next to this .tex file\\
-\emph{Show:} Create User form with name, email, role dropdown, activation toggle, initial password
-\end{minipage}}
-\caption{Create User form --- desktop}
-\end{figure}
+\subsection*{10.6 Create/Edit User Forms (3 viewports)}
+\shot{create-user-desktop.png}{Create User dialog with name, email, role dropdown, activation toggle, initial password}{Create User --- desktop (1280px)}
+\shot{create-user-tablet.png}{Create User dialog at tablet (820px)}{Create User --- tablet (820px)}
+\shot[0.60]{create-user-mobile.png}{Create User dialog at mobile (390px)}{Create User --- mobile (390px)}
 
-\begin{figure}[H]\centering
-\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
-\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{edit-user.png} next to this .tex file\\
-\emph{Show:} Edit User form with name, email, role, activation; Reset Password button
-\end{minipage}}
-\caption{Edit User form --- desktop}
-\end{figure}
+\shot{edit-user-desktop.png}{Edit User dialog with name, email, role, activation; Reset Password button}{Edit User --- desktop (1280px)}
+\shot{edit-user-tablet.png}{Edit User dialog at tablet (820px)}{Edit User --- tablet (820px)}
+\shot[0.60]{edit-user-mobile.png}{Edit User dialog at mobile (390px)}{Edit User --- mobile (390px)}
 
-\subsection*{10.7 Login Error States}
-\begin{figure}[H]\centering
-\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
-\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{login-error.png} next to this .tex file\\
-\emph{Show:} Login with invalid credentials showing inline error ``Invalid email or password''
-\end{minipage}}
-\caption{Login error state (BR-06)}
-\end{figure}
+\subsection*{10.7 Login Error States (3 viewports)}
+\shot{login-error-desktop.png}{Login with invalid credentials showing inline error ``Invalid email or password'' (BR-06)}{Login error --- desktop (1280px)}
+\shot{login-error-tablet.png}{Login error at tablet (820px)}{Login error --- tablet (820px)}
+\shot[0.60]{login-error-mobile.png}{Login error at mobile (390px)}{Login error --- mobile (390px)}
 
-\begin{figure}[H]\centering
-\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
-\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{login-deactivated.png} next to this .tex file\\
-\emph{Show:} Login with deactivated account showing ``Account is deactivated'' (BR-07)
-\end{minipage}}
-\caption{Login deactivated state (BR-07)}
-\end{figure}
+\shot{login-deactivated-desktop.png}{Login with deactivated account showing ``Account is deactivated'' (BR-07)}{Login deactivated --- desktop (1280px)}
+\shot{login-deactivated-tablet.png}{Login deactivated at tablet (820px)}{Login deactivated --- tablet (820px)}
+\shot[0.60]{login-deactivated-mobile.png}{Login deactivated at mobile (390px)}{Login deactivated --- mobile (390px)}
 
 \subsection*{10.8 Visual inspection checklist (Lab 3 screens)}
 
@@ -1102,7 +1171,7 @@ Touch targets $\ge$44px & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
 \bottomrule
 \end{longtable}}
 
-Screenshot paths: \texttt{artifacts/lab-03/screenshots/} (login, change-password, shell, staff-queue, staff-detail, user-mgmt, create-user, edit-user, login-error, login-deactivated --- desktop/tablet/mobile where applicable).
+Screenshot paths: \texttt{docs/lab-03/evidence/} (login, change-password, shell-admin, shell-staff, shell-requester, staff-queue, staff-detail, user-mgmt, create-user, edit-user, login-error, login-deactivated --- desktop/tablet/mobile).
 
 % =====================================================================
 \section*{Answer Part 11: Final Results Summary (5 pts)}
