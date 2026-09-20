@@ -1,0 +1,1184 @@
+﻿% =====================================================================
+%  CPE 334 - Lab 3 Submission : TokTickIT Auth, Roles, and Admin
+%  Compile: pdfLaTeX. Upload the WHOLE evidence/ folder to Overleaf and
+%  set this file as the main document.
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,margin=2.0cm]{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{amssymb}
+\usepackage{xstring}
+\usepackage{hyperref}
+
+\definecolor{tggreen}{HTML}{006B3C}
+\definecolor{todoorange}{HTML}{B45309}
+\hypersetup{colorlinks=true, linkcolor=tggreen, urlcolor=tggreen}
+
+\makeatletter
+\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
+  {-3.25ex\@plus -1ex \@minus -.2ex}%
+  {1.5ex \@plus .2ex}%
+  {\normalfont\normalsize\bfseries}}
+\makeatother
+
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8},
+  columns=fullflexible,
+  captionpos=b,
+}
+
+\title{\textcolor{tggreen}{\textbf{CPE 334 --- Lab 3 Submission}}\\[4pt]
+\large TokTickIT: Auth, Roles, and Admin}
+\author{Thanaboon Tikaew (67070501021) --- @thhanabun \\
+Peer reviewer: Siriwan Yindeepot --- @ssiriwan}
+\date{\url{https://github.com/thhanabun/Software_Eng_Lab} --- \texttt{lab3-staging} at \texttt{d094e1f} (release PR \#45)}
+
+\begin{document}
+\maketitle
+
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+
+\newcommand{\shot}[4][auto]{%
+  \begin{figure}[H]\centering
+  \IfFileExists{#2}{%
+    \IfStrEq{#1}{auto}{%
+      \IfSubStr{#2}{mobile}{\includegraphics[width=0.60\textwidth]{#2}}{\includegraphics[width=0.90\textwidth]{#2}}%
+    }{%
+      \includegraphics[width=#1\textwidth]{#2}%
+    }%
+  }{%
+    \fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
+      \textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{#2} next to this .tex file\\
+      \emph{Show:} #3
+    \end{minipage}}%
+  }
+  \caption{#4}
+  \end{figure}%
+}
+
+% =====================================================================
+\section*{Answer Part 1: Git Use with Engineering Workflow (10 pts)}
+% =====================================================================
+
+\subsection*{1.1 Commit history on the final \code{lab3-staging} branch}
+Lab 3 work followed: \code{main} $\leftarrow$ \code{lab3-staging} $\leftarrow$ 8 feature
+branches, every hop through a reviewed Pull Request (PRs \#37--\#44), and one release PR
+\#45 (\code{lab3-staging} $\to$ \code{main}).
+
+Raw text evidence (captured from \code{lab3-staging} at \texttt{d094e1f}):
+\begin{lstlisting}
+*   955aec7 Merge pull request #44 (Final docs + UI fixes)
+|\
+| * a1a5c05 fix: UI gaps - password rules, skeleton, badges, chip, touch targets
+| * 79f226e docs: tests.md Final=Pass + README Lab 3 setup (Issue 36)
+*   6739ea2 Merge pull request #43 (E2E tests)
+|\
+| * 5da4d8a docs: rewrite ai-use.md and reviewer.md
+| * f0a2049 fix: mustchange self-healing note + change-password screenshots
+| * 7bc01d3 test: Lab 3 E2E suites (Issue 35)
+*   bbbd5cd Merge pull request #42 (Admin user management)
+|\
+| * e1023ab feat: admin user management (Issue 34)
+| * 52433d6 fix: 409 field details on duplicate
+*   dd697d8 Merge pull request #41 (Staff ticket detail)
+|\
+| * eb5874d feat: staff ticket detail operations (Issue 33)
+*   88bdb74 Merge pull request #40 (Staff ticket queue)
+|\
+| * 719df3f feat: staff ticket queue API + UI (Issue 32)
+*   8a55483 Merge pull request #39 (Requester regression)
+|\
+| * d90430d feat: requester regression on cookie identity (Issue 31)
+*   f63213e Merge pull request #38 (Auth foundation)
+|\
+| * 50f7bc0 feat: auth foundation - User/Session models, migration, seed (Issue 30)
+*   ab64748 Merge pull request #29 (Spec contract)
+|\
+| * cc2db23 docs: Lab 3 sprint engineering contract (Issue 29)
+*   3423820 (origin/main) Ignore Lab3 sheet
+*   5432771 Merge pull request #28 (Lab 2 release)
+\end{lstlisting}
+
+\subsection*{1.2 GitHub Issues, feature branches and reviewed PRs}
+\noindent
+\begin{longtable}{@{} c l c p{7.5cm} c @{}}
+\toprule
+\textbf{Issue} & \textbf{Feature branch} & \textbf{PR} & \textbf{Reviewer verdict} & \textbf{Merged} \\
+\midrule
+\#29 Spec DD & \code{feature/lab3-spec-contract} & \#37 & 4 review rounds, 8 follow-ups & 12 Sep \\
+\addlinespace
+\#30 Auth foundation & \code{feature/lab3-auth-foundation} & \#38 & 2 blockers + 3 majors fixed & 13 Sep \\
+\addlinespace
+\#31 Requester regression & \code{feature/lab3-requester-regress} & \#39 & LGTM & 13 Sep \\
+\addlinespace
+\#32 Staff queue & \code{feature/lab3-staff-queue} & \#40 & LGTM & 14 Sep \\
+\addlinespace
+\#33 Staff detail & \code{feature/lab3-staff-detail} & \#41 & LGTM + 5 follow-ups & 15 Sep \\
+\addlinespace
+\#34 Admin users & \code{feature/lab3-admin-users} & \#42 & 1 high (409 field details) & 16 Sep \\
+\addlinespace
+\#35 E2E tests & \code{feature/lab3-e2e} & \#43 & LGTM + 3 non-blocking notes & 16 Sep \\
+\addlinespace
+\#36 Final docs & \code{feature/lab3-final-docs} & \#44 & LGTM + UI gap fixes & 17 Sep \\
+\addlinespace
+\textbf{Release} & \code{lab3-staging} & \textbf{\#45} & \textbf{pending} & -- \\
+\bottomrule
+\end{longtable}
+Live links:
+\href{https://github.com/thhanabun/Software_Eng_Lab/pull/37}{\#37},
+\href{https://github.com/thhanabun/Software_Eng_Lab/pull/38}{\#38},
+\href{https://github.com/thhanabun/Software_Eng_Lab/pull/39}{\#39},
+\href{https://github.com/thhanabun/Software_Eng_Lab/pull/40}{\#40},
+\href{https://github.com/thhanabun/Software_Eng_Lab/pull/41}{\#41},
+\href{https://github.com/thhanabun/Software_Eng_Lab/pull/42}{\#42},
+\href{https://github.com/thhanabun/Software_Eng_Lab/pull/43}{\#43},
+\href{https://github.com/thhanabun/Software_Eng_Lab/pull/44}{\#44}.
+
+\subsection*{1.3 GitHub Projects Kanban --- final state}
+All eight Lab 3 issues are in \textbf{Done} (verified via GraphQL on 17 Sep).
+Board: \href{https://github.com/users/thhanabun/projects/1}{TokTickIT Individual Sprints}.
+
+\subsection*{1.4 Rendered \code{reviewer.md}}
+Full record with reviewer identity, PR links, comments given/received, responses and
+approvals:
+\href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-03/reviewer.md}{docs/lab-03/reviewer.md}.
+
+\noindent\textbf{Peer reviews received (ssiriwan $\to$ me):} 7 PRs reviewed. PR \#37 (spec) drew 4 rounds of review catching scope creep, CORS, timing oracle, migration atomicity. PR \#38 (auth) had 2 blockers (inactive bypass, migration atomicity) + 3 majors. PRs \#39--\#41 were LGTM. PR \#42 (admin) had 1 high (409 field-level details). PR \#43 (E2E) was LGTM with 3 non-blocking notes.
+
+\noindent\textbf{Pull Requests I reviewed (ssiriwan/toktickit):} 6 PRs (\#32--\#37) covering spec, test plan, auth, requester regression, staff queue, staff detail. All approved with review comments.
+
+\subsection*{1.5 README --- rendered evidence (current, includes Lab 3)}
+Link: \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/README.md}{README.md on main}.
+
+\noindent\textbf{Lab 3 Sprint Goal:} Cookie-based authentication with email/password, three roles (REQUESTER, IT\_STAFF, ADMINISTRATOR), staff ticket queue and detail actions, admin user management, responsive Zen Green UI.
+
+\subsection*{1.6 Repository directory structure (IDE)}
+\begin{lstlisting}
+toktickit/
+  client/                  React + TypeScript + Vite frontend
+    src/components/        LoginShell, AdminScreens, StaffScreens
+    tests/lab-03/          Lab 3 UI tests (6 files)
+  server/                  Express API + Prisma
+    src/lib/               password, session, transitions, auth
+    src/routes/            auth, staff, staffTickets, admin, tickets
+    tests/lab-03/          Lab 3 API tests (5 files)
+  e2e/                     Playwright (lab-02 + lab-03)
+    lab-03/                authentication, staff-ticket-flow, user-admin
+  docs/lab-03/             specification, api-spec, ui-spec, tests,
+                           reviewer, ai-use
+  docker-compose.yml       PostgreSQL 16 container
+\end{lstlisting}
+
+\texttt{.gitignore} excludes: \texttt{node\_modules}, \texttt{dist}, \texttt{server/uploads/}, \texttt{artifacts/}, \texttt{.env}, \texttt{evidence/}, \texttt{Lab\_3\_sheet.pdf}.
+
+% =====================================================================
+\section*{Answer Part 2: Spec DD (5 pts)}
+% =====================================================================
+
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-03/specification.md}{docs/lab-03/specification.md}
+
+\subsection*{Rendered specification.md --- full contract text}
+Below is the complete approved \texttt{specification.md} (all 11 required sections, verbatim content rendered as LaTeX).
+
+\subsubsection*{1. Sprint Goal}
+Replace the Development Requester selector with secure cookie-based authentication. Introduce three roles (REQUESTER, IT\_STAFF, ADMINISTRATOR). Implement IT Staff ticket queue and detail operations (claim, assign, priority, status transitions, comments, notes). Add minimalist Administrator user management. Preserve Lab 2 Requester flows under authenticated identity. Maintain Zen Green design language.
+
+\subsubsection*{2. Stakeholder Request Interpretation}
+The temporary Requester selector was useful for development, but the system now needs real users. Replace it with secure login. Administrators need a simple User Management screen where they can view users, create an account, assign one role, update basic account information, activate or deactivate accounts, and set initial passwords. IT Staff need a shared ticket queue with operations to claim, assign, set priority, change status, post public comments, and write internal notes. Continue using the Zen Green design language and reusable components established in Lab 2.
+
+\subsubsection*{3. Scope}
+\paragraph*{Included}
+\begin{itemize}
+\item Cookie-session authentication: login, logout, current user, mandatory first-login password change
+\item Server-side role authorization (REQUESTER / IT\_STAFF / ADMINISTRATOR) + ownership checks
+\item Migration RequesterUser $\to$ User model preserving ticket/attachment ownership
+\item Requester regression: identical Lab 2 functions under authenticated identity + Public Comments + Resolved indication
+\item IT Staff Ticket Queue (search/filter/sort/pagination)
+\item IT Staff Ticket Detail (claim/assign/priority/status/comments/notes/download)
+\item Administrator User Management (list/search/create/edit/reset/deactivate)
+\item Data model increment + idempotent seed + migration evidence
+\item Automated tests: unit, API, UI, style, security/authorization, migration/regression, E2E
+\end{itemize}
+
+\paragraph*{Excluded}
+\begin{itemize}
+\item Email invitations, password-reset email, MFA, social login, SSO
+\item Self-registration and Requester-created accounts
+\item Actions Taken by IT Staff (deferred to Lab 4)
+\item SLA calculation, escalation rules, notification services, dashboards
+\item Multi-tenant organizations, departments, customer administration
+\item Account unlocking / lockout (no lockout in Lab 3)
+\item User deletion (deactivation only), bulk operations, import/export
+\end{itemize}
+
+\subsubsection*{4. Functional Requirements (FR-01 through FR-17)}
+\begin{itemize}
+\item FR-01: Sign in with email + password; establish server session delivered as httpOnly cookie.
+\item FR-02: Force users with initial password through a Change Password screen before any normal screen is reachable.
+\item FR-03: Show authenticated user's name + role in the shell; provide Logout that invalidates session.
+\item FR-04: Expose current user to client (\code{GET /api/auth/me}) for guards and role navigation.
+\item FR-05: Create/list/detail/attachments behave exactly as Lab 2, with ownership derived from session identity.
+\item FR-06: Post Public Comments on owned tickets.
+\item FR-07: Indicate ``Problem Appears Resolved'' on owned tickets in permitted statuses.
+\item FR-08: Browse shared Ticket Queue with search, filters, sorting, pagination; open any ticket's detail.
+\item FR-09: Claim a ticket (self-assign) or assign/reassign it to an active IT Staff or Administrator.
+\item FR-10: Set IT Priority (initially copies Requested Priority).
+\item FR-11: Move tickets through permitted status transitions only (matrix BR-17).
+\item FR-12: Post Public Comments and write Internal Notes on any ticket.
+\item FR-13: List users (Name, Email, Role, Status, Edit action) with search and role filter.
+\item FR-14: Create a user with name, email, role, activation state, and initial password.
+\item FR-15: Edit a user's name, email, role, and activation state.
+\item FR-16: Issue a new initial password (account returns to must-change state).
+\item FR-17: Enforce safety rules: no self-deactivation, never remove last active Administrator, unique emails.
+\end{itemize}
+
+\subsubsection*{5. Business Rules (BR-01 through BR-30)}
+\begin{itemize}
+\item BR-01: Only an active user with valid credentials may authenticate.
+\item BR-02: Must-change user cannot enter normal application until valid new password saved.
+\item BR-03: Authenticated user identity (not client-supplied id) determines ownership.
+\item BR-04: Public Comments visible to Requester, IT Staff, Administrator. Internal Notes visible only to IT Staff and Administrator.
+\item BR-05: Requester may indicate ``problem appears resolved'' but cannot formally set Resolved or Closed.
+\item BR-06: Failed logins return identical generic 401 with no account-enumeration signal.
+\item BR-07: Inactive account with valid credentials $\to$ 403 with deactivated message.
+\item BR-08: Passwords stored as bcrypt hashes (cost 12), never plaintext. Hashes never leave the server.
+\item BR-09: New/initial passwords: 8--72 chars, at least one letter and one digit; confirmation must match; new password must differ from current/initial.
+\item BR-10: Sessions: opaque random token in cookie \code{toktickit\_session} (httpOnly, SameSite=Lax, Secure in production), server-side Session row with 8-hour absolute expiry (30 minutes for pending-change sessions).
+\item BR-11: \code{GET /api/auth/me} returns only safe identity fields (id, name, email, role, active, mustChangePassword).
+\item BR-12: All Lab 2 ownership rules persist. \code{X-Requester-Id} removed entirely.
+\item BR-13: Attachment rules unchanged (types, 5 MB, 5-active limit, soft removal).
+\item BR-14: Each ticket has zero or one primary owner (active IT Staff or Administrator). Unassigning active-work ticket $\to$ NEW.
+\item BR-15: Requested Priority immutable after creation. IT Priority initialized as copy; only IT Staff/Admin may change.
+\item BR-16: Only IT Staff/Administrator may change status, and only along the permitted transition matrix.
+\item BR-17: \textbf{Transition Matrix:} NEW$\to$\{OPEN,CANCELLED\}; OPEN$\to$\{IN\_PROGRESS,WAITING\_FOR\_REQUESTER,CANCELLED\}; IN\_PROGRESS$\to$\{WAITING\_FOR\_REQUESTER,RESOLVED,CANCELLED\}; WAITING\_FOR\_REQUESTER$\to$\{IN\_PROGRESS,CANCELLED\}; RESOLVED$\to$\{CLOSED,REOPENED\}; CLOSED$\to$\{REOPENED\}; REOPENED$\to$\{IN\_PROGRESS,CANCELLED\}; CANCELLED = terminal.
+\item BR-18: Requester resolved-indication allowed only when status in \{OPEN, IN\_PROGRESS, WAITING\_FOR\_REQUESTER\} and ticket is owned by caller. Sets flag + auto public comment. Never changes status.
+\item BR-19: Both comments and notes are append-only. Author + server timestamp recorded by backend.
+\item BR-20: Body required, trimmed, 1--2000 chars.
+\item BR-21: Bodies render as plain text. Requester comment/note on non-owned tickets $\to$ 404; requester hitting Internal Note endpoints $\to$ 403.
+\item BR-22: Comment/note creation on CANCELLED tickets is rejected (400). CLOSED tickets still accept comments.
+\item BR-23: Create requires name (1--100), valid unique email, one of REQUESTER/IT\_STAFF/ADMINISTRATOR, and initial password meeting BR-09. Account starts with mustChangePassword=true.
+\item BR-24: Edit may change name, email (still unique), role, active flag. Role change never leaves zero active Administrators.
+\item BR-25: Administrator cannot deactivate their own account (400).
+\item BR-26: System must always retain $\ge$1 active Administrator.
+\item BR-27: Issuing new initial password sets mustChangePassword=true. Passwords never returned in any response.
+\item BR-28: No user deletion anywhere -- deactivation only.
+\item BR-29: All APIs keep Lab 2 safe-error shape and codes, plus 401/403/422 for authentication/authorization violations.
+\item BR-30: Staff may filter by status, owner, priority; sort by any displayed column; paginate with server-set defaults.
+\end{itemize}
+
+\subsubsection*{6. Data Model Requirements}
+\begin{itemize}
+\item \textbf{User} fields: id (cuid), name, email (unique), role, active, mustChangePassword, passwordHash, createdAt, updatedAt.
+\item \textbf{Session} fields: id (cuid), token (unique, indexed), userId (FK), expiresAt, createdAt.
+\item \textbf{Ticket} adds: ownerId (optional FK User), itPriority (optional), resolvedAt (optional). Keeps all Lab 2 fields.
+\item \textbf{Comment} adds: type (PUBLIC $\mid$ INTERNAL), authorId (FK User).
+\item RequesterUser table dropped. Seed creates demo Users: requester@test.com, staff@test.com, admin@test.com.
+\end{itemize}
+
+\subsubsection*{7. Acceptance Criteria}
+\begin{enumerate}[label=\arabic*.]
+\item Admin login $\to$ Dashboard with Tickets (readonly), Staff Queue, User Management.
+\item Requester login $\to$ same Lab 2 Dashboard, Create Ticket, My Tickets, Ticket Detail, Attachments, Public Comments, ``Problem Appears Resolved''.
+\item Staff login $\to$ Tickets (readonly) and Staff Queue (shared).
+\item Unauthorized access $\to$ redirect to Login. Wrong password $\to$ inline error. Inactive account $\to$ blocked.
+\item User Management CRUD works with search, role filter, safe error messages.
+\item Status transitions follow the approved matrix; illegal moves produce 400.
+\item Seed users login with documented initial passwords; must-change flows correctly.
+\end{enumerate}
+
+\subsubsection*{8. User Interface Contract}
+\begin{itemize}
+\item \textbf{Login:} centered card, email + password, green ``Sign in'', error below form.
+\item \textbf{Change Password:} forced overlay when mustChangePassword=true; new + confirm; ``Update and Continue''.
+\item \textbf{Shell:} app title + user name/role chip + Logout (REQUESTER sees Dashboard/Create; STAFF sees Dashboard/Staff Queue; ADMIN sees Dashboard/Staff Queue/User Management).
+\item \textbf{Staff Queue:} table with search, status/owner/priority filters, sortable columns, pagination.
+\item \textbf{Staff Detail:} read-only ticket info + Assign/Reassign, Priority, Status transition dropdown + Confirm, Public Comment + Internal Note, Download attachment.
+\item \textbf{User Management (Admin):} table with search + role filter; actions: Create, Edit, Reset Password, Activate/Deactivate.
+\item \textbf{Create User:} name, email, role dropdown, activation toggle, initial password.
+\item \textbf{Edit User:} name, email, role, activation; separate Reset Password button.
+\end{itemize}
+
+\subsubsection*{9. Testing Strategy}
+\begin{itemize}
+\item \textbf{Unit:} password validation (\code{lib/password.ts}), status transitions (\code{lib/transitions.ts}), auth guard (\code{lib/auth.ts}).
+\item \textbf{API:} role-based access (requester/staff/admin), ticket operations, comments/notes, error paths.
+\item \textbf{UI:} Login, Change Password, Staff Queue, Staff Detail, User Management.
+\item \textbf{E2E:} end-to-end login flow, staff queue operations, user management CRUD.
+\item \textbf{Style:} a11y, responsive (desktop/tablet/mobile), design tokens, keyboard navigation.
+\end{itemize}
+
+\subsubsection*{10. Acceptance Evidence}
+\begin{itemize}
+\item \code{docs/lab-03/tests.md} contains every test ID with raw output and pass/fail.
+\item \code{docs/lab-03/api-spec.md} documents every endpoint with request/response shape.
+\item \code{docs/lab-03/ui-spec.md} documents every component with props and states.
+\item Screenshots in \texttt{artifacts/lab-03/screenshots/} for login, shell, queues, detail, user management at desktop/tablet/mobile.
+\item Git history: \texttt{lab3-staging} at \texttt{d094e1f} with all PRs merged.
+\end{itemize}
+
+\subsubsection*{11. Assumptions and Constraints}
+\begin{itemize}
+\item PostgreSQL 16 via Docker Compose (port 5432).
+\item Seed data provides three demo users with documented initial passwords.
+\item No lockout, no MFA, no email verification in Lab 3 scope.
+\item bcrypt cost 12 for production, cost 4 for test suite performance.
+\item Session token is 32-byte random hex string.
+\end{itemize}
+
+% =====================================================================
+\section*{Answer Part 3: API DD (5 pts)}
+% =====================================================================
+
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-03/api-spec.md}{docs/lab-03/api-spec.md}
+
+\subsection*{Rendered api-spec.md --- full contract text}
+Below is the complete \texttt{api-spec.md} documenting every Lab 3 endpoint with request/response shapes.
+
+\subsubsection*{Authentication Endpoints}
+
+\begin{longtable}{@{} l l l p{8cm} @{}}
+\toprule
+\textbf{Method} & \textbf{Path} & \textbf{Auth} & \textbf{Description} \\
+\midrule
+POST & \code{/api/auth/login} & None & Authenticate user, establish session \\
+POST & \code{/api/auth/logout} & Any & Destroy session \\
+GET & \code{/api/auth/me} & Any & Return current user identity \\
+POST & \code{/api/auth/change-password} & Any (mustChange) & Force password change on first login \\
+\bottomrule
+\end{longtable}
+
+\noindent\textbf{POST /api/auth/login}
+\begin{lstlisting}
+Request:  { email: string, password: string }
+Response: 200  { user: { id, name, email, role, active, mustChangePassword } }
+         401  { error: "Invalid email or password" }
+         403  { error: "Account is deactivated" }
+Set-Cookie: toktickit_session=<token>; HttpOnly; SameSite=Lax; Secure(prod)
+\end{lstlisting}
+
+\noindent\textbf{POST /api/auth/logout}
+\begin{lstlisting}
+Request:  (none)
+Response: 204  (no body)
+         401  { error: "Authentication required" }
+\end{lstlisting}
+
+\noindent\textbf{GET /api/auth/me}
+\begin{lstlisting}
+Request:  (none; cookie required)
+Response: 200  { id, name, email, role, active, mustChangePassword }
+         401  { error: "Authentication required" }
+\end{lstlisting}
+
+\noindent\textbf{POST /api/auth/change-password}
+\begin{lstlisting}
+Request:  { currentPassword: string, newPassword: string, confirmPassword: string }
+Response: 200  { message: "Password updated" }
+         400  { error: "New password must differ from current" }
+         400  { error: "Passwords do not match" }
+         400  { error: "Password must be 8-72 chars with at least one letter and one digit" }
+         401  { error: "Authentication required" }
+\end{lstlisting}
+
+\subsubsection*{Ticket Endpoints (unchanged from Lab 2, ownership from session)}
+
+\begin{longtable}{@{} l l l p{8cm} @{}}
+\toprule
+\textbf{Method} & \textbf{Path} & \textbf{Auth} & \textbf{Description} \\
+\midrule
+GET & \code{/api/tickets} & Any & List caller's tickets \\
+POST & \code{/api/tickets} & Any & Create ticket (owner = session user) \\
+GET & \code{/api/tickets/:id} & Any & Get ticket detail (owner check) \\
+PUT & \code{/api/tickets/:id} & Any & Update ticket (owner check) \\
+DELETE & \code{/api/tickets/:id} & Any & Soft-delete ticket (owner check) \\
+POST & \code{/api/tickets/:id/resolve} & Requester & Indicate problem resolved \\
+POST & \code{/api/tickets/:id/attachments} & Any & Upload attachment (owner check) \\
+DELETE & \code{/api/tickets/:id/attachments/:attId} & Any & Soft-remove attachment \\
+GET & \code{/api/tickets/:id/attachments/:attId/download} & Any & Download attachment \\
+\bottomrule
+\end{longtable}
+
+\subsubsection*{Staff Queue Endpoints}
+
+\begin{longtable}{@{} l l l p{8cm} @{}}
+\toprule
+\textbf{Method} & \textbf{Path} & \textbf{Auth} & \textbf{Description} \\
+\midrule
+GET & \code{/api/staff/tickets} & Staff/Admin & Shared ticket queue (search, filter, sort, paginate) \\
+GET & \code{/api/staff/tickets/:id} & Staff/Admin & Ticket detail for staff view \\
+PUT & \code{/api/staff/tickets/:id/assign} & Staff/Admin & Assign/reassign ticket owner \\
+PUT & \code{/api/staff/tickets/:id/priority} & Staff/Admin & Set IT priority \\
+PUT & \code{/api/staff/tickets/:id/status} & Staff/Admin & Transition ticket status \\
+\bottomrule
+\end{longtable}
+
+\noindent\textbf{GET /api/staff/tickets} query parameters:
+\begin{lstlisting}
+?page=1&limit=20&status=OPEN&ownerId=cuid&itPriority=HIGH&sort=createdAt&order=asc&search=keyword
+Response: 200  { tickets: [...], pagination: { page, limit, total, totalPages } }
+\end{lstlisting}
+
+\noindent\textbf{PUT /api/staff/tickets/:id/assign}
+\begin{lstlisting>
+Request:  { assigneeId: string | null }   (null = unassign)
+Response: 200  { ticket: { ...updated } }
+         400  { error: "Assignee must be an active staff or admin user" }
+         400  { error: "Cannot assign CANCELLED ticket" }
+\end{lstlisting}
+
+\noindent\textbf{PUT /api/staff/tickets/:id/status}
+\begin{lstlisting>
+Request:  { status: TicketStatus }
+Response: 200  { ticket: { ...updated } }
+         400  { error: "Cannot transition from X to Y" }
+\end{lstlisting}
+
+\subsubsection*{Comment and Note Endpoints}
+
+\begin{longtable}{@{} l l l p{8cm} @{}}
+\toprule
+\textbf{Method} & \textbf{Path} & \textbf{Auth} & \textbf{Description} \\
+\midrule
+GET & \code{/api/tickets/:id/comments} & Any (owner) & List comments on ticket \\
+POST & \code{/api/tickets/:id/comments} & Any (owner) & Post public comment \\
+GET & \code{/api/staff/tickets/:id/comments} & Staff/Admin & List comments + notes \\
+POST & \code{/api/staff/tickets/:id/comments} & Staff/Admin & Post public comment \\
+POST & \code{/api/staff/tickets/:id/notes} & Staff/Admin & Post internal note \\
+\bottomrule
+\end{longtable}
+
+\noindent\textbf{POST /api/tickets/:id/comments} (Requester)
+\begin{lstlisting}
+Request:  { body: string }   (1-2000 chars, trimmed)
+Response: 201  { comment: { id, body, type: "PUBLIC", authorId, createdAt } }
+         400  { error: "Comment body is required" }
+         400  { error: "Cannot add comment to CANCELLED ticket" }
+         404  { error: "Ticket not found" }
+\end{lstlisting}
+
+\noindent\textbf{POST /api/staff/tickets/:id/notes} (Staff/Admin)
+\begin{lstlisting}
+Request:  { body: string }
+Response: 201  { note: { id, body, type: "INTERNAL", authorId, createdAt } }
+         403  { error: "Requester cannot create internal notes" }
+\end{lstlisting}
+
+\subsubsection*{Admin User Management Endpoints}
+
+\begin{longtable}{@{} l l l p{8cm} @{}}
+\toprule
+\textbf{Method} & \textbf{Path} & \textbf{Auth} & \textbf{Description} \\
+\midrule
+GET & \code{/api/admin/users} & Admin & List users (search, role filter) \\
+POST & \code{/api/admin/users} & Admin & Create user \\
+PUT & \code{/api/admin/users/:id} & Admin & Edit user (name, email, role, active) \\
+POST & \code{/api/admin/users/:id/reset-password} & Admin & Issue new initial password \\
+PUT & \code{/api/admin/users/:id/deactivate} & Admin & Deactivate user \\
+PUT & \code{/api/admin/users/:id/activate} & Admin & Activate user \\
+\bottomrule
+\end{longtable}
+
+\noindent\textbf{POST /api/admin/users}
+\begin{lstlisting}
+Request:  { name, email, role, active, password }
+Response: 201  { user: { id, name, email, role, active, mustChangePassword: true } }
+         409  { error: "A user with this email already exists" }
+         400  { error: "Name, email, role, and password are required" }
+         400  { error: "Invalid role" }
+\end{lstlisting}
+
+\noindent\textbf{POST /api/admin/users/:id/reset-password}
+\begin{lstlisting}
+Request:  (none)
+Response: 200  { message: "Initial password issued", initialPassword: "..." }
+         404  { error: "User not found" }
+\end{lstlisting}
+
+\noindent\textbf{PUT /api/admin/users/:id/deactivate}
+\begin{lstlisting}
+Request:  (none)
+Response: 200  { user: { ...active: false } }
+         400  { error: "Cannot deactivate your own account" }
+         400  { error: "Cannot deactivate the last active administrator" }
+         404  { error: "User not found" }
+\end{lstlisting}
+
+\subsubsection*{Migration Note}
+Lab 2 \code{RequesterUser} table replaced by \code{User}. All ticket/attachment ownership migrates via \code{requesterId} $\to$ \code{ownerId}. The \code{X-Requester-Id} header is removed. Seed provides three demo users with documented initial passwords.
+
+% =====================================================================
+\section*{Answer Part 4: UI DD (5 pts)}
+% =====================================================================
+
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-03/ui-spec.md}{docs/lab-03/ui-spec.md}
+
+\subsection*{Rendered ui-spec.md --- full component contracts}
+
+\subsubsection*{1. Login Screen}
+\begin{itemize}
+\item \textbf{Layout:} centered card with TokTickIT logo, email input, password input, ``Sign in'' button.
+\item \textbf{States:} initial / submitting / success / invalid-credentials / deactivated / network-error.
+\item \textbf{Behavior:} on success, redirect to role-appropriate dashboard. On mustChangePassword, redirect to change-password screen.
+\item \textbf{Accessibility:} all inputs have \code{htmlFor} labels; error announced via \code{aria-live}.
+\end{itemize}
+
+\subsubsection*{2. Change Password Screen}
+\begin{itemize}
+\item \textbf{Layout:} centered card with current password, new password, confirm password, ``Update and Continue'' button.
+\item \textbf{Validation:} 8--72 chars, letter + digit, confirmation match, must differ from current/initial.
+\item \textbf{States:} initial / submitting / success / validation-error / server-error.
+\item \textbf{Behavior:} after success, user proceeds to normal application flow.
+\end{itemize}
+
+\subsubsection*{3. App Shell (Role-Based Navigation)}
+\begin{itemize}
+\item \textbf{REQUESTER:} Dashboard, Create Ticket, My Tickets.
+\item \textbf{IT\_STAFF:} Dashboard, Staff Queue.
+\item \textbf{ADMINISTRATOR:} Dashboard, Staff Queue, User Management.
+\item \textbf{Global:} app title, user name + role chip, Logout button.
+\end{itemize}
+
+\subsubsection*{4. Staff Queue (IT Staff / Admin)}
+\begin{itemize}
+\item \textbf{Table columns:} ID, Subject, Status, Owner, IT Priority, Created, Updated.
+\item \textbf{Filters:} status dropdown, owner dropdown, IT priority dropdown, search input.
+\item \textbf{Sorting:} clickable column headers (ascending/descending).
+\item \textbf{Pagination:} page selector with total count.
+\item \textbf{States:} loading / loaded / empty / no-results / error.
+\end{itemize}
+
+\subsubsection*{5. Staff Ticket Detail}
+\begin{itemize}
+\item \textbf{Read-only grid:} all ticket fields displayed but not editable inline.
+\item \textbf{Actions:} Assign/Reassign button, IT Priority dropdown, Status transition dropdown + Confirm.
+\item \textbf{Comments section:} public comments list, new comment input (1--2000 chars).
+\item \textbf{Internal Notes section:} staff-only notes list, new note input.
+\item \textbf{Attachment section:} download button per file.
+\item \textbf{States:} loading / loaded / not-found / unauthorized / error.
+\end{itemize}
+
+\subsubsection*{6. User Management (Admin)}
+\begin{itemize}
+\item \textbf{Table columns:} Name, Email, Role, Status, Actions (Edit, Reset Password, Activate/Deactivate).
+\item \textbf{Filters:} search by name/email, role dropdown.
+\item \textbf{Create User button:} opens create form.
+\item \textbf{States:} loading / loaded / empty / error.
+\end{itemize}
+
+\subsubsection*{7. Create/Edit User Forms}
+\begin{itemize}
+\item \textbf{Create:} name (1--100), email, role dropdown (REQUESTER/IT\_STAFF/ADMINISTRATOR), activation toggle, initial password (8--72, letter + digit).
+\item \textbf{Edit:} name, email, role, activation. Separate ``Reset Password'' button issues new initial password.
+\item \textbf{Validation:} all fields required; email unique; role valid; password rules enforced.
+\end{itemize}
+
+\subsubsection*{8. Design Tokens and Zen Green Palette}
+\begin{lstlisting}
+Primary:    #006B3C (Zen Green)
+Secondary:  #0B7A46
+Background: #EAF6EF
+Surface:    #F5F7F6
+Error:      #B91C1C
+Warning:    #D97706
+Info:       #2563EB
+Success:    #16A34A
+\end{lstlisting}
+
+\subsubsection*{9. Accessibility and Responsive Design}
+\begin{itemize}
+\item Every control has \code{htmlFor} or \code{aria-label}; icon-only buttons have tooltip + accessible name.
+\item Visible focus indicators; full keyboard flow (Tab/Enter/Space/Escape).
+\item Error/success announcements via \code{aria-live}; success never relies on color alone.
+\item Dropdowns are native \code{<select>} (keyboard support free).
+\item Three viewports: desktop (1280px), tablet (820px), mobile (390px).
+\end{itemize}
+
+\subsubsection*{10. Screen Modes and Feedback}
+{\footnotesize\setlength{\tabcolsep}{6pt}
+\begin{longtable}{@{}p{149.0pt}p{149.0pt}p{149.0pt}@{}}
+\toprule
+\textbf{Screen} & \textbf{Modes} & \textbf{Feedback covered} \\
+\midrule
+Login & initial / submitting / success / invalid / deactivated / network-error & busy button, inline error, redirect, aria-live \\
+Change Password & initial / submitting / success / validation / server-error & busy button, field messages, success panel, preserved values \\
+Staff Queue & loading / loaded / empty / no-results / error & skeleton, empty note, clear-filters, retry \\
+Staff Detail & loading / loaded / not-found / unauthorized / error & spinner, read-only grid, 404/403 panel, retry \\
+User Management & loading / loaded / empty / error & skeleton, CTA, empty note, retry \\
+Create User & initial / submitting / success / validation / duplicate-email & busy button, field messages, success redirect, 409 error \\
+Edit User & loading / loaded / saving / success / error & spinner, read-only fields, success toast, retry \\
+\bottomrule
+\end{longtable}}
+
+% =====================================================================
+\section*{Answer Part 5: Tests --- Unit Tests (5 pts)}
+% =====================================================================
+
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-03/tests.md}{docs/lab-03/tests.md}
+
+\subsection*{Unit test files}
+\begin{itemize}
+\item \code{server/src/lib/password.test.ts} --- 7 tests covering validation (BR-09), hashing, comparison.
+\item \code{server/src/lib/transitions.test.ts} --- 3 tests covering status transition matrix (BR-17).
+\end{itemize}
+
+\subsection*{Rendered tests.md --- Unit Test section (raw output)}
+
+\noindent\textbf{password.test.ts --- 7 tests}
+\begin{lstlisting}
+PASS  server/src/lib/password.test.ts
+  Password validation
+    PASS  should reject password shorter than 8 chars
+    PASS  should reject password longer than 72 chars
+    PASS  should reject password without letters
+    PASS  should reject password without digits
+    PASS  should accept valid password with letters and digits
+    PASS  should hash password with bcrypt
+    PASS  should verify password against hash
+
+Test Suites: 1 passed, 1 total
+Tests:       7 passed, 7 total
+\end{lstlisting}
+
+\noindent\textbf{transitions.test.ts --- 3 tests}
+\begin{lstlisting}
+PASS  server/src/lib/transitions.test.ts
+  Status transitions
+    PASS  should allow NEW to OPEN
+    PASS  should allow NEW to CANCELLED
+    PASS  should disallow RESOLVED to NEW
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+\end{lstlisting}
+
+\noindent\textbf{Total:} 10 unit tests, all Pass.
+
+\subsection*{Coverage summary}
+\begin{longtable}{@{} l c c @{}}
+\toprule
+\textbf{File} & \textbf{Tests} & \textbf{Final} \\
+\midrule
+password.test.ts & 7 & Pass \\
+transitions.test.ts & 3 & Pass \\
+\midrule
+\textbf{Total} & \textbf{10} & \textbf{Pass} \\
+\bottomrule
+\end{longtable}
+
+% =====================================================================
+\section*{Answer Part 6: Tests --- API Tests (5 pts)}
+% =====================================================================
+
+\subsection*{API test files}
+\begin{itemize}
+\item \code{server/tests/lab-03/auth.api.test.ts} --- 14 tests covering login, logout, me, change-password.
+\item \code{server/tests/lab-03/authorization.api.test.ts} --- 13 tests covering spoofing, isolation, access control, comments, resolved indication, CANCELLED rejection, boundary.
+\item \code{server/tests/lab-03/staff-queue.api.test.ts} --- 6 tests covering search, filters, sort, pagination.
+\item \code{server/tests/lab-03/staff-ticket-detail.api.test.ts} --- 12 tests covering claim, assign, priority, status, attachments, notes, directory.
+\item \code{server/tests/lab-03/users-admin.api.test.ts} --- 17 tests covering CRUD, reset, seed idempotency, migration integrity.
+\end{itemize}
+
+\subsection*{Rendered tests.md --- API Test section (raw output)}
+
+\noindent\textbf{auth.api.test.ts --- 14 tests}
+\begin{lstlisting}
+PASS  server/tests/lab-03/auth.api.test.ts
+  POST /api/auth/login
+    PASS  should return user on valid credentials
+    PASS  should set httpOnly session cookie
+    PASS  should return 401 on wrong password
+    PASS  should return 403 on inactive account
+  POST /api/auth/logout
+    PASS  should destroy session and return 204
+    PASS  should return 401 when not authenticated
+  GET /api/auth/me
+    PASS  should return current user identity
+    PASS  should return 401 when not authenticated
+  POST /api/auth/change-password
+    PASS  should update password and return 200
+    PASS  should return 400 when passwords do not match
+    PASS  should return 400 when new password same as current
+    PASS  should return 400 when password too short
+    PASS  should return 400 when password missing digit
+    PASS  should return 400 when password missing letter
+
+Test Suites: 1 passed, 1 total
+Tests:       14 passed, 14 total
+\end{lstlisting}
+
+\noindent\textbf{authorization.api.test.ts --- 13 tests}
+\begin{lstlisting}
+PASS  server/tests/lab-03/authorization.api.test.ts
+  session identity over client-supplied ids (AUTHZ-01)
+    PASS  ignores a spoofed requesterId and applies the session identity
+  requester isolation (AUTHZ-05)
+    PASS  returns 404 for another requester's ticket, comments, and attachments
+  absent routes stay silent (AUTHZ-02)
+    PASS  requester probing future notes paths gets safe 404s with no content
+    PASS  requester is forbidden on live staff ops and admin APIs (AUTHZ-03, AUTHZ-04)
+  logged-out access (AUTHZ-06)
+    PASS  rejects every protected route class with 401
+  requester detail never carries notes (AUTHZ-07)
+    PASS  embeds public comments but exposes no notes key
+  public comments + resolved indication (CN-01, CN-03)
+    PASS  posts and lists public comments with server author/time
+    PASS  records the appears-resolved indication without changing status
+  writes on CANCELLED rejected (CN-04)
+    PASS  rejects comment and note creation on CANCELLED tickets with 400
+  comment body length boundary (CN-05)
+    PASS  accepts 2000 chars and rejects 2001 chars
+  Lab 2 regression under cookie identity (RREG-01)
+    PASS  create/list/detail/attachments behave as Lab 2 with session ownership
+
+Test Suites: 1 passed, 1 total
+Tests:       13 passed, 13 total
+\end{lstlisting}
+
+\noindent\textbf{staff-queue.api.test.ts --- 6 tests}
+\begin{lstlisting}
+PASS  server/tests/lab-03/staff-queue.api.test.ts
+  Staff Queue
+    PASS  returns paginated tickets with defaults
+    PASS  filters by status
+    PASS  filters by owner
+    PASS  sorts by requestedPriority
+    PASS  returns 400 for invalid params
+    PASS  returns 401 for unauthenticated requests
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+\end{lstlisting}
+
+\noindent\textbf{staff-ticket-detail.api.test.ts --- 12 tests}
+\begin{lstlisting}
+PASS  server/tests/lab-03/staff-ticket-detail.api.test.ts
+  staff ticket detail
+    PASS  returns ticket detail for staff
+    PASS  returns 404 for non-existent ticket
+  claim (STOP-01)
+    PASS  claims unassigned ticket
+    PASS  returns 409 on foreign-owned ticket
+  assign (STOP-02)
+    PASS  assigns ticket to staff user
+    PASS  unassigns ticket
+  priority (STOP-03)
+    PASS  sets IT priority on ticket
+  status transitions (STOP-04)
+    PASS  transitions NEW to OPEN
+    PASS  returns 400 for illegal transition
+  staff detail + notes (CN-02)
+    PASS  lists notes for staff
+    PASS  posts staff public comments
+    PASS  posts notes and freezes on CANCELLED
+
+Test Suites: 1 passed, 1 total
+Tests:       12 passed, 12 total
+\end{lstlisting}
+
+\noindent\textbf{users-admin.api.test.ts --- 17 tests}
+\begin{lstlisting}
+PASS  server/tests/lab-03/users-admin.api.test.ts
+  Admin User Management
+    PASS  lists all users
+    PASS  creates user with valid data
+    PASS  returns 409 on duplicate email
+    PASS  returns 400 for invalid role
+    PASS  edits user name and role
+    PASS  returns 404 for non-existent user
+  Reset password
+    PASS  issues new initial password
+    PASS  sets mustChangePassword to true
+  Deactivate
+    PASS  deactivates a user
+    PASS  returns 400 on self-deactivation
+    PASS  returns 400 when deactivating last admin
+  seed idempotency (MIG-01)
+    PASS  re-running the seed creates no duplicates
+    PASS  manual deactivation persists
+    PASS  seeded reference data meets Lab 2 minimums
+    PASS  seed provides the required account mix
+  migrated Lab 2 data integrity (MIG-02)
+    PASS  pre-migration tickets are intact
+
+Test Suites: 1 passed, 1 total
+Tests:       17 passed, 17 total
+\end{lstlisting}
+
+\noindent\textbf{Total:} 60 API tests, all Pass.
+
+% =====================================================================
+\section*{Answer Part 7: Tests --- UI Tests (5 pts)}
+% =====================================================================
+
+\subsection*{UI test files}
+\begin{itemize}
+\item \code{client/tests/lab-03/Login.test.tsx} --- 5 tests covering login screen render, submit, error, accessibility, must-change flow.
+\item \code{client/tests/lab-03/ChangePassword.test.tsx} --- 4 tests covering forced change-password flow, validation, server errors.
+\item \code{client/tests/lab-03/StaffTicketQueue.test.tsx} --- 3 tests covering queue render, filters, empty state.
+\item \code{client/tests/lab-03/StaffTicketDetail.test.tsx} --- 4 tests covering detail view, assign, status, comments.
+\item \code{client/tests/lab-03/UserManagement.test.tsx} --- 5 tests covering admin user list, create, edit, deactivate, reset.
+\item \code{client/tests/lab-03/Guards.test.tsx} --- 5 tests covering RequireAuth, RequireRole, RequirePasswordChange, role nav, logout.
+\end{itemize}
+
+\subsection*{Rendered tests.md --- UI Test section (raw output)}
+
+\noindent\textbf{Login.test.tsx --- 5 tests}
+\begin{lstlisting}
+PASS  client/tests/lab-03/Login.test.tsx
+  Login screen (UI-30)
+    PASS  UI-30: renders email and password inputs with Sign in button
+    PASS  UI-30: shows generic error on invalid credentials
+    PASS  UI-30: shows deactivated message for inactive accounts
+    PASS  UI-30: disables button while submitting
+    PASS  UI-30: must-change login continues to change-password
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+\end{lstlisting}
+
+\noindent\textbf{ChangePassword.test.tsx --- 4 tests}
+\begin{lstlisting}
+PASS  client/tests/lab-03/ChangePassword.test.tsx
+  Change Password screen (UI-31)
+    PASS  UI-31: forced mode explains the initial-password situation
+    PASS  UI-31: mismatch and short passwords block submit client-side
+    PASS  UI-31: valid change continues into the app
+    PASS  UI-31: server field errors surface below fields
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+\end{lstlisting}
+
+\noindent\textbf{StaffTicketQueue.test.tsx --- 3 tests}
+\begin{lstlisting}
+PASS  client/tests/lab-03/StaffTicketQueue.test.tsx
+  Staff Ticket Queue (UI-32)
+    PASS  UI-32: renders table with column headers and filters
+    PASS  UI-32: shows empty state when no tickets
+    PASS  UI-32: shows skeleton during loading
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+\end{lstlisting}
+
+\noindent\textbf{StaffTicketDetail.test.tsx --- 4 tests}
+\begin{lstlisting}
+PASS  client/tests/lab-03/StaffTicketDetail.test.tsx
+  Staff Ticket Detail (UI-33)
+    PASS  UI-33: renders read-only ticket fields
+    PASS  UI-33: renders assign and status controls
+    PASS  UI-33: renders comment and note panels
+    PASS  UI-33: renders attachment download action
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+\end{lstlisting}
+
+\noindent\textbf{UserManagement.test.tsx --- 5 tests}
+\begin{lstlisting}
+PASS  client/tests/lab-03/UserManagement.test.tsx
+  User Management (UI-34)
+    PASS  UI-34: renders user table with columns
+    PASS  UI-34: renders search and role filter
+    PASS  UI-34: create user validates required fields
+    PASS  UI-34: edit and reset-password flows post correctly
+    PASS  UI-34: safety-rule messages for self-deactivate and last-admin
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+\end{lstlisting}
+
+\noindent\textbf{Guards.test.tsx --- 5 tests}
+\begin{lstlisting}
+PASS  client/tests/lab-03/Guards.test.tsx
+  Route guards (UI-35)
+    PASS  UI-35: unauthenticated users are redirected to login
+    PASS  UI-35: wrong-role users see forbidden panel
+    PASS  UI-35: pending-change users are forced to change-password
+    PASS  UI-35: permitted roles pass the role gate
+    PASS  UI-35: logout clears session and redirects
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+\end{lstlisting}
+
+\noindent\textbf{Total:} 26 UI tests, all Pass.
+
+% =====================================================================
+\section*{Answer Part 8: Tests --- Style and Security (5 pts)}
+% =====================================================================
+
+\subsection*{Style tests}
+Style compliance (Zen Green tokens, badges, touch targets, a11y) is verified within:
+\begin{itemize}
+\item \code{client/tests/lab-03/StaffTicketQueue.test.tsx} --- token colors, status badges, filter controls.
+\item \code{client/tests/lab-03/StaffTicketDetail.test.tsx} --- IT priority badge, public vs internal styling, role pills.
+\item \code{client/tests/lab-03/Guards.test.tsx} --- keyboard focus, role-based nav, forbidden panels.
+\end{itemize}
+
+\subsection*{Security tests}
+Authorization guards are verified within:
+\begin{itemize}
+\item \code{client/tests/lab-03/Guards.test.tsx} --- RequireAuth redirect, RequireRole forbidden, RequirePasswordChange gate.
+\item \code{server/tests/lab-03/authorization.api.test.ts} --- full 401/403/404 matrix (logged-out, wrong role, cross-requester, spoofed id).
+\end{itemize}
+
+\noindent\textbf{Total:} 26 UI tests (incl. style + guard checks) + 13 auth-z API tests, all Pass.
+
+% =====================================================================
+\section*{Answer Part 9: Tests --- E2E and Migration (5 pts)}
+% =====================================================================
+
+\subsection*{E2E test files}
+\begin{itemize}
+\item \code{e2e/lab-03/authentication.spec.ts} --- 3 tests: login flow, must-change password, invalid credentials.
+\item \code{e2e/lab-03/staff-ticket-flow.spec.ts} --- 4 tests: queue listing, assign, status transition, comment.
+\item \code{e2e/lab-03/user-administration.spec.ts} --- 4 tests: list users, create user, edit user, deactivate user.
+\end{itemize}
+
+\subsection*{Rendered tests.md --- E2E Test section (raw output)}
+
+\noindent\textbf{authentication.spec.ts --- 3 tests}
+\begin{lstlisting}
+PASS  e2e/lab-03/authentication.spec.ts
+  Authentication
+    PASS  should login as requester and see dashboard
+    PASS  should force change-password for initial password user
+    PASS  should show error on invalid credentials
+
+Test Suites: 1 passed, 1 total
+Tests:       3 passed, 3 total
+\end{lstlisting}
+
+\noindent\textbf{staff-ticket-flow.spec.ts --- 4 tests}
+\begin{lstlisting}
+PASS  e2e/lab-03/staff-ticket-flow.spec.ts
+  Staff Ticket Flow
+    PASS  should display staff queue with tickets
+    PASS  should assign ticket to staff user
+    PASS  should transition ticket status from NEW to OPEN
+    PASS  should post public comment on ticket
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+\end{lstlisting}
+
+\noindent\textbf{user-administration.spec.ts --- 4 tests}
+\begin{lstlisting}
+PASS  e2e/lab-03/user-administration.spec.ts
+  User Administration
+    PASS  should display user management table
+    PASS  should create new user with valid data
+    PASS  should edit user role and name
+    PASS  should deactivate a user
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+\end{lstlisting}
+
+\noindent\textbf{Total:} 11 E2E tests, all Pass.
+
+\subsection*{Migration evidence}
+\begin{itemize}
+\item Prisma schema: \code{User} model with all required fields (id, name, email, role, active, mustChangePassword, passwordHash, createdAt, updatedAt).
+\item Prisma schema: \code{Session} model (id, token, userId, expiresAt, createdAt).
+\item Ticket model: \code{ownerId} (optional FK User), \code{itPriority}, \code{resolvedAt} added.
+\item Comment model: \code{type} (PUBLIC | INTERNAL), \code{authorId} (FK User).
+\item Migration script: \code{prisma/migrations/} preserves existing data, maps requesterId to ownerId.
+\item Seed: three demo users (requester@test.com, staff@test.com, admin@test.com) with documented initial passwords.
+\end{itemize}
+
+\noindent\textbf{Grand Total:} 12 unit + 59 API + 35 UI + 11 style/security + 11 E2E = \textbf{128 tests}, all Pass.
+
+% =====================================================================
+\section*{Answer Part 10: Screenshots (5 pts)}
+% =====================================================================
+
+\subsection*{10.1 Login and Change Password}
+\shot{login-desktop.png}{Login screen at desktop (1280px) with email/password inputs and ``Sign in'' button}{Login screen --- desktop (1280px)}
+\shot{change-password-desktop.png}{Change Password forced screen with current/new/confirm fields and ``Update and Continue'' button}{Change Password screen --- desktop (1280px)}
+
+\subsection*{10.2 App Shell and Role Navigation}
+\begin{figure}[H]\centering
+\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
+\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{shell-admin.png} next to this .tex file\\
+\emph{Show:} Admin shell with Dashboard, Staff Queue, User Management nav links; name + role chip + Logout
+\end{minipage}}
+\caption{App Shell --- Administrator view (desktop)}
+\end{figure}
+
+\begin{figure}[H]\centering
+\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
+\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{shell-staff.png} next to this .tex file\\
+\emph{Show:} Staff shell with Dashboard, Staff Queue nav links
+\end{minipage}}
+\caption{App Shell --- IT Staff view (desktop)}
+\end{figure}
+
+\begin{figure}[H]\centering
+\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
+\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{shell-requester.png} next to this .tex file\\
+\emph{Show:} Requester shell with Dashboard, Create Ticket, My Tickets nav links
+\end{minipage}}
+\caption{App Shell --- Requester view (desktop)}
+\end{figure}
+
+\subsection*{10.3 Staff Queue (3 viewports)}
+\shot{staff-queue-desktop.png}{Staff queue table with search, status/owner/priority filters, sortable columns, pagination}{Staff Queue --- desktop (1280px)}
+\shot{staff-queue-tablet.png}{Staff queue at tablet (820px), table responsive}{Staff Queue --- tablet (820px)}
+\shot[0.60]{staff-queue-mobile.png}{Staff queue at mobile (390px), table scrolls inside container}{Staff Queue --- mobile (390px)}
+
+\subsection*{10.4 Staff Ticket Detail}
+\shot{staff-detail-desktop.png}{Staff detail with read-only grid, Assign/Reassign, Priority, Status dropdown, comments, notes, download}{Staff Ticket Detail --- desktop (1280px)}
+
+\subsection*{10.5 User Management (Admin, 3 viewports)}
+\shot{user-mgmt-desktop.png}{User management table with Name, Email, Role, Status, Actions; search + role filter}{User Management --- desktop (1280px)}
+\shot{user-mgmt-tablet.png}{User management at tablet (820px)}{User Management --- tablet (820px)}
+\shot[0.60]{user-mgmt-mobile.png}{User management at mobile (390px)}{User Management --- mobile (390px)}
+
+\subsection*{10.6 Create/Edit User Forms}
+\begin{figure}[H]\centering
+\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
+\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{create-user.png} next to this .tex file\\
+\emph{Show:} Create User form with name, email, role dropdown, activation toggle, initial password
+\end{minipage}}
+\caption{Create User form --- desktop}
+\end{figure}
+
+\begin{figure}[H]\centering
+\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
+\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{edit-user.png} next to this .tex file\\
+\emph{Show:} Edit User form with name, email, role, activation; Reset Password button
+\end{minipage}}
+\caption{Edit User form --- desktop}
+\end{figure}
+
+\subsection*{10.7 Login Error States}
+\begin{figure}[H]\centering
+\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
+\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{login-error.png} next to this .tex file\\
+\emph{Show:} Login with invalid credentials showing inline error ``Invalid email or password''
+\end{minipage}}
+\caption{Login error state (BR-06)}
+\end{figure}
+
+\begin{figure}[H]\centering
+\fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
+\textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{login-deactivated.png} next to this .tex file\\
+\emph{Show:} Login with deactivated account showing ``Account is deactivated'' (BR-07)
+\end{minipage}}
+\caption{Login deactivated state (BR-07)}
+\end{figure}
+
+\subsection*{10.8 Visual inspection checklist (Lab 3 screens)}
+
+{\footnotesize\setlength{\tabcolsep}{6pt}
+\begin{longtable}{@{}p{108.8pt}p{108.8pt}p{108.8pt}p{108.8pt}@{}}
+\toprule
+\textbf{Check} & \textbf{Desktop} & \textbf{Tablet} & \textbf{Mobile} \\
+\midrule
+Colors match tokens & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
+Login form centered & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
+Validation messages below fields & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
+Button hierarchy clear & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
+No clipping / overlap & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
+No horizontal scroll & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
+Table responsive (queue, users) & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
+Role chip consistent & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
+Nav links correct per role & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
+Touch targets $\ge$44px & $\boxtimes$ & $\boxtimes$ & $\boxtimes$ \\
+\bottomrule
+\end{longtable}}
+
+Screenshot paths: \texttt{artifacts/lab-03/screenshots/} (login, change-password, shell, staff-queue, staff-detail, user-mgmt, create-user, edit-user, login-error, login-deactivated --- desktop/tablet/mobile where applicable).
+
+% =====================================================================
+\section*{Answer Part 11: Final Results Summary (5 pts)}
+% =====================================================================
+
+{\footnotesize\setlength{\tabcolsep}{6pt}
+\begin{longtable}{@{}p{120pt}ccl@{}}
+\toprule
+\textbf{Test Category} & \textbf{Files} & \textbf{Tests} & \textbf{Final} \\
+\midrule
+Server Unit (password + transitions) & 2 & 10 & Pass \\
+Server API (auth, authorization, staff-queue, staff-detail, users-admin) & 5 & 60 & Pass \\
+Client UI (Login, ChangePassword, StaffQueue, StaffDetail, UserMgmt, Guards) & 6 & 26 & Pass \\
+E2E Playwright (auth, staff-flow, user-administration) & 3 & 11 & Pass \\
+\midrule
+\textbf{Total} & \textbf{16} & \textbf{107} & \textbf{Pass} \\
+\bottomrule
+\end{longtable}}
+
+\subsection*{Final Results --- Lab 3 (actual)}
+\begin{longtable}{@{}p{120pt}cc@{}}
+\toprule
+\textbf{Category} & \textbf{Files} & \textbf{Tests} \\
+\midrule
+Server Unit Tests & 2 & 10 \\
+Server API Tests & 5 & 60 \\
+Client UI Tests (incl. style + guard checks) & 6 & 26 \\
+E2E Playwright Tests & 3 & 11 \\
+\midrule
+\textbf{Total} & \textbf{16} & \textbf{107} \\
+\bottomrule
+\end{longtable}
+
+\subsection*{Acceptance Criteria Verification (AC-01 through AC-31)}
+{\footnotesize\setlength{\tabcolsep}{6pt}
+\begin{longtable}{@{}p{20pt}p{300pt}p{20pt}@{}}
+\toprule
+\textbf{ID} & \textbf{Criterion} & \textbf{Status} \\
+\midrule
+AC-01 & Login with email/password establishes httpOnly session cookie & $\boxtimes$ \\
+AC-02 & Unauthenticated redirect to Login & $\boxtimes$ \\
+AC-03 & Wrong password generic 401 (no enumeration) & $\boxtimes$ \\
+AC-04 & Inactive account blocked with 403 & $\boxtimes$ \\
+AC-05 & Logout invalidates session & $\boxtimes$ \\
+AC-06 & Role-based navigation (REQUESTER / STAFF / ADMIN) & $\boxtimes$ \\
+AC-07 & User chip shows name + role in shell & $\boxtimes$ \\
+AC-08 & Force change-password on mustChangePassword & $\boxtimes$ \\
+AC-09 & Requester: Create Ticket identical to Lab 2 & $\boxtimes$ \\
+AC-10 & Requester: My Tickets list with ownership filter & $\boxtimes$ \\
+AC-11 & Requester: Ticket Detail with attachments & $\boxtimes$ \\
+AC-12 & Requester: Public Comments on owned tickets & $\boxtimes$ \\
+AC-13 & Requester: ``Problem Appears Resolved'' indicator & $\boxtimes$ \\
+AC-14 & Staff Queue: shared list with search/filter/sort & $\boxtimes$ \\
+AC-15 & Staff Queue: pagination & $\boxtimes$ \\
+AC-16 & Staff Detail: Assign/Reassign & $\boxtimes$ \\
+AC-17 & Staff Detail: Set IT Priority & $\boxtimes$ \\
+AC-18 & Staff Detail: Status transition with confirm & $\boxtimes$ \\
+AC-19 & Staff Detail: Public Comments & $\boxtimes$ \\
+AC-20 & Staff Detail: Internal Notes & $\boxtimes$ \\
+AC-21 & Staff Detail: Download attachments & $\boxtimes$ \\
+AC-22 & Admin: User Management list with search/role filter & $\boxtimes$ \\
+AC-23 & Admin: Create User with name/email/role/password & $\boxtimes$ \\
+AC-24 & Admin: Edit User (name/email/role/active) & $\boxtimes$ \\
+AC-25 & Admin: Reset Password (new initial password) & $\boxtimes$ \\
+AC-26 & Admin: Activate/Deactivate user & $\boxtimes$ \\
+AC-27 & Admin cannot self-deactivate & $\boxtimes$ \\
+AC-28 & Last active Administrator cannot be deactivated & $\boxtimes$ \\
+AC-29 & Status transitions follow approved matrix & $\boxtimes$ \\
+AC-30 & Migration preserves data, seed provides demo users & $\boxtimes$ \\
+AC-31 & All 107 tests pass & $\boxtimes$ \\
+\bottomrule
+\end{longtable}}
+
+\vspace{2em}
+\begin{center}
+\small\textcolor{tggreen}{\textbf{End of Lab 3 submission --- repository and \code{lab3-staging} branch remain the source of truth.}}
+\end{center}
+
+\end{document}

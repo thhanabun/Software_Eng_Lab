@@ -40,7 +40,10 @@ Lab_02_labsheet.pdf
 Lab_03_labsheet.pdf
 
 # Lab 1 submission evidence (screenshots, LaTeX draft — kept local only)
-evidence/
+docs/lab-01/evidence/
+
+# Lab 2 evidence (not part of Lab 3 submission)
+docs/lab-02/evidence/
 
 # Uploaded ticket attachments (Lab 2 — local file storage, never committed)
 server/uploads/
