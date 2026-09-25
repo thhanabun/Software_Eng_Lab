@@ -78,8 +78,7 @@ describe("create valid action (ACT-01)", () => {
     const res = await staff.post(`/api/staff/tickets/${id}/actions`).send(validAction());
     expect(res.status).toBe(201);
     expect(res.body.description).toContain("spooler");
-    expect(res.body.performedByName).toBe("Act Staff");
-    expect(res.body.performedByRole).toBe("IT_STAFF");
+    expect(res.body.performedBy).toMatchObject({ id: staffId, name: "Act Staff" });
     expect(new Date(res.body.createdAt).getTime()).toBeGreaterThanOrEqual(before - 1000);
     const after = (await prisma.ticket.findUniqueOrThrow({ where: { id } })).updatedAt.getTime();
     expect(after).toBeGreaterThanOrEqual(before);
@@ -120,10 +119,12 @@ describe("requester access (ACT-03, ACT-04)", () => {
 
     const list = await requester.get(`/api/tickets/${id}/actions`);
     expect(list.status).toBe(200);
-    expect(list.body.length).toBe(1);
-    expect(list.body[0].description).toContain("spooler");
+    expect(list.body.items.length).toBe(1);
+    expect(list.body.items[0].description).toContain("spooler");
+    expect(list.body.items[0].performedBy).toMatchObject({ id: staffId, name: "Act Staff" });
 
-    const edit = await requester.patch(`/api/staff/tickets/${id}/actions/1`).send({ result: "hacked" });
+    const realId = list.body.items[0].id as number;
+    const edit = await requester.patch(`/api/staff/tickets/${id}/actions/${realId}`).send({ result: "hacked" });
     expect(edit.status).toBe(403);
   });
 
@@ -206,6 +207,66 @@ describe("edit + stale handling + 405", () => {
 
     const del = await staff.delete(`/api/staff/tickets/${id}/actions/${actionId}`);
     expect(del.status).toBe(405);
+    expect(del.body.error.code).toBe("METHOD_NOT_ALLOWED");
     expect(del.headers.allow).toContain("PATCH");
+
+    const reqDel = await requester.delete(`/api/staff/tickets/${id}/actions/${actionId}`);
+    expect(reqDel.status).toBe(403);
+  });
+});
+
+describe("contract extras (review follow-ups)", () => {
+  it("concurrent creates both win in order; client performer/time ignored", async () => {
+    const id = await makeTicket("act-req@example.test");
+    const [a, b] = await Promise.all([
+      staff.post(`/api/staff/tickets/${id}/actions`).send({ ...validAction(), description: "First concurrent." }),
+      staffB.post(`/api/staff/tickets/${id}/actions`).send({ ...validAction(), description: "Second concurrent." }),
+    ]);
+    expect(a.status).toBe(201);
+    expect(b.status).toBe(201);
+
+    const list = await staff.get(`/api/staff/tickets/${id}/actions`);
+    expect(list.body.items.length).toBe(2);
+
+    // Client-supplied performer/time are ignored (BR-02/BR-03).
+    const spoof = await staffB.post(`/api/staff/tickets/${id}/actions`).send({
+      ...validAction(),
+      description: "Spoof attempt.",
+      performedById: staffId,
+      performedBy: { id: staffId, name: "Nobody" },
+      createdAt: "2001-01-01T00:00:00.000Z",
+    });
+    expect(spoof.status).toBe(201);
+    expect(spoof.body.performedBy.name).toBe("Act Staff B");
+    expect(new Date(spoof.body.createdAt).getFullYear()).toBeGreaterThan(2020);
+  });
+
+  it("BR-02: a different staff member may perform the action on another's ticket", async () => {
+    const id = await makeTicket("act-req@example.test"); // owned by staff (Act Staff)
+    const res = await staffB.post(`/api/staff/tickets/${id}/actions`).send(validAction());
+    expect(res.status).toBe(201);
+    expect(res.body.performedBy.name).toBe("Act Staff B");
+  });
+
+  it("unknown action -> 404; invalid stamp -> 400", async () => {
+    const id = await makeTicket("act-req@example.test");
+    const created = await staff.post(`/api/staff/tickets/${id}/actions`).send(validAction());
+    const actionId = created.body.id as number;
+
+    const missing = await staff
+      .patch(`/api/staff/tickets/${id}/actions/${actionId + 999999}`)
+      .send({ result: "Nope.", expectedUpdatedAt: new Date().toISOString() });
+    expect(missing.status).toBe(404);
+
+    const badStamp = await staff
+      .patch(`/api/staff/tickets/${id}/actions/${actionId}`)
+      .send({ result: "Nope.", expectedUpdatedAt: "not-a-date" });
+    expect(badStamp.status).toBe(400);
+    expect(badStamp.body.error.details[0].field).toBe("expectedUpdatedAt");
+
+    const noStamp = await staff
+      .patch(`/api/staff/tickets/${id}/actions/${actionId}`)
+      .send({ result: "Nope." });
+    expect(noStamp.status).toBe(400);
   });
 });

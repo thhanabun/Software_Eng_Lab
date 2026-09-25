@@ -419,20 +419,19 @@ ticketsRouter.get("/:id/actions", requireAuth, requireFreshPassword, async (req,
       include: { performedBy: true },
       orderBy: { createdAt: "desc" },
     });
-    res.json(
-      rows.map((a) => ({
+    res.json({
+      items: rows.map((a) => ({
         id: a.id,
         description: a.description,
         result: a.result,
-        performedByName: a.performedBy.name,
-        performedByRole: a.performedBy.role,
+        performedBy: { id: a.performedBy.id, name: a.performedBy.name },
         followUpRequired: a.followUpRequired,
         followUpNote: a.followUpNote,
         attachmentNotes: a.attachmentNotes,
         createdAt: a.createdAt.toISOString(),
         updatedAt: a.updatedAt.toISOString(),
       })),
-    );
+    });
   } catch {
     internalError(res, "Unable to load actions");
   }

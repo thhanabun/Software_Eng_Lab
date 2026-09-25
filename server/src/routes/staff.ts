@@ -362,8 +362,8 @@ interface ActionRow {
   id: number;
   description: string;
   result: string;
+  performedById: number;
   performedByName: string;
-  performedByRole: string;
   followUpRequired: boolean;
   followUpNote: string | null;
   attachmentNotes: string | null;
@@ -371,12 +371,21 @@ interface ActionRow {
   updatedAt: Date;
 }
 
-function serializeActions(rows: ActionRow[]) {
-  return rows.map((a) => ({
-    ...a,
+// Spec shape (api-spec §1): { id, description, result,
+// performedBy: {id,name}, followUpRequired, followUpNote,
+// attachmentNotes, createdAt, updatedAt }. Lists wrap in { items }.
+function serializeAction(a: ActionRow) {
+  return {
+    id: a.id,
+    description: a.description,
+    result: a.result,
+    performedBy: { id: a.performedById, name: a.performedByName },
+    followUpRequired: a.followUpRequired,
+    followUpNote: a.followUpNote,
+    attachmentNotes: a.attachmentNotes,
     createdAt: a.createdAt.toISOString(),
     updatedAt: a.updatedAt.toISOString(),
-  }));
+  };
 }
 
 async function actionRows(ticketId: number): Promise<ActionRow[]> {
@@ -389,8 +398,8 @@ async function actionRows(ticketId: number): Promise<ActionRow[]> {
     id: a.id,
     description: a.description,
     result: a.result,
+    performedById: a.performedBy.id,
     performedByName: a.performedBy.name,
-    performedByRole: a.performedBy.role,
     followUpRequired: a.followUpRequired,
     followUpNote: a.followUpNote,
     attachmentNotes: a.attachmentNotes,
@@ -553,7 +562,7 @@ staffRouter.get("/tickets/:id/actions", ...staffOnly, async (req, res) => {
       notFound(res, "Ticket not found");
       return;
     }
-    res.json(serializeActions(await actionRows(id)));
+    res.json({ items: (await actionRows(id)).map(serializeAction) });
   } catch {
     internalError(res, "Unable to load actions");
   }
@@ -596,18 +605,20 @@ staffRouter.post("/tickets/:id/actions", ...staffOnly, async (req, res) => {
       }),
       prisma.ticket.update({ where: { id }, data: { updatedAt: new Date() } }),
     ]);
-    res.status(201).json({
-      id: created.id,
-      description: created.description,
-      result: created.result,
-      performedByName: created.performedBy.name,
-      performedByRole: created.performedBy.role,
-      followUpRequired: created.followUpRequired,
-      followUpNote: created.followUpNote,
-      attachmentNotes: created.attachmentNotes,
-      createdAt: created.createdAt.toISOString(),
-      updatedAt: created.updatedAt.toISOString(),
-    });
+    res.status(201).json(
+      serializeAction({
+        id: created.id,
+        description: created.description,
+        result: created.result,
+        performedById: created.performedBy.id,
+        performedByName: created.performedBy.name,
+        followUpRequired: created.followUpRequired,
+        followUpNote: created.followUpNote,
+        attachmentNotes: created.attachmentNotes,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+      }),
+    );
   } catch {
     internalError(res, "Unable to create action");
   }
@@ -660,18 +671,20 @@ staffRouter.patch("/tickets/:id/actions/:actionId", ...staffOnly, async (req, re
       }),
       prisma.ticket.update({ where: { id }, data: { updatedAt: new Date() } }),
     ]);
-    res.json({
-      id: updated.id,
-      description: updated.description,
-      result: updated.result,
-      performedByName: updated.performedBy.name,
-      performedByRole: updated.performedBy.role,
-      followUpRequired: updated.followUpRequired,
-      followUpNote: updated.followUpNote,
-      attachmentNotes: updated.attachmentNotes,
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    });
+    res.json(
+      serializeAction({
+        id: updated.id,
+        description: updated.description,
+        result: updated.result,
+        performedById: updated.performedBy.id,
+        performedByName: updated.performedBy.name,
+        followUpRequired: updated.followUpRequired,
+        followUpNote: updated.followUpNote,
+        attachmentNotes: updated.attachmentNotes,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      }),
+    );
   } catch {
     internalError(res, "Unable to update action");
   }
@@ -680,12 +693,12 @@ staffRouter.patch("/tickets/:id/actions/:actionId", ...staffOnly, async (req, re
 // DELETE on action paths — forbidden, single locked behavior (BR-07).
 staffRouter.delete("/tickets/:id/actions/:actionId", ...staffOnly, (_req, res) => {
   res.setHeader("Allow", "GET, POST, PATCH");
-  res.status(405).json({ error: { code: "FORBIDDEN", message: "Actions cannot be deleted" } });
+  res.status(405).json({ error: { code: "METHOD_NOT_ALLOWED", message: "Actions cannot be deleted" } });
 });
 
 staffRouter.delete("/tickets/:id/actions", ...staffOnly, (_req, res) => {
   res.setHeader("Allow", "GET, POST, PATCH");
-  res.status(405).json({ error: { code: "FORBIDDEN", message: "Actions cannot be deleted" } });
+  res.status(405).json({ error: { code: "METHOD_NOT_ALLOWED", message: "Actions cannot be deleted" } });
 });
 
 // GET /api/staff/attachments/:id/download — read-only evidence access (AC-31).
