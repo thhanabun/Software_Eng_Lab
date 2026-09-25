@@ -353,6 +353,341 @@ staffRouter.post("/tickets/:id/notes", ...staffOnly, async (req, res) => {
   }
 });
 
+const ACTION_DESC_MAX = 2000;
+const ACTION_RESULT_MAX = 2000;
+const FOLLOWUP_NOTE_MAX = 1000;
+const ATTACH_NOTES_MAX = 500;
+
+interface ActionRow {
+  id: number;
+  description: string;
+  result: string;
+  performedByName: string;
+  performedByRole: string;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+function serializeActions(rows: ActionRow[]) {
+  return rows.map((a) => ({
+    ...a,
+    createdAt: a.createdAt.toISOString(),
+    updatedAt: a.updatedAt.toISOString(),
+  }));
+}
+
+async function actionRows(ticketId: number): Promise<ActionRow[]> {
+  const rows = await prisma.actionTaken.findMany({
+    where: { ticketId },
+    include: { performedBy: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((a) => ({
+    id: a.id,
+    description: a.description,
+    result: a.result,
+    performedByName: a.performedBy.name,
+    performedByRole: a.performedBy.role,
+    followUpRequired: a.followUpRequired,
+    followUpNote: a.followUpNote,
+    attachmentNotes: a.attachmentNotes,
+    createdAt: a.createdAt,
+    updatedAt: a.updatedAt,
+  }));
+}
+
+interface ParsedAction {
+  description: string;
+  result: string;
+  followUpRequired: boolean;
+  followUpNote: string | null;
+  attachmentNotes: string | null;
+}
+
+function strField(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  return text.length === 0 ? null : text;
+}
+
+// Validates create-shape fields. For PATCH, pass current values for fields the
+// caller omits; flip semantics: true->false clears the note, false->true
+// requires a note in the same call.
+function parseActionFields(
+  body: Record<string, unknown>,
+  res: Parameters<typeof validationError>[0],
+  current?: { description: string; result: string; followUpRequired: boolean; followUpNote: string | null; attachmentNotes: string | null },
+): ParsedAction | null {
+  const isPatch = current !== undefined;
+
+  const rawDesc = body.description;
+  const description = rawDesc === undefined && isPatch ? current.description : strField(rawDesc);
+  if (description === null || description.length > ACTION_DESC_MAX) {
+    if (description !== null) {
+      validationError(res, "Description is too long", "description", `Description must be ${ACTION_DESC_MAX} characters or fewer`);
+    } else {
+      validationError(res, "Description is required", "description", "Description must not be empty");
+    }
+    return null;
+  }
+
+  const rawResult = body.result;
+  const result = rawResult === undefined && isPatch ? current.result : strField(rawResult);
+  if (result === null || result.length > ACTION_RESULT_MAX) {
+    if (result !== null) {
+      validationError(res, "Result is too long", "result", `Result must be ${ACTION_RESULT_MAX} characters or fewer`);
+    } else {
+      validationError(res, "Result is required", "result", "Result must not be empty");
+    }
+    return null;
+  }
+
+  const rawFollow = body.followUpRequired;
+  let followUpRequired: boolean;
+  if (rawFollow === undefined && isPatch) {
+    followUpRequired = current.followUpRequired;
+  } else if (typeof rawFollow === "boolean") {
+    followUpRequired = rawFollow;
+  } else {
+    validationError(res, "Follow-up flag is required", "followUpRequired", "followUpRequired must be a boolean");
+    return null;
+  }
+
+  const rawNote = body.followUpNote;
+  const flippedOff = isPatch && current.followUpRequired && !followUpRequired;
+  let followUpNote: string | null;
+  if (flippedOff) {
+    followUpNote = null; // flip true->false clears the stored note
+  } else if (rawNote !== undefined && rawNote !== null && typeof rawNote !== "string") {
+    validationError(res, "Follow-up note is invalid", "followUpNote", "Follow-up note must be a string");
+    return null;
+  } else {
+    const note = typeof rawNote === "string" ? rawNote.trim() : "";
+    if (followUpRequired) {
+      if (note.length > FOLLOWUP_NOTE_MAX) {
+        validationError(res, "Follow-up note is too long", "followUpNote", `Follow-up note must be ${FOLLOWUP_NOTE_MAX} characters or fewer`);
+        return null;
+      }
+      if (note.length > 0) {
+        followUpNote = note;
+      } else if (isPatch && current.followUpNote) {
+        followUpNote = current.followUpNote; // keep existing note
+      } else {
+        validationError(res, "Follow-up note is required", "followUpNote", "Follow-up note is required when follow-up is needed");
+        return null;
+      }
+    } else {
+      if (note.length > 0) {
+        validationError(res, "Follow-up note must be blank", "followUpNote", "Follow-up note must be blank when follow-up is not needed");
+        return null;
+      }
+      followUpNote = null;
+    }
+  }
+
+  const rawAttach = body.attachmentNotes;
+  let attachmentNotes: string | null;
+  if (rawAttach === undefined || rawAttach === null) {
+    attachmentNotes = isPatch ? current.attachmentNotes : null;
+  } else if (typeof rawAttach !== "string") {
+    validationError(res, "Attachment notes are invalid", "attachmentNotes", "Attachment notes must be a string");
+    return null;
+  } else {
+    const attach = rawAttach.trim();
+    if (attach.length > ATTACH_NOTES_MAX) {
+      validationError(res, "Attachment notes are too long", "attachmentNotes", `Attachment notes must be ${ATTACH_NOTES_MAX} characters or fewer`);
+      return null;
+    }
+    attachmentNotes = attach.length === 0 ? null : attach;
+  }
+
+  return { description, result, followUpRequired, followUpNote, attachmentNotes };
+}
+
+// Optimistic concurrency: compares the client-seen ticket stamp. Sends 409 on
+// mismatch, 400 on unparseable stamp. Missing stamp = no check (create only).
+function checkFreshTicket(
+  ticketUpdatedAt: Date,
+  expected: unknown,
+  res: Parameters<typeof validationError>[0],
+  opts: { required: boolean },
+): boolean {
+  if (expected === undefined || expected === null) {
+    if (opts.required) {
+      validationError(res, "Freshness stamp is required", "expectedUpdatedAt", "expectedUpdatedAt must be the ticket updatedAt you saw");
+      return false;
+    }
+    return true;
+  }
+  const seen = typeof expected === "string" ? new Date(expected).getTime() : NaN;
+  if (Number.isNaN(seen)) {
+    validationError(res, "Freshness stamp is invalid", "expectedUpdatedAt", "expectedUpdatedAt must be an ISO date-time");
+    return false;
+  }
+  if (seen !== ticketUpdatedAt.getTime()) {
+    res.status(409).json({
+      error: { code: "CONFLICT", message: "Ticket was updated by another user; reload and retry" },
+    });
+    return false;
+  }
+  return true;
+}
+
+function actionConflict(res: Parameters<typeof validationError>[0], message: string, field: string, detail: string) {
+  res.status(400).json({ error: { code: "VALIDATION_ERROR", message, details: [{ field, message: detail }] } });
+}
+
+// GET /api/staff/tickets/:id/actions — staff list (any ticket).
+staffRouter.get("/tickets/:id/actions", ...staffOnly, async (req, res) => {
+  const id = parsePositiveIntParam(req.params.id);
+  if (id === null) {
+    notFound(res, "Ticket not found");
+    return;
+  }
+  try {
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) {
+      notFound(res, "Ticket not found");
+      return;
+    }
+    res.json(serializeActions(await actionRows(id)));
+  } catch {
+    internalError(res, "Unable to load actions");
+  }
+});
+
+// POST /api/staff/tickets/:id/actions — create (performer + time from server).
+staffRouter.post("/tickets/:id/actions", ...staffOnly, async (req, res) => {
+  const id = parsePositiveIntParam(req.params.id);
+  if (id === null) {
+    notFound(res, "Ticket not found");
+    return;
+  }
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const input = parseActionFields(body, res);
+  if (!input) return;
+  try {
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) {
+      notFound(res, "Ticket not found");
+      return;
+    }
+    if (ticket.currentStatus === "CANCELLED") {
+      actionConflict(res, "Ticket is cancelled", "ticket", "Actions cannot be added to a cancelled ticket");
+      return;
+    }
+    if (!checkFreshTicket(ticket.updatedAt, body.expectedUpdatedAt, res, { required: false })) return;
+    // Concurrent creates both win in creation order; updatedAt advances to latest.
+    const [created] = await prisma.$transaction([
+      prisma.actionTaken.create({
+        data: {
+          ticketId: id,
+          performedById: req.user!.id,
+          description: input.description,
+          result: input.result,
+          followUpRequired: input.followUpRequired,
+          followUpNote: input.followUpNote,
+          attachmentNotes: input.attachmentNotes,
+        },
+        include: { performedBy: true },
+      }),
+      prisma.ticket.update({ where: { id }, data: { updatedAt: new Date() } }),
+    ]);
+    res.status(201).json({
+      id: created.id,
+      description: created.description,
+      result: created.result,
+      performedByName: created.performedBy.name,
+      performedByRole: created.performedBy.role,
+      followUpRequired: created.followUpRequired,
+      followUpNote: created.followUpNote,
+      attachmentNotes: created.attachmentNotes,
+      createdAt: created.createdAt.toISOString(),
+      updatedAt: created.updatedAt.toISOString(),
+    });
+  } catch {
+    internalError(res, "Unable to create action");
+  }
+});
+
+// PATCH /api/staff/tickets/:id/actions/:actionId — edit (stamp required).
+staffRouter.patch("/tickets/:id/actions/:actionId", ...staffOnly, async (req, res) => {
+  const id = parsePositiveIntParam(req.params.id);
+  const actionId = parsePositiveIntParam(req.params.actionId);
+  if (id === null || actionId === null) {
+    notFound(res, "Action not found");
+    return;
+  }
+  try {
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) {
+      notFound(res, "Ticket not found");
+      return;
+    }
+    const existing = await prisma.actionTaken.findFirst({ where: { id: actionId, ticketId: id } });
+    if (!existing) {
+      notFound(res, "Action not found");
+      return;
+    }
+    if (ticket.currentStatus === "CANCELLED") {
+      actionConflict(res, "Ticket is cancelled", "ticket", "Actions cannot be edited on a cancelled ticket");
+      return;
+    }
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    if (!checkFreshTicket(ticket.updatedAt, body.expectedUpdatedAt, res, { required: true })) return;
+    const input = parseActionFields(body, res, {
+      description: existing.description,
+      result: existing.result,
+      followUpRequired: existing.followUpRequired,
+      followUpNote: existing.followUpNote,
+      attachmentNotes: existing.attachmentNotes,
+    });
+    if (!input) return;
+    const [updated] = await prisma.$transaction([
+      prisma.actionTaken.update({
+        where: { id: actionId },
+        data: {
+          description: input.description,
+          result: input.result,
+          followUpRequired: input.followUpRequired,
+          followUpNote: input.followUpNote,
+          attachmentNotes: input.attachmentNotes,
+        },
+        include: { performedBy: true },
+      }),
+      prisma.ticket.update({ where: { id }, data: { updatedAt: new Date() } }),
+    ]);
+    res.json({
+      id: updated.id,
+      description: updated.description,
+      result: updated.result,
+      performedByName: updated.performedBy.name,
+      performedByRole: updated.performedBy.role,
+      followUpRequired: updated.followUpRequired,
+      followUpNote: updated.followUpNote,
+      attachmentNotes: updated.attachmentNotes,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    });
+  } catch {
+    internalError(res, "Unable to update action");
+  }
+});
+
+// DELETE on action paths — forbidden, single locked behavior (BR-07).
+staffRouter.delete("/tickets/:id/actions/:actionId", ...staffOnly, (_req, res) => {
+  res.setHeader("Allow", "GET, POST, PATCH");
+  res.status(405).json({ error: { code: "FORBIDDEN", message: "Actions cannot be deleted" } });
+});
+
+staffRouter.delete("/tickets/:id/actions", ...staffOnly, (_req, res) => {
+  res.setHeader("Allow", "GET, POST, PATCH");
+  res.status(405).json({ error: { code: "FORBIDDEN", message: "Actions cannot be deleted" } });
+});
+
 // GET /api/staff/attachments/:id/download — read-only evidence access (AC-31).
 staffRouter.get("/attachments/:id/download", ...staffOnly, async (req, res) => {
   const id = parsePositiveIntParam(req.params.id);
