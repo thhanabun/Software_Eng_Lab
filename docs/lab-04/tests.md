@@ -43,6 +43,8 @@ Conventions: API tests seed in `beforeAll`/`beforeEach`; bcrypt cost 4 via env; 
 | E2E-08 | E2E | AC-07/08 | dashboards: metrics + drill-down | Cards match; drill-down lands on filtered lists | `e2e/lab-04/dashboards.spec.ts` | TBD |
 | E2E-09 | Responsive | AC-11 | Screenshots (3 screen groups × 3 viewports) + checklist | Saved to `artifacts/lab-04/screenshots/`; ui-spec §7 passes | `e2e/lab-04/*.spec.ts` | TBD |
 | RREG-02 | Regression | AC-10 | Labs 1–3 suites green | All prior server/client suites pass unmodified | existing suites | TBD |
+| MIG-03 | API | AC-10 | Lab 4 migration preserves data | All prior users/tickets/comments/attachments intact; legacy tickets have zero actions; rollback documented | `server/tests/lab-04/ticket-workflow.api.test.ts` | TBD |
+| PERF-01 | API smoke | AC-08 | Dashboard latency smoke | Requester + staff dashboards respond < 2s on seeded data with bounded payloads | `server/tests/lab-04/staff-dashboard.api.test.ts` | TBD |
 
 ## 3. Acceptance-Criterion Traceability
 
@@ -57,7 +59,7 @@ Conventions: API tests seed in `beforeAll`/`beforeEach`; bcrypt cost 4 via env; 
 | AC-07 | DREQ-01, DUI-03, E2E-08 |
 | AC-08 | DSTF-01, DSTF-02, DUI-03, E2E-08 |
 | AC-09 | DREQ-02, DSTF-02, DUI-03 |
-| AC-10 | RREG-02 |
+| AC-10 | RREG-02, MIG-03, PERF-01 |
 | AC-11 | STYLE-03, E2E-09 |
 
 ## 4. Responsive and Visual Checklist

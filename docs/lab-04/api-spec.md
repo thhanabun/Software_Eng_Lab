@@ -4,17 +4,25 @@ Base URL: `/api` · JSON · Auth: session cookie `toktickit_session`. All Labs 2
 
 ## 1. Actions Taken
 
-### GET /api/staff/tickets/:id/actions — list
-- Staff/admin: **200** `{ items: [{ id, description, result, performedBy: {id,name}, followUpRequired, followUpNote, attachmentNotes, createdAt, updatedAt }] }` newest-first. Requester: same shape on **owned** tickets only (full entries, read-only). Non-owned (requester) → 404; requester on other roles' paths → 403; anonymous → 401; missing ticket → 404.
+Path does not imply authorization: the requester path and the staff path below enforce identical role/ownership rules server-side.
+
+### GET /api/tickets/:id/actions — requester list (role: REQUESTER on owned tickets; staff/admin may also call it)
+- **200** `{ items: [{ id, description, result, performedBy: {id,name}, followUpRequired, followUpNote, attachmentNotes, createdAt, updatedAt }] }` newest-first, full entries, read-only. Non-owned (requester) → 404; anonymous → 401; missing ticket → 404.
+
+### GET /api/staff/tickets/:id/actions — staff list (roles: IT_STAFF, ADMINISTRATOR)
+- **200**: same shape as above, any ticket. Requester calling this path → 403 (use the requester path). Anonymous → 401; missing ticket → 404.
 
 ### POST /api/staff/tickets/:id/actions — create (roles: IT_STAFF, ADMINISTRATOR)
 Body: `{ "description", "result", "followUpRequired": bool, "followUpNote"?, "attachmentNotes"?, "expectedUpdatedAt"? }`.
 - Validation (BR-04..06): description/result 1–2000 trimmed; follow-up coupling; attachmentNotes ≤500. Violations → **400** with field `details`.
-- Performer + timestamp from server/session (client values ignored). CANCELLED ticket → **400**. **201** with the entry.
+- Performer + timestamp from server/session (client values ignored; stored UTC). CANCELLED ticket → **400**. Concurrent creates without stamp: both rows win in creation order; ticket `updatedAt` advances to the latest write. **201** with the entry.
 
 ### PATCH /api/staff/tickets/:id/actions/:actionId — edit (roles: IT_STAFF, ADMINISTRATOR)
 Body subset of create fields + required `expectedUpdatedAt` (ticket-level stamp).
-- Stale (`expectedUpdatedAt` ≠ current ticket `updatedAt`) → **409** `CONFLICT`. Unknown action → 404. Same validation as create. **200** with updated entry; ticket `updatedAt` advances.
+- Stale (`expectedUpdatedAt` ≠ current ticket `updatedAt`) → **409** `CONFLICT`. Unknown action → 404. Same validation as create. Flipping `followUpRequired` `true`→`false` clears the stored note; `false`→`true` requires a note in the same call. **200** with updated entry; ticket `updatedAt` advances.
+
+### DELETE on any action path — forbidden (all roles)
+- **405** with `Allow: GET, POST, PATCH`. Single locked behavior (no 404/405 split).
 
 ## 2. Ticket Workflow (extends Lab 3 §4)
 
@@ -59,8 +67,9 @@ Body: `{ "status", "expectedUpdatedAt" }`.
 
 | Operation | Anonymous | Requester | IT Staff | Administrator |
 |---|---|---|---|---|
-| list actions | 401 | own tickets only (else 404) | allow (any) | allow (any) |
+| list actions (either path) | 401 | own tickets only (else 404) | allow (any) | allow (any) |
 | create/edit actions | 401 | 403 | allow | allow |
+| delete actions | 405 (all roles) | 405 (all roles) | 405 (all roles) | 405 (all roles) |
 | status/assign/priority (+gate, +409) | 401 | 403 | allow | allow |
 | requester dashboard | 401 | allow (own) | 403 | 403 |
 | staff dashboard | 401 | 403 | allow (no userCounts) | allow (+ userCounts) |

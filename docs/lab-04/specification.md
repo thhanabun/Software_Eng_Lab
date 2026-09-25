@@ -38,7 +38,7 @@ In our own words: the desk can receive tickets and staff can talk to requesters,
 Actions Taken:
 - FR-01: Staff/admin create an action on any accessible ticket with description, result, follow-up flag (+ mandatory follow-up note when flagged), attachment notes; date/time and performer recorded automatically from server clock + session.
 - FR-02: Staff/admin edit an existing action (same validation as create); edit carries the ticket's `updatedAt` for optimistic concurrency.
-- FR-03: Requesters list all actions on owned tickets (read-only); requester create/edit attempts → 403.
+- FR-03: Requesters list all actions on owned tickets via `GET /api/tickets/:id/actions` (read-only); requester create/edit attempts → 403. Path does not imply authorization — both the requester path and the staff path enforce the identical role/ownership rules server-side.
 - FR-04: Actions are never deleted (no delete endpoint); history is append-mostly.
 
 Ticket workflow:
@@ -61,11 +61,11 @@ Hardening:
 Actions Taken:
 - BR-01: An action belongs to exactly one ticket (FK, cascade on ticket delete — tickets are never deleted in practice; deactivation only).
 - BR-02: The ticket owner coordinates the ticket, but an action's performer may be any active staff/admin user; the performer is always the authenticated caller (client-supplied performer ignored).
-- BR-03: Action date/time = server timestamp at creation (client-supplied time ignored); displayed in server timezone (UTC) with `+07:00` rendering on the client.
+- BR-03: Action date/time = server timestamp at creation (client-supplied time ignored), stored in UTC; client renders in Asia/Bangkok.
 - BR-04: Description required, trimmed, 1–2000 chars; result required, trimmed, 1–2000 chars; bodies render as plain escaped text.
-- BR-05: `followUpRequired=false` → `followUpNote` must be absent/blank; `followUpRequired=true` → `followUpNote` required, trimmed, 1–1000 chars.
+- BR-05: `followUpRequired=false` → `followUpNote` must be absent/blank; `followUpRequired=true` → `followUpNote` required, trimmed, 1–1000 chars. Flipping an existing action from `true` to `false` via PATCH clears the stored note (set NULL); flipping `false` to `true` requires a note in the same call.
 - BR-06: `attachmentNotes` optional free text ≤500 chars — pointers to existing attachment filenames, never file bytes, never HTML.
-- BR-07: Actions are append-mostly: edit allowed (staff/admin), delete forbidden (no endpoint; direct calls → 404/405).
+- BR-07: Actions are append-mostly: edit allowed (staff/admin), delete forbidden — `DELETE` on any action path returns **405** with `Allow: GET, POST, PATCH` (single locked behavior).
 - BR-08: Requester endpoints for actions: list-own → 200 (full entries); create/edit on any ticket → 403 with no action data leakage.
 
 Ticket status and resolution:
@@ -83,7 +83,7 @@ Ticket status and resolution:
 | CANCELLED | (terminal) |
 
 - BR-10: Resolution gate: `* → RESOLVED` requires `COUNT(actions) ≥ 1` on the ticket; violation → 400 `VALIDATION_ERROR` (`"Ticket must have at least one recorded action before resolving"`), checked after matrix validation.
-- BR-11: Optimistic concurrency: `PATCH/POST` mutating ticket scope accepts `expectedUpdatedAt`; mismatch → 409 `CONFLICT` (`"Ticket was updated by another user; reload and retry"`); missing field → treated as no-check only for action create (documented exception), required for status/assign/priority/action-edit.
+- BR-11: Optimistic concurrency: `PATCH/POST` mutating ticket scope accepts `expectedUpdatedAt`; mismatch → 409 `CONFLICT` (`"Ticket was updated by another user; reload and retry"`); missing field → treated as no-check only for action create (documented exception), required for status/assign/priority/action-edit. Concurrent creates (both without stamp): both rows win in creation order; ticket `updatedAt` advances to the latest write.
 - BR-12: CANCELLED remains terminal and frozen: no status moves, no action/comment/note writes (400); reads stay available.
 - BR-13: Unassign coupling (Lab 3 AD-13 carryover): unassigning an active-work ticket returns it to NEW; resolved/terminal keep status with owner cleared.
 
@@ -108,7 +108,7 @@ Full detail in `ui-spec.md`. New routes: `/dashboard` (role-routed: requester �
 | `Ticket` | + `actions` relation | no column change; `updatedAt` drives optimistic checks (already maintained) |
 | `User`, `TicketComment`, `Attachment`, `Category`, `RelatedSystem` | unchanged | — |
 
-Indexes: `ActionTaken @@index([ticketId, createdAt])`, `@@index([performedById])`. Migration: (1) create table + FKs + indexes; (2) no backfill rows (legacy tickets legitimately have zero actions — BR: zero-action tickets simply cannot RESOLVE until an action is added); (3) rollback = drop table (no prior data touched). Seed: tickets with 0/1/N actions across all 8 statuses × priorities × assigned/unassigned; dashboard demo data includes zero-metric cases (e.g. a requester with no waiting tickets). Decisions: (D1) no action-level status/assignee — actions are evidence records, ticket status remains the single workflow state; (D2) server timestamp over client time — prevents backdating and timezone disputes.
+Indexes: `ActionTaken @@index([ticketId, createdAt])`, `@@index([performedById])`. Migration: (1) create table + FKs + indexes; (2) no backfill rows (legacy tickets legitimately have zero actions — zero-action tickets simply cannot RESOLVE until an action is added); (3) rollback = drop table (no prior data touched). Seed: tickets with 0/1/N actions across all 8 statuses × priorities × assigned/unassigned; seed writes bypass the API layer so actions may exist on CANCELLED/CLOSED tickets (BR-12 freeze applies to API writes only — seeded history stays readable); dashboard demo data includes zero-metric cases (e.g. a requester with no waiting tickets). Decisions: (D1) no action-level status/assignee — actions are evidence records, ticket status remains the single workflow state; (D2) server timestamp over client time — prevents backdating and timezone disputes.
 
 ## 8. API Contract
 
@@ -116,7 +116,8 @@ Detailed contract in `api-spec.md`. Summary:
 
 | Endpoint | Method | Purpose | Success | Key errors |
 |---|---|---|---|---|
-| `/api/staff/tickets/:id/actions` | GET | list actions (staff/admin any; requester own only) | 200 | 401, 403, 404 |
+| `/api/tickets/:id/actions` | GET | list actions on owned ticket (requester path; staff/admin may also use it) | 200 | 401, 403, 404 |
+| `/api/staff/tickets/:id/actions` | GET | list actions (staff/admin any ticket) | 200 | 401, 403, 404 |
 | `/api/staff/tickets/:id/actions` | POST | create action (staff/admin) | 201 | 400, 401, 403, 404, 409 (stale) |
 | `/api/staff/tickets/:id/actions/:actionId` | PATCH | edit action (staff/admin) | 200 | 400, 401, 403, 404, 409 (stale) |
 | `/api/staff/tickets/:id/status` | PATCH | transition + resolution gate + `expectedUpdatedAt` | 200 | 400 (matrix/gate), 403, 404, 409 (stale) |
