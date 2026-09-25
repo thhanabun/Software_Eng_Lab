@@ -448,6 +448,71 @@ export async function postStaffComment(ticketId: number, body: string): Promise<
   return res.json()
 }
 
+export interface ActionTaken {
+  id: number
+  description: string
+  result: string
+  performedBy: { id: number; name: string }
+  followUpRequired: boolean
+  followUpNote: string | null
+  attachmentNotes: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ActionInput {
+  description: string
+  result: string
+  followUpRequired: boolean
+  followUpNote?: string | null
+  attachmentNotes?: string | null
+  expectedUpdatedAt?: string
+}
+
+async function actionResult(res: Response, label: string): Promise<ActionTaken> {
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError(label, res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function listStaffActions(ticketId: number): Promise<{ items: ActionTaken[] }> {
+  const res = await fetch(`/api/staff/tickets/${ticketId}/actions`)
+  if (!res.ok) throw await apiError(res, 'Actions failed')
+  return res.json()
+}
+
+export async function listTicketActions(ticketId: number): Promise<{ items: ActionTaken[] }> {
+  const res = await fetch(`/api/tickets/${ticketId}/actions`)
+  if (!res.ok) throw await apiError(res, 'Actions failed')
+  return res.json()
+}
+
+export async function createAction(ticketId: number, input: ActionInput): Promise<ActionTaken> {
+  const res = await fetch(`/api/staff/tickets/${ticketId}/actions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return actionResult(res, 'Action failed')
+}
+
+export async function updateAction(
+  ticketId: number,
+  actionId: number,
+  input: ActionInput,
+): Promise<ActionTaken> {
+  const res = await fetch(`/api/staff/tickets/${ticketId}/actions/${actionId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return actionResult(res, 'Action update failed')
+}
+
 export async function listStaffUsers(): Promise<StaffUser[]> {
   const res = await fetch('/api/staff/users')
   if (!res.ok) throw await apiError(res, 'User directory failed')
