@@ -244,7 +244,7 @@ textarea.tg-field {
 
 .tg-badge-warning {
   background-color: #fef0c7;
-  color: var(--tg-warning);
+  color: var(--tg-warning, #b54708);
 }
 
 .tg-badge-status-new {
