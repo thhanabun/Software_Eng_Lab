@@ -242,6 +242,11 @@ textarea.tg-field {
   color: var(--tg-error);
 }
 
+.tg-badge-warning {
+  background-color: #fef0c7;
+  color: var(--tg-warning, #b54708);
+}
+
 .tg-badge-status-new {
   background-color: var(--tg-pale);
   color: var(--tg-primary);

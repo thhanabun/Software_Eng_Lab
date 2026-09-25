@@ -19,7 +19,7 @@ Color tokens, badges (8 statuses, priorities, roles, owner), form/table/modal/em
 - States: `loading-state` skeletons, `empty-state` zero cards, `forbidden-panel` for wrong role, `error-state` + Retry on API failure.
 
 ### 3.2 Staff Ticket Detail — Actions Taken section (`data-testid=actions-section`)
-- Placed between ops panel and comments section as a `tg-card`: header + count, list of `tg-comment-card` entries (description, result, performer + timestamp, follow-up badge + note, attachment notes), `actions-empty` when zero.
+- Placed after the notes section and before attachments as a `tg-card` (same position on the requester detail page, after comments and before attachments — symmetric work-record placement on both pages; heading keeps the 🛠️ marker consistent with the 🔒 marker on internal notes): header + count, list of `tg-comment-card` entries (description, result, performer + timestamp, follow-up badge + note, attachment notes), `actions-empty` when zero.
 - Create mode: `Post action` form (description/result textareas with `x/2000` counters, follow-up checkbox gating follow-up note field, attachment-notes input) + save/cancel + busy + field errors + `ops-saved`/`ops-error` feedback.
 - Edit mode: inline per-entry `Edit` → same form prefilled + save/cancel; stale save → 409 banner with reload action.
 - Requester Ticket Detail: same list, read-only (no form, no edit buttons).

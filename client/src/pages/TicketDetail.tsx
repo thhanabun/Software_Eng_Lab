@@ -5,7 +5,9 @@ import {
   ApiRequestError,
   getTicketDetail,
   indicateResolved,
+  listTicketActions,
   postComment,
+  type ActionTaken,
   type TicketComment,
   type TicketDetail as TicketDetailData,
 } from '../api'
@@ -37,6 +39,7 @@ export default function TicketDetail() {
   const [commentBusy, setCommentBusy] = useState(false)
   const [indicateBusy, setIndicateBusy] = useState(false)
   const [indicateError, setIndicateError] = useState<string | null>(null)
+  const [actions, setActions] = useState<ActionTaken[]>([])
 
   const reload = (ticket: number) => {
     setState('loading')
@@ -54,10 +57,11 @@ export default function TicketDetail() {
     if (!Number.isInteger(ticketId) || ticketId <= 0) return
     let cancelled = false
     setState('loading')
-    getTicketDetail(ticketId)
-      .then((next) => {
+    Promise.all([getTicketDetail(ticketId), listTicketActions(ticketId).then((r) => r.items).catch(() => [])])
+      .then(([next, actionItems]) => {
         if (cancelled) return
         setDetail(next)
+        setActions(actionItems)
         setState('ready')
       })
       .catch((error: unknown) => {
@@ -281,6 +285,47 @@ export default function TicketDetail() {
                 </p>
                 <p className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
                   {comment.authorName} · {comment.authorRole} · {formatDate(comment.createdAt)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="tg-card mt-3" aria-labelledby="actions-heading" data-testid="actions-section">
+        <h2 id="actions-heading" className="h6 mb-1">
+          🛠️ Actions Taken
+        </h2>
+        <p className="small mb-3" style={{ color: 'var(--tg-muted)' }}>
+          Work recorded by IT staff on this ticket.
+        </p>
+        {actions.length === 0 ? (
+          <p data-testid="actions-empty" style={{ color: 'var(--tg-muted)' }}>
+            No actions recorded yet.
+          </p>
+        ) : (
+          <ul className="mb-0" style={{ listStyle: 'none', paddingLeft: 0 }}>
+            {actions.map((action) => (
+              <li key={action.id} data-testid={`action-row-${action.id}`} className="tg-comment-card mb-2">
+                <p className="mb-1" style={{ whiteSpace: 'pre-wrap' }}>
+                  {action.description}
+                </p>
+                <p className="mb-1 small">
+                  <span className="tg-label">Result:</span> {action.result}
+                </p>
+                {action.followUpRequired && (
+                  <p className="mb-1" data-testid={`action-followup-${action.id}`}>
+                    <span className="tg-badge tg-badge-warning">Follow-up required</span>{' '}
+                    <span className="small">{action.followUpNote}</span>
+                  </p>
+                )}
+                {action.attachmentNotes && (
+                  <p className="mb-1 small" style={{ color: 'var(--tg-muted)' }}>
+                    Files: {action.attachmentNotes}
+                  </p>
+                )}
+                <p className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
+                  {action.performedBy.name} · {formatDate(action.createdAt)}
                 </p>
               </li>
             ))}

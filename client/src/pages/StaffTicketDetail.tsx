@@ -5,13 +5,17 @@ import {
   ApiRequestError,
   assignTicket,
   claimTicket,
+  createAction,
   getStaffTicketDetail,
+  listStaffActions,
   listStaffUsers,
   postNote,
   postStaffComment,
   setItPriority,
   setTicketStatus,
   staffDownloadAttachment,
+  updateAction,
+  type ActionTaken,
   type StaffTicketDetail as StaffTicketDetailData,
   type StaffUser,
   type TicketComment,
@@ -22,6 +26,10 @@ type LoadState = 'loading' | 'ready' | 'not-found' | 'error'
 
 const PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 const COMMENT_MAX = 2000
+const ACTION_DESC_MAX = 2000
+const ACTION_RESULT_MAX = 2000
+const FOLLOWUP_NOTE_MAX = 1000
+const ATTACH_NOTES_MAX = 500
 
 // Mirrors the server BR-17 matrix (server re-validates regardless).
 const MATRIX: Record<string, string[]> = {
@@ -65,15 +73,33 @@ export default function StaffTicketDetail() {
   const [noteBusy, setNoteBusy] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
 
+  const [actions, setActions] = useState<ActionTaken[]>([])
+  const [actionDesc, setActionDesc] = useState('')
+  const [actionResult, setActionResult] = useState('')
+  const [actionFollowUp, setActionFollowUp] = useState(false)
+  const [actionFollowNote, setActionFollowNote] = useState('')
+  const [actionAttachNotes, setActionAttachNotes] = useState('')
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionBusy, setActionBusy] = useState(false)
+  const [actionConflict, setActionConflict] = useState<string | null>(null)
+  const [editingActionId, setEditingActionId] = useState<number | null>(null)
+
   useEffect(() => {
     if (!Number.isInteger(ticketId) || ticketId <= 0) return
     let cancelled = false
     setState('loading')
-    Promise.all([getStaffTicketDetail(ticketId), listStaffUsers().catch(() => [])])
-      .then(([next, users]) => {
+    Promise.all([
+      getStaffTicketDetail(ticketId),
+      listStaffUsers().catch(() => []),
+      listStaffActions(ticketId)
+        .then((r) => r.items)
+        .catch(() => []),
+    ])
+      .then(([next, users, actionItems]) => {
         if (cancelled) return
         setDetail(next)
         setDirectory(users)
+        setActions(actionItems)
         setState('ready')
       })
       .catch((error: unknown) => {
@@ -186,6 +212,118 @@ export default function StaffTicketDetail() {
     } finally {
       setNoteBusy(false)
     }
+  }
+
+  const resetActionForm = () => {
+    setActionDesc('')
+    setActionResult('')
+    setActionFollowUp(false)
+    setActionFollowNote('')
+    setActionAttachNotes('')
+    setActionError(null)
+    setActionConflict(null)
+    setEditingActionId(null)
+  }
+
+  const validateActionForm = (): string | null => {
+    if (!actionDesc.trim()) return 'Description must not be empty.'
+    if (actionDesc.trim().length > ACTION_DESC_MAX)
+      return `Description must be ${ACTION_DESC_MAX} characters or fewer.`
+    if (!actionResult.trim()) return 'Result must not be empty.'
+    if (actionResult.trim().length > ACTION_RESULT_MAX)
+      return `Result must be ${ACTION_RESULT_MAX} characters or fewer.`
+    if (actionFollowUp && !actionFollowNote.trim()) return 'Follow-up note is required when follow-up is needed.'
+    if (actionFollowNote.trim().length > FOLLOWUP_NOTE_MAX)
+      return `Follow-up note must be ${FOLLOWUP_NOTE_MAX} characters or fewer.`
+    if (!actionFollowUp && actionFollowNote.trim())
+      return 'Follow-up note must be blank when follow-up is not needed.'
+    if (actionAttachNotes.trim().length > ATTACH_NOTES_MAX)
+      return `Attachment notes must be ${ATTACH_NOTES_MAX} characters or fewer.`
+    return null
+  }
+
+  const actionPayload = () => ({
+    description: actionDesc.trim(),
+    result: actionResult.trim(),
+    followUpRequired: actionFollowUp,
+    followUpNote: actionFollowUp ? actionFollowNote.trim() : null,
+    attachmentNotes: actionAttachNotes.trim() || null,
+  })
+
+  const handleActionSave = async () => {
+    const problem = validateActionForm()
+    if (problem) {
+      setActionError(problem)
+      return
+    }
+    setActionBusy(true)
+    setActionError(null)
+    setActionConflict(null)
+    try {
+      const created = await createAction(ticketId, actionPayload())
+      setActions((prev) => [created, ...prev])
+      resetActionForm()
+      await refresh()
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 409) {
+        setActionConflict('Ticket was updated by another user. Reload to get the latest state.')
+      } else {
+        setActionError(error instanceof Error ? error.message : 'Unable to save action.')
+      }
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  const handleActionEdit = (action: ActionTaken) => {
+    setEditingActionId(action.id)
+    setActionDesc(action.description)
+    setActionResult(action.result)
+    setActionFollowUp(action.followUpRequired)
+    setActionFollowNote(action.followUpNote ?? '')
+    setActionAttachNotes(action.attachmentNotes ?? '')
+    setActionError(null)
+    setActionConflict(null)
+  }
+
+  const handleActionUpdate = async () => {
+    if (editingActionId === null || !detail) return
+    const problem = validateActionForm()
+    if (problem) {
+      setActionError(problem)
+      return
+    }
+    setActionBusy(true)
+    setActionError(null)
+    setActionConflict(null)
+    try {
+      const updated = await updateAction(ticketId, editingActionId, {
+        ...actionPayload(),
+        expectedUpdatedAt: detail.updatedAt,
+      })
+      setActions((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
+      resetActionForm()
+      await refresh()
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 409) {
+        setActionConflict('Ticket was updated by another user. Reload to get the latest state.')
+      } else {
+        setActionError(error instanceof Error ? error.message : 'Unable to save action.')
+      }
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  const handleActionConflictReload = async () => {
+    setActionConflict(null)
+    const [nextActions] = await Promise.all([
+      listStaffActions(ticketId)
+        .then((r) => r.items)
+        .catch(() => null),
+      refresh(),
+    ])
+    if (nextActions !== null) setActions(nextActions)
   }
 
   const handleDownload = async (attachmentId: number, fileName: string) => {
@@ -538,6 +676,177 @@ export default function StaffTicketDetail() {
                 <p className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
                   {note.authorName} · {note.authorRole} · {formatDate(note.createdAt)}
                 </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="tg-card mt-3" aria-labelledby="actions-heading" data-testid="actions-section">
+        <h2 id="actions-heading" className="h6 mb-1">
+          🛠️ Actions Taken
+        </h2>
+        <p className="small mb-3" style={{ color: 'var(--tg-muted)' }}>
+          Work records for this ticket. The performer and timestamp are recorded automatically.
+        </p>
+        <div className="mb-3">
+          <label className="tg-label" htmlFor="action-description">
+            Action description
+          </label>
+          <textarea
+            id="action-description"
+            className="tg-field w-100"
+            rows={3}
+            value={actionDesc}
+            onChange={(event) => setActionDesc(event.target.value)}
+            aria-describedby="action-description-counter"
+          />
+          <p id="action-description-counter" className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
+            {actionDesc.trim().length}/{ACTION_DESC_MAX}
+          </p>
+          <label className="tg-label mt-2" htmlFor="action-result">
+            Result
+          </label>
+          <textarea
+            id="action-result"
+            className="tg-field w-100"
+            rows={2}
+            value={actionResult}
+            onChange={(event) => setActionResult(event.target.value)}
+            aria-describedby="action-result-counter"
+          />
+          <p id="action-result-counter" className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
+            {actionResult.trim().length}/{ACTION_RESULT_MAX}
+          </p>
+          <div className="form-check mt-2">
+            <input
+              id="action-followup"
+              className="form-check-input"
+              type="checkbox"
+              checked={actionFollowUp}
+              onChange={(event) => setActionFollowUp(event.target.checked)}
+            />
+            <label className="form-check-label" htmlFor="action-followup">
+              Follow-up required?
+            </label>
+          </div>
+          {actionFollowUp && (
+            <div className="mt-2">
+              <label className="tg-label" htmlFor="action-followup-note">
+                Follow-up note
+              </label>
+              <textarea
+                id="action-followup-note"
+                className="tg-field w-100"
+                rows={2}
+                value={actionFollowNote}
+                onChange={(event) => setActionFollowNote(event.target.value)}
+                aria-describedby="action-followup-note-counter"
+              />
+              <p id="action-followup-note-counter" className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
+                {actionFollowNote.trim().length}/{FOLLOWUP_NOTE_MAX}
+              </p>
+            </div>
+          )}
+          <label className="tg-label mt-2" htmlFor="action-attachment-notes">
+            Attachment notes
+          </label>
+          <input
+            id="action-attachment-notes"
+            className="tg-field w-100"
+            type="text"
+            placeholder="Which file to look at (optional)"
+            value={actionAttachNotes}
+            onChange={(event) => setActionAttachNotes(event.target.value)}
+          />
+          {actionError && (
+            <p className="tg-field-error" role="alert" data-testid="action-error">
+              {actionError}
+            </p>
+          )}
+          {actionConflict && (
+            <div className="tg-error-banner mt-2" role="alert" data-testid="action-conflict">
+              {actionConflict}{' '}
+              <button
+                type="button"
+                className="tg-btn tg-btn-secondary mt-2"
+                onClick={() => void handleActionConflictReload()}
+              >
+                Reload ticket
+              </button>
+            </div>
+          )}
+          <div className="d-flex gap-2 mt-2">
+            {editingActionId === null ? (
+              <button
+                type="button"
+                className="tg-btn tg-btn-primary"
+                disabled={actionBusy}
+                data-testid="action-save"
+                onClick={() => void handleActionSave()}
+              >
+                {actionBusy ? 'Saving…' : 'Post action'}
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="tg-btn tg-btn-primary"
+                  disabled={actionBusy}
+                  data-testid="action-save"
+                  onClick={() => void handleActionUpdate()}
+                >
+                  {actionBusy ? 'Saving…' : 'Save changes'}
+                </button>
+                <button
+                  type="button"
+                  className="tg-btn tg-btn-tertiary"
+                  disabled={actionBusy}
+                  onClick={resetActionForm}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        {actions.length === 0 ? (
+          <p data-testid="actions-empty" style={{ color: 'var(--tg-muted)' }}>
+            No actions recorded yet.
+          </p>
+        ) : (
+          <ul className="mb-0" style={{ listStyle: 'none', paddingLeft: 0 }}>
+            {actions.map((action) => (
+              <li key={action.id} data-testid={`action-row-${action.id}`} className="tg-comment-card mb-2">
+                <p className="mb-1" style={{ whiteSpace: 'pre-wrap' }}>
+                  {action.description}
+                </p>
+                <p className="mb-1 small">
+                  <span className="tg-label">Result:</span> {action.result}
+                </p>
+                {action.followUpRequired && (
+                  <p className="mb-1" data-testid={`action-followup-${action.id}`}>
+                    <span className="tg-badge tg-badge-warning">Follow-up required</span>{' '}
+                    <span className="small">{action.followUpNote}</span>
+                  </p>
+                )}
+                {action.attachmentNotes && (
+                  <p className="mb-1 small" style={{ color: 'var(--tg-muted)' }}>
+                    Files: {action.attachmentNotes}
+                  </p>
+                )}
+                <p className="mb-1 small" style={{ color: 'var(--tg-muted)' }}>
+                  {action.performedBy.name} · {formatDate(action.createdAt)}
+                </p>
+                <button
+                  type="button"
+                  className="tg-btn tg-btn-tertiary"
+                  aria-label={`Edit action ${action.id}`}
+                  data-testid={`action-edit-${action.id}`}
+                  onClick={() => handleActionEdit(action)}
+                >
+                  Edit
+                </button>
               </li>
             ))}
           </ul>
