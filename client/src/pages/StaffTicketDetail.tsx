@@ -221,6 +221,7 @@ export default function StaffTicketDetail() {
     setActionFollowNote('')
     setActionAttachNotes('')
     setActionError(null)
+    setActionConflict(null)
     setEditingActionId(null)
   }
 
@@ -316,7 +317,13 @@ export default function StaffTicketDetail() {
 
   const handleActionConflictReload = async () => {
     setActionConflict(null)
-    await refresh()
+    const [nextActions] = await Promise.all([
+      listStaffActions(ticketId)
+        .then((r) => r.items)
+        .catch(() => null),
+      refresh(),
+    ])
+    if (nextActions !== null) setActions(nextActions)
   }
 
   const handleDownload = async (attachmentId: number, fileName: string) => {
@@ -692,8 +699,9 @@ export default function StaffTicketDetail() {
             rows={3}
             value={actionDesc}
             onChange={(event) => setActionDesc(event.target.value)}
+            aria-describedby="action-description-counter"
           />
-          <p className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
+          <p id="action-description-counter" className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
             {actionDesc.trim().length}/{ACTION_DESC_MAX}
           </p>
           <label className="tg-label mt-2" htmlFor="action-result">
@@ -705,8 +713,9 @@ export default function StaffTicketDetail() {
             rows={2}
             value={actionResult}
             onChange={(event) => setActionResult(event.target.value)}
+            aria-describedby="action-result-counter"
           />
-          <p className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
+          <p id="action-result-counter" className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
             {actionResult.trim().length}/{ACTION_RESULT_MAX}
           </p>
           <div className="form-check mt-2">
@@ -732,8 +741,9 @@ export default function StaffTicketDetail() {
                 rows={2}
                 value={actionFollowNote}
                 onChange={(event) => setActionFollowNote(event.target.value)}
+                aria-describedby="action-followup-note-counter"
               />
-              <p className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
+              <p id="action-followup-note-counter" className="mb-0 small" style={{ color: 'var(--tg-muted)' }}>
                 {actionFollowNote.trim().length}/{FOLLOWUP_NOTE_MAX}
               </p>
             </div>

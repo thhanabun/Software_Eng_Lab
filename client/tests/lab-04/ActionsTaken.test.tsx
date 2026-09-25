@@ -268,4 +268,20 @@ describe('Actions Taken (DUI-01)', () => {
     renderRequester()
     expect(await screen.findByTestId('actions-empty')).toBeInTheDocument()
   })
+
+  it('STYLE-03: follow-up badge uses the warning token; actions section is distinct from comments', async () => {
+    stubStaff()
+    renderStaff()
+    await screen.findByTestId('actions-section')
+
+    const badge = screen.getByTestId('action-followup-31').querySelector('.tg-badge-warning')
+    expect(badge).toBeInTheDocument()
+    expect(badge).toHaveTextContent(/follow-up required/i)
+
+    const actionsSection = screen.getByTestId('actions-section')
+    const commentsSection = screen.getByTestId('comments-section')
+    expect(actionsSection).not.toBe(commentsSection)
+    expect(actionsSection.querySelector('h2')).toHaveTextContent(/actions taken/i)
+    expect(commentsSection.querySelector('h2')).toHaveTextContent(/public comments/i)
+  })
 })
