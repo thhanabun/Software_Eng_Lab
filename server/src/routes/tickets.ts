@@ -395,6 +395,48 @@ ticketsRouter.post("/:id/comments", ...requesterWrite, async (req, res) => {
   }
 });
 
+// GET /api/tickets/:id/actions — list (owned tickets for requesters,
+// any ticket for staff/admin; read-only for requesters).
+// Path does not imply authorization: identical role/ownership rules as the
+// staff path, enforced here by branching on role after auth.
+ticketsRouter.get("/:id/actions", requireAuth, requireFreshPassword, async (req, res) => {
+  try {
+    const id = parsePositiveIntParam(req.params.id);
+    if (id === null) {
+      notFound(res, "Ticket not found");
+      return;
+    }
+    const ticket =
+      req.user!.role === "REQUESTER"
+        ? await prisma.ticket.findFirst({ where: { id, requesterId: req.user!.id } })
+        : await prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) {
+      notFound(res, "Ticket not found");
+      return;
+    }
+    const rows = await prisma.actionTaken.findMany({
+      where: { ticketId: ticket.id },
+      include: { performedBy: true },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json({
+      items: rows.map((a) => ({
+        id: a.id,
+        description: a.description,
+        result: a.result,
+        performedBy: { id: a.performedBy.id, name: a.performedBy.name },
+        followUpRequired: a.followUpRequired,
+        followUpNote: a.followUpNote,
+        attachmentNotes: a.attachmentNotes,
+        createdAt: a.createdAt.toISOString(),
+        updatedAt: a.updatedAt.toISOString(),
+      })),
+    });
+  } catch {
+    internalError(res, "Unable to load actions");
+  }
+});
+
 ticketsRouter.post("/:id/resolved-indication", ...requesterWrite, async (req, res) => {
   try {
     const ticket = await ownedTicket(req, res);

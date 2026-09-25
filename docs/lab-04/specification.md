@@ -65,7 +65,7 @@ Actions Taken:
 - BR-04: Description required, trimmed, 1–2000 chars; result required, trimmed, 1–2000 chars; bodies render as plain escaped text.
 - BR-05: `followUpRequired=false` → `followUpNote` must be absent/blank; `followUpRequired=true` → `followUpNote` required, trimmed, 1–1000 chars. Flipping an existing action from `true` to `false` via PATCH clears the stored note (set NULL); flipping `false` to `true` requires a note in the same call.
 - BR-06: `attachmentNotes` optional free text ≤500 chars — pointers to existing attachment filenames, never file bytes, never HTML.
-- BR-07: Actions are append-mostly: edit allowed (staff/admin), delete forbidden — `DELETE` on any action path returns **405** with `Allow: GET, POST, PATCH` (single locked behavior).
+- BR-07: Actions are append-mostly: edit allowed (staff/admin), delete forbidden — `DELETE` on any action path returns **405** `METHOD_NOT_ALLOWED` with `Allow: GET, POST, PATCH` (single locked behavior; requesters are rejected by the staff route guard with 403 before reaching the handler).
 - BR-08: Requester endpoints for actions: list-own → 200 (full entries); create/edit on any ticket → 403 with no action data leakage.
 
 Ticket status and resolution:

@@ -21,8 +21,8 @@ Body: `{ "description", "result", "followUpRequired": bool, "followUpNote"?, "at
 Body subset of create fields + required `expectedUpdatedAt` (ticket-level stamp).
 - Stale (`expectedUpdatedAt` ≠ current ticket `updatedAt`) → **409** `CONFLICT`. Unknown action → 404. Same validation as create. Flipping `followUpRequired` `true`→`false` clears the stored note; `false`→`true` requires a note in the same call. **200** with updated entry; ticket `updatedAt` advances.
 
-### DELETE on any action path — forbidden (all roles)
-- **405** with `Allow: GET, POST, PATCH`. Single locked behavior (no 404/405 split).
+### DELETE on any action path — forbidden
+- Authenticated staff/admin reach the handler: **405** `METHOD_NOT_ALLOWED` with `Allow: GET, POST, PATCH`. Single locked behavior (no 404/405 split). Requesters never reach it — the staff route guard rejects them with 403 first (see matrix).
 
 ## 2. Ticket Workflow (extends Lab 3 §4)
 
@@ -69,7 +69,7 @@ Body: `{ "status", "expectedUpdatedAt" }`.
 |---|---|---|---|---|
 | list actions (either path) | 401 | own tickets only (else 404) | allow (any) | allow (any) |
 | create/edit actions | 401 | 403 | allow | allow |
-| delete actions | 405 (all roles) | 405 (all roles) | 405 (all roles) | 405 (all roles) |
+| delete actions (staff path) | 401 | 403 (staff route guard rejects before the 405 handler) | 405 + Allow | 405 + Allow |
 | status/assign/priority (+gate, +409) | 401 | 403 | allow | allow |
 | requester dashboard | 401 | allow (own) | 403 | 403 |
 | staff dashboard | 401 | 403 | allow (no userCounts) | allow (+ userCounts) |
