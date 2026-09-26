@@ -83,7 +83,7 @@ Ticket status and resolution:
 | CANCELLED | (terminal) |
 
 - BR-10: Resolution gate: `* → RESOLVED` requires `COUNT(actions) ≥ 1` on the ticket; violation → 400 `VALIDATION_ERROR` (`"Ticket must have at least one recorded action before resolving"`), checked after matrix validation.
-- BR-11: Optimistic concurrency: `PATCH/POST` mutating ticket scope accepts `expectedUpdatedAt`; mismatch → 409 `CONFLICT` (`"Ticket was updated by another user; reload and retry"`); missing field → treated as no-check only for action create (documented exception), required for status/assign/priority/action-edit. Concurrent creates (both without stamp): both rows win in creation order; ticket `updatedAt` advances to the latest write.
+- BR-11: Optimistic concurrency: `PATCH/POST` mutating ticket scope accepts `expectedUpdatedAt`; mismatch → 409 `CONFLICT` (`"Ticket was updated by another user; reload and retry"`); missing field → treated as no-check on action create, status, assign, and priority (Lab 3 callers predate stamps and must keep passing unmodified per BR-18; the Lab 4 UI always sends it, so the protection is effective in practice), required on action-edit. Concurrent creates (both without stamp): both rows win in creation order; ticket `updatedAt` advances to the latest write.
 - BR-12: CANCELLED remains terminal and frozen: no status moves, no action/comment/note writes (400); reads stay available.
 - BR-13: Unassign coupling (Lab 3 AD-13 carryover): unassigning an active-work ticket returns it to NEW; resolved/terminal keep status with owner cleared.
 

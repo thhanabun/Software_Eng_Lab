@@ -148,6 +148,13 @@ describe("priority + status (STOP-03, STOP-04, AC-16, AC-17)", () => {
       expect((await hop("IN_PROGRESS")).status).toBe(400);
       expect((await hop("OPEN")).status).toBe(200);
       expect((await hop("IN_PROGRESS")).status).toBe(200);
+      // Lab 4 resolution gate (BR-10): RESOLVED needs >=1 action.
+      const gated = await staff.post(`/api/staff/tickets/${id}/actions`).send({
+        description: "Walk-through action.",
+        result: "Walk-through result.",
+        followUpRequired: false,
+      });
+      expect(gated.status).toBe(201);
       expect((await hop("RESOLVED")).status).toBe(200);
       expect((await hop("IN_PROGRESS")).status).toBe(400);
       expect((await hop("CLOSED")).status).toBe(200);

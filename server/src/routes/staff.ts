@@ -144,6 +144,7 @@ staffRouter.post("/tickets/:id/assign", ...staffOnly, async (req, res) => {
       notFound(res, "Ticket not found");
       return;
     }
+    if (!checkFreshTicket(ticket.updatedAt, (req.body ?? {}).expectedUpdatedAt, res, { required: false })) return;
     if (raw === ticket.ownerId) {
       res.status(200).json({
         owner: ticket.owner ? { id: ticket.owner.id, name: ticket.owner.name } : null,
@@ -175,6 +176,7 @@ staffRouter.post("/tickets/:id/assign", ...staffOnly, async (req, res) => {
     res.status(200).json({
       owner: updated.owner ? { id: updated.owner.id, name: updated.owner.name } : null,
       currentStatus: updated.currentStatus,
+      updatedAt: updated.updatedAt.toISOString(),
     });
   } catch {
     internalError(res, "Unable to assign ticket");
@@ -199,11 +201,12 @@ staffRouter.patch("/tickets/:id/priority", ...staffOnly, async (req, res) => {
       notFound(res, "Ticket not found");
       return;
     }
+    if (!checkFreshTicket(ticket.updatedAt, (req.body ?? {}).expectedUpdatedAt, res, { required: false })) return;
     const updated = await prisma.ticket.update({
       where: { id },
       data: { itPriority: itPriority as RequestedPriority },
     });
-    res.status(200).json({ id: updated.id, itPriority: updated.itPriority });
+    res.status(200).json({ id: updated.id, itPriority: updated.itPriority, updatedAt: updated.updatedAt.toISOString() });
   } catch {
     internalError(res, "Unable to update priority");
   }
@@ -237,8 +240,24 @@ staffRouter.patch("/tickets/:id/status", ...staffOnly, async (req, res) => {
       });
       return;
     }
+    // Resolution gate (BR-10): RESOLVED requires >=1 recorded action.
+    if (status === "RESOLVED") {
+      const actionCount = await prisma.actionTaken.count({ where: { ticketId: id } });
+      if (actionCount < 1) {
+        res.status(400).json({
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Ticket must have at least one recorded action before resolving",
+            details: [{ field: "status", message: "Record an action before resolving this ticket" }],
+          },
+        });
+        return;
+      }
+    }
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    if (!checkFreshTicket(ticket.updatedAt, body.expectedUpdatedAt, res, { required: false })) return;
     const updated = await prisma.ticket.update({ where: { id }, data: { currentStatus: status } });
-    res.status(200).json({ id: updated.id, currentStatus: updated.currentStatus });
+    res.status(200).json({ id: updated.id, currentStatus: updated.currentStatus, updatedAt: updated.updatedAt.toISOString() });
   } catch {
     internalError(res, "Unable to update status");
   }
