@@ -27,7 +27,7 @@ Body subset of create fields + required `expectedUpdatedAt` (ticket-level stamp)
 ## 2. Ticket Workflow (extends Lab 3 §4)
 
 ### PATCH /api/staff/tickets/:id/status — transition + gate + concurrency
-Body: `{ "status", "expectedUpdatedAt" }`.
+Body: `{ "status", "expectedUpdatedAt"? }` (stamp checked when present, skipped when absent — Lab 3 backward compat; UI always sends it).
 - Matrix check (BR-09) → off-matrix **400**. Gate check (`* → RESOLVED` with zero actions) → **400** `VALIDATION_ERROR` `"Ticket must have at least one recorded action before resolving"`. Stale stamp → **409**. Requester → 403. **200** with updated `{ currentStatus, updatedAt }`.
 
 ### POST /api/staff/tickets/:id/assign, PATCH /:id/priority

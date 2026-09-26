@@ -116,7 +116,7 @@ export default function StaffTicketDetail() {
     setDetail(next)
   }
 
-  const runOp = async (label: string, fn: () => Promise<Partial<StaffTicketDetailData> | { owner: { id: number; name: string } | null; currentStatus: string }>) => {
+  const runOp = async (label: string, fn: () => Promise<Partial<StaffTicketDetailData> | { owner: { id: number; name: string } | null; currentStatus: string; updatedAt?: string }>) => {
     setOpsBusy(true)
     setOpsError(null)
     setOpsSaved(null)
@@ -125,12 +125,19 @@ export default function StaffTicketDetail() {
       setDetail((prev) => (prev ? { ...prev, ...patch } : prev))
       setOpsSaved(`${label} saved.`)
     } catch (error) {
-      setOpsError(error instanceof Error ? error.message : `${label} failed.`)
+      if (error instanceof ApiRequestError && error.status === 409) {
+        await refresh()
+        setOpsError('Ticket was updated by another user. Reloaded the latest state — please retry.')
+      } else {
+        setOpsError(error instanceof Error ? error.message : `${label} failed.`)
+      }
     } finally {
       setOpsBusy(false)
       setConfirmAction(null)
     }
   }
+
+  const stamp = () => detail?.updatedAt
 
   const handleClaim = () => void runOp('Ownership', () => claimTicket(ticketId))
 
@@ -141,22 +148,22 @@ export default function StaffTicketDetail() {
       return
     }
     const ownerId = Number(assignId)
-    void runOp('Ownership', () => assignTicket(ticketId, ownerId))
+    void runOp('Ownership', () => assignTicket(ticketId, ownerId, stamp()))
   }
 
   const handleConfirm = () => {
     if (!confirmAction) return
     if (confirmAction.kind === 'unassign') {
-      void runOp('Ownership', () => assignTicket(ticketId, null))
+      void runOp('Ownership', () => assignTicket(ticketId, null, stamp()))
     } else {
       const value = confirmAction.value
-      void runOp('Status', () => setTicketStatus(ticketId, value))
+      void runOp('Status', () => setTicketStatus(ticketId, value, stamp()))
     }
   }
 
   const handlePriority = (value: string) => {
     if (!value) return
-    void runOp('IT Priority', () => setItPriority(ticketId, value))
+    void runOp('IT Priority', () => setItPriority(ticketId, value, stamp()))
   }
 
   const handleStatus = (value: string) => {
@@ -165,7 +172,7 @@ export default function StaffTicketDetail() {
       setConfirmAction({ kind: 'status', value })
       return
     }
-    void runOp('Status', () => setTicketStatus(ticketId, value))
+    void runOp('Status', () => setTicketStatus(ticketId, value, stamp()))
   }
 
   const handleComment = async () => {
