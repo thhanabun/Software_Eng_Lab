@@ -122,6 +122,23 @@ describe("stale stamps (WF-04, BR-11)", () => {
     const badStamp = await staff.post(`/api/staff/tickets/${id}/assign`).send({ ownerId: null, expectedUpdatedAt: "nope" });
     expect(badStamp.status).toBe(400);
   });
+
+  it("stale claim loses the race with 409; fresh claim wins", async () => {
+    const id = await makeTicket("wf-req@example.test", "NEW");
+    const stamp = (await prisma.ticket.findUniqueOrThrow({ where: { id } })).updatedAt.toISOString();
+
+    // Simulate a rival claim landing first (bumps updatedAt).
+    await prisma.ticket.update({ where: { id }, data: { updatedAt: new Date(Date.now() + 5000) } });
+
+    const stale = await staff.post(`/api/staff/tickets/${id}/claim`).send({ expectedUpdatedAt: stamp });
+    expect(stale.status).toBe(409);
+
+    const freshStamp = (await prisma.ticket.findUniqueOrThrow({ where: { id } })).updatedAt.toISOString();
+    const win = await staff.post(`/api/staff/tickets/${id}/claim`).send({ expectedUpdatedAt: freshStamp });
+    expect(win.status).toBe(200);
+    expect(win.body.currentStatus).toBe("OPEN");
+    expect(win.body.updatedAt).toBeDefined();
+  });
 });
 
 describe("migration preserves data (MIG-03)", () => {

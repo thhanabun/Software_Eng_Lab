@@ -139,7 +139,7 @@ export default function StaffTicketDetail() {
 
   const stamp = () => detail?.updatedAt
 
-  const handleClaim = () => void runOp('Ownership', () => claimTicket(ticketId))
+  const handleClaim = () => void runOp('Ownership', () => claimTicket(ticketId, stamp()))
 
   const handleAssign = () => {
     if (assignId === '') return

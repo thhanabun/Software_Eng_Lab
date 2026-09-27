@@ -105,8 +105,9 @@ staffRouter.post("/tickets/:id/claim", ...staffOnly, async (req, res) => {
       notFound(res, "Ticket not found");
       return;
     }
+    if (!checkFreshTicket(ticket.updatedAt, (req.body ?? {}).expectedUpdatedAt, res, { required: false })) return;
     if (ticket.ownerId === req.user!.id) {
-      res.status(200).json({ owner: { id: ticket.owner!.id, name: ticket.owner!.name }, currentStatus: ticket.currentStatus });
+      res.status(200).json({ owner: { id: ticket.owner!.id, name: ticket.owner!.name }, currentStatus: ticket.currentStatus, updatedAt: ticket.updatedAt.toISOString() });
       return;
     }
     if (ticket.ownerId !== null) {
@@ -120,7 +121,7 @@ staffRouter.post("/tickets/:id/claim", ...staffOnly, async (req, res) => {
       data: { ownerId: req.user!.id, currentStatus: ticket.currentStatus === "NEW" ? "OPEN" : ticket.currentStatus },
       include: { owner: true },
     });
-    res.status(200).json({ owner: { id: updated.owner!.id, name: updated.owner!.name }, currentStatus: updated.currentStatus });
+    res.status(200).json({ owner: { id: updated.owner!.id, name: updated.owner!.name }, currentStatus: updated.currentStatus, updatedAt: updated.updatedAt.toISOString() });
   } catch {
     internalError(res, "Unable to claim ticket");
   }
@@ -149,6 +150,7 @@ staffRouter.post("/tickets/:id/assign", ...staffOnly, async (req, res) => {
       res.status(200).json({
         owner: ticket.owner ? { id: ticket.owner.id, name: ticket.owner.name } : null,
         currentStatus: ticket.currentStatus,
+        updatedAt: ticket.updatedAt.toISOString(),
       });
       return;
     }

@@ -367,8 +367,13 @@ export async function getStaffTicketDetail(id: number): Promise<StaffTicketDetai
 
 export async function claimTicket(
   id: number,
-): Promise<{ owner: { id: number; name: string } | null; currentStatus: string }> {
-  const res = await fetch(`/api/staff/tickets/${id}/claim`, { method: 'POST' })
+  expectedUpdatedAt?: string,
+): Promise<{ owner: { id: number; name: string } | null; currentStatus: string; updatedAt?: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/claim`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(expectedUpdatedAt ? { expectedUpdatedAt } : {}),
+  })
   if (!res.ok) throw await apiError(res, 'Claim failed')
   return res.json()
 }

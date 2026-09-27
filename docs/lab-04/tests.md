@@ -29,7 +29,7 @@ Conventions: API tests seed in `beforeAll`/`beforeEach`; bcrypt cost 4 via env; 
 | WF-02 | API | AC-04 | Resolution gate (with action) | Same edge → 200 | `server/tests/lab-04/ticket-workflow.api.test.ts` | TBD |
 | WF-03 | API | AC-05 | Off-matrix + requester attempts | 400 / 403, status unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | TBD |
 | WF-04 | API | AC-06 | Stale `expectedUpdatedAt` | 409 on status/assign/priority/action-edit; nothing changed | `server/tests/lab-04/ticket-workflow.api.test.ts` | TBD |
-| WF-05 | Unit | BR-09/10 | Matrix + gate helpers | Legal/illegal + gate cases unit-covered | `server/src/lib/*.test.ts` | TBD |
+| WF-05 | API | BR-09/10 | Matrix + gate via API (helpers live inline in route) | Legal/illegal + gate cases covered by WF-01..03 (no separate unit helper exists) | `server/tests/lab-04/ticket-workflow.api.test.ts` | TBD |
 | DREQ-01 | API | AC-07 | Requester dashboard isolation | Owned metrics only; cross-requester data never leaks | `server/tests/lab-04/requester-dashboard.api.test.ts` | TBD |
 | DREQ-02 | API | AC-09 | Requester dashboard empty state | Zeros + `[]`, no 404 | `server/tests/lab-04/requester-dashboard.api.test.ts` | TBD |
 | DSTF-01 | API | AC-08 | Staff dashboard counts vs DB | Metrics match direct queries; drill-down links present | `server/tests/lab-04/staff-dashboard.api.test.ts` | TBD |
@@ -42,7 +42,7 @@ Conventions: API tests seed in `beforeAll`/`beforeEach`; bcrypt cost 4 via env; 
 | E2E-07 | E2E | AC-05/06 | ticket-resolution: matrix + stale handling | Permitted transitions + 409 reload path | `e2e/lab-04/ticket-resolution.spec.ts` | TBD |
 | E2E-08 | E2E | AC-07/08 | dashboards: metrics + drill-down | Cards match; drill-down lands on filtered lists | `e2e/lab-04/dashboards.spec.ts` | TBD |
 | E2E-09 | Responsive | AC-11 | Screenshots (3 screen groups × 3 viewports) + checklist | Saved to `artifacts/lab-04/screenshots/`; ui-spec §7 passes | `e2e/lab-04/*.spec.ts` | TBD |
-| RREG-02 | Regression | AC-10 | Labs 1–3 suites green | All prior server/client suites pass unmodified | existing suites | TBD |
+| RREG-02 | Regression | AC-10 | Labs 1–3 suites green | All prior server/client suites pass; one deliberate exception: Lab 3 walk test adds an action before the RESOLVED hop (Lab 4 gate changes the contract) | existing suites | TBD |
 | MIG-03 | API | AC-10 | Lab 4 migration preserves data | All prior users/tickets/comments/attachments intact; legacy tickets have zero actions; rollback documented | `server/tests/lab-04/ticket-workflow.api.test.ts` | TBD |
 | PERF-01 | API smoke | AC-08 | Dashboard latency smoke | Requester + staff dashboards respond < 2s on seeded data with bounded payloads | `server/tests/lab-04/staff-dashboard.api.test.ts` | TBD |
 
