@@ -55,6 +55,19 @@ describe("staff dashboard counts vs DB (DSTF-01)", () => {
       expect(t.drillDown.base).toBe(`/staff/tickets/${t.id}`);
     }
     expect(res.body.userCounts).toBeUndefined();
+
+    // ownedByMe cross-checked against a direct query (caller-dependent metric).
+    const me = await prisma.user.findUniqueOrThrow({ where: { email: "dstf-staff@example.test" } });
+    const owned = await prisma.ticket.count({ where: { ownerId: me.id } });
+    expect(res.body.metrics.ownedByMe).toBe(owned);
+
+    // Per-key drill-downs for every status and priority (BR-16).
+    for (const s of ["NEW", "OPEN", "IN_PROGRESS", "WAITING_FOR_REQUESTER", "RESOLVED", "CLOSED", "REOPENED", "CANCELLED"]) {
+      expect(res.body.metrics.drillDown.byStatus[s]).toMatchObject({ base: "/staff/tickets", query: `?status=${s}` });
+    }
+    for (const p of ["LOW", "MEDIUM", "HIGH", "URGENT"]) {
+      expect(res.body.metrics.drillDown.byItPriority[p]).toMatchObject({ base: "/staff/tickets", query: `?itPriority=${p}` });
+    }
   });
 });
 
@@ -67,6 +80,19 @@ describe("staff dashboard roles + empty (DSTF-02)", () => {
     expect(res.status).toBe(200);
     expect(res.body.userCounts).toMatchObject({ requesters: expect.any(Number), staff: expect.any(Number) });
     expect(res.body.userCounts.inactive).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("role-before-freshness precedence", () => {
+  it("must-change session on the wrong dashboard gets 403 (role), not PASSWORD_CHANGE_REQUIRED", async () => {
+    await prisma.user.update({ where: { email: "dstf-req@example.test" }, data: { mustChangePassword: true } });
+    try {
+      const res = await requester.get("/api/dashboard/staff");
+      expect(res.status).toBe(403);
+      expect(res.body.error.code).toBe("FORBIDDEN");
+    } finally {
+      await prisma.user.update({ where: { email: "dstf-req@example.test" }, data: { mustChangePassword: false } });
+    }
   });
 });
 

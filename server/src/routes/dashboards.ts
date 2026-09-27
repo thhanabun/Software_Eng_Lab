@@ -66,7 +66,16 @@ dashboardRouter.get("/requester", ...requesterOnly, async (req, res) => {
       }),
     ]);
     res.json({
-      metrics: { open, waitingForRequester: waiting, resolved30d },
+      metrics: {
+        open,
+        waitingForRequester: waiting,
+        resolved30d,
+        drillDown: {
+          open: { base: "/tickets", query: "" },
+          waitingForRequester: { base: "/tickets", query: "?status=WAITING_FOR_REQUESTER" },
+          resolved30d: { base: "/tickets", query: "?status=RESOLVED" },
+        },
+      },
       recentUpdated: serializeRows(recentUpdated, "/tickets"),
       recentResolved: serializeRows(recentResolved, "/tickets"),
       attention: attention.map((t) => ({
@@ -108,6 +117,12 @@ dashboardRouter.get("/staff", ...staffOnly, async (req, res) => {
     const byItPriority: Record<string, number> = Object.fromEntries(PRIORITIES.map((p) => [p, 0]));
     for (const row of byPriorityRows) byItPriority[row.itPriority] = row._count.itPriority;
 
+    const statusLinks: Record<string, { base: string; query: string }> = Object.fromEntries(
+      ALL_STATUSES.map((s) => [s, { base: "/staff/tickets", query: `?status=${s}` }]),
+    );
+    const priorityLinks: Record<string, { base: string; query: string }> = Object.fromEntries(
+      PRIORITIES.map((p) => [p, { base: "/staff/tickets", query: `?itPriority=${p}` }]),
+    );
     const body: Record<string, unknown> = {
       metrics: {
         unassigned,
@@ -117,6 +132,8 @@ dashboardRouter.get("/staff", ...staffOnly, async (req, res) => {
         drillDown: {
           unassigned: { base: "/staff/tickets", query: "?ownerId=unassigned" },
           ownedByMe: { base: "/staff/tickets", query: `?ownerId=${userId}` },
+          byStatus: statusLinks,
+          byItPriority: priorityLinks,
         },
       },
       recentUpdated: serializeRows(recentUpdated, "/staff/tickets"),

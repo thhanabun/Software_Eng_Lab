@@ -85,6 +85,31 @@ describe("requester dashboard isolation (DREQ-01)", () => {
   });
 });
 
+describe("resolved30d boundary (DREQ-01)", () => {
+  it("excludes RESOLVED tickets updated more than 30 days ago", async () => {
+    const id = await makeTicket("dreq-req@example.test", "RESOLVED");
+    await prisma.ticket.update({
+      where: { id },
+      data: { updatedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) },
+    });
+
+    const res = await requester.get("/api/dashboard/requester");
+    expect(res.status).toBe(200);
+    // The 30-day window applies to the metric (no other recent RESOLVED tickets exist for this user).
+    expect(res.body.metrics.resolved30d).toBe(0);
+  });
+
+  it("metric cards carry drill-downs (BR-16)", async () => {
+    const res = await requester.get("/api/dashboard/requester");
+    expect(res.status).toBe(200);
+    expect(res.body.metrics.drillDown).toMatchObject({
+      open: { base: "/tickets", query: "" },
+      waitingForRequester: { base: "/tickets", query: "?status=WAITING_FOR_REQUESTER" },
+      resolved30d: { base: "/tickets", query: "?status=RESOLVED" },
+    });
+  });
+});
+
 describe("requester dashboard empty state (DREQ-02)", () => {
   it("returns zeros + empty arrays, never 404", async () => {
     await createLoginUser("dreq-empty@example.test", "Dreq Empty");
