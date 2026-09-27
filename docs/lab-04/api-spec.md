@@ -39,13 +39,20 @@ Body: `{ "status", "expectedUpdatedAt"? }` (stamp checked when present, skipped 
 **200**:
 ```json
 {
-  "metrics": { "open": 3, "waitingForRequester": 1, "resolved30d": 2 },
+  "metrics": {
+    "open": 3, "waitingForRequester": 1, "resolved30d": 2,
+    "drillDown": {
+      "open": { "base": "/tickets", "query": "" },
+      "waitingForRequester": { "base": "/tickets", "query": "?status=WAITING_FOR_REQUESTER" },
+      "resolved30d": { "base": "/tickets", "query": "?status=RESOLVED" }
+    }
+  },
   "recentUpdated": [{ "id": 7, "ticketNumber": "TKT-..", "summary": "..", "currentStatus": "OPEN", "updatedAt": "..", "drillDown": { "base": "/tickets", "query": "?sort=updatedAt:desc" } }],
   "recentResolved": [ ... ],
   "attention": [{ "id": 9, "reason": "WAITING_FOR_REQUESTER", "drillDown": { "base": "/tickets/9", "query": "" } }]
 }
 ```
-- Definitions: `open` = status ∈ {NEW, OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER, REOPENED} owned; `waitingForRequester` = owned WAITING_FOR_REQUESTER; `resolved30d` = owned RESOLVED/CLOSED updated in last 30 UTC days; recents top-5 by `updatedAt` desc. Empty → zeros + `[]`.
+- Definitions: `open` = status ∈ {NEW, OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER, REOPENED} owned; `waitingForRequester` = owned WAITING_FOR_REQUESTER; `resolved30d` = owned RESOLVED/CLOSED updated in last 30 UTC days; recents top-5 by `updatedAt` desc. Empty → zeros + `[]`. Every metric card carries a `drillDown` (BR-16).
 
 ### GET /api/dashboard/staff — operational summary (roles: IT_STAFF, ADMINISTRATOR)
 **200**:
@@ -54,7 +61,13 @@ Body: `{ "status", "expectedUpdatedAt"? }` (stamp checked when present, skipped 
   "metrics": {
     "unassigned": 4, "ownedByMe": 2,
     "byStatus": { "NEW": 3, "OPEN": 2, "IN_PROGRESS": 1, "WAITING_FOR_REQUESTER": 1, "RESOLVED": 2, "CLOSED": 5, "REOPENED": 0, "CANCELLED": 1 },
-    "byItPriority": { "URGENT": 1, "HIGH": 2, "MEDIUM": 3, "LOW": 1 }
+    "byItPriority": { "URGENT": 1, "HIGH": 2, "MEDIUM": 3, "LOW": 1 },
+    "drillDown": {
+      "unassigned": { "base": "/staff/tickets", "query": "?ownerId=unassigned" },
+      "ownedByMe": { "base": "/staff/tickets", "query": "?ownerId=<me>" },
+      "byStatus": { "NEW": { "base": "/staff/tickets", "query": "?status=NEW" }, "...": "one link per status" },
+      "byItPriority": { "URGENT": { "base": "/staff/tickets", "query": "?itPriority=URGENT" }, "...": "one link per priority" }
+    }
   },
   "recentUpdated": [ ... top-5 with drillDown to /staff/tickets/:id ... ],
   "urgentUnassigned": [ ... top-5 URGENT/HIGH unassigned ... ],
@@ -62,6 +75,8 @@ Body: `{ "status", "expectedUpdatedAt"? }` (stamp checked when present, skipped 
 }
 ```
 - `userCounts` included only for ADMINISTRATOR callers. Requester role → 403. Empty → zeros + `[]`.
+- `unassigned` counts tickets with NULL owner across **all** statuses including terminal ones (intentional — the card answers "who owns this", not "what needs work").
+- Middleware order on both dashboard routes is role-before-freshness (same as Lab 3 `staffOnly`): a must-change session calling the wrong dashboard gets 403 (role), not `PASSWORD_CHANGE_REQUIRED` — intended.
 
 ## 4. Authorization matrix (Lab 4 delta; Lab 3 §6 still holds)
 
