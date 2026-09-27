@@ -367,8 +367,13 @@ export async function getStaffTicketDetail(id: number): Promise<StaffTicketDetai
 
 export async function claimTicket(
   id: number,
-): Promise<{ owner: { id: number; name: string } | null; currentStatus: string }> {
-  const res = await fetch(`/api/staff/tickets/${id}/claim`, { method: 'POST' })
+  expectedUpdatedAt?: string,
+): Promise<{ owner: { id: number; name: string } | null; currentStatus: string; updatedAt?: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/claim`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(expectedUpdatedAt ? { expectedUpdatedAt } : {}),
+  })
   if (!res.ok) throw await apiError(res, 'Claim failed')
   return res.json()
 }
@@ -376,11 +381,12 @@ export async function claimTicket(
 export async function assignTicket(
   id: number,
   ownerId: number | null,
-): Promise<{ owner: { id: number; name: string } | null; currentStatus: string }> {
+  expectedUpdatedAt?: string,
+): Promise<{ owner: { id: number; name: string } | null; currentStatus: string; updatedAt?: string }> {
   const res = await fetch(`/api/staff/tickets/${id}/assign`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ownerId }),
+    body: JSON.stringify(expectedUpdatedAt ? { ownerId, expectedUpdatedAt } : { ownerId }),
   })
   if (!res.ok) {
     const errBody = (await res.json().catch(() => null)) as {
@@ -391,11 +397,15 @@ export async function assignTicket(
   return res.json()
 }
 
-export async function setItPriority(id: number, itPriority: string): Promise<{ itPriority: string }> {
+export async function setItPriority(
+  id: number,
+  itPriority: string,
+  expectedUpdatedAt?: string,
+): Promise<{ itPriority: string; updatedAt?: string }> {
   const res = await fetch(`/api/staff/tickets/${id}/priority`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itPriority }),
+    body: JSON.stringify(expectedUpdatedAt ? { itPriority, expectedUpdatedAt } : { itPriority }),
   })
   if (!res.ok) throw await apiError(res, 'Priority update failed')
   return res.json()
@@ -404,11 +414,12 @@ export async function setItPriority(id: number, itPriority: string): Promise<{ i
 export async function setTicketStatus(
   id: number,
   status: string,
-): Promise<{ currentStatus: string }> {
+  expectedUpdatedAt?: string,
+): Promise<{ currentStatus: string; updatedAt?: string }> {
   const res = await fetch(`/api/staff/tickets/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(expectedUpdatedAt ? { status, expectedUpdatedAt } : { status }),
   })
   if (!res.ok) {
     const errBody = (await res.json().catch(() => null)) as {
