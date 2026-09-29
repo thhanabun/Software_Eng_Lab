@@ -19,7 +19,7 @@ Body: `{ "description", "result", "followUpRequired": bool, "followUpNote"?, "at
 
 ### PATCH /api/staff/tickets/:id/actions/:actionId — edit (roles: IT_STAFF, ADMINISTRATOR)
 Body subset of create fields + required `expectedUpdatedAt` (ticket-level stamp).
-- Stale (`expectedUpdatedAt` ≠ current ticket `updatedAt`) → **409** `CONFLICT`. Unknown action → 404. Same validation as create. Flipping `followUpRequired` `true`→`false` clears the stored note; `false`→`true` requires a note in the same call. **200** with updated entry; ticket `updatedAt` advances.
+- Stale (`expectedUpdatedAt` ≠ current ticket `updatedAt`) → **409** `CONFLICT`. Unknown action → 404. Same validation as create. Flipping `followUpRequired` `true`→`false` clears the stored note; `false`→`true` requires a note in the same call. **200** with updated entry plus `ticketUpdatedAt`; ticket `updatedAt` advances.
 
 ### DELETE on any action path — forbidden
 - Authenticated staff/admin reach the handler: **405** `METHOD_NOT_ALLOWED` with `Allow: GET, POST, PATCH`. Single locked behavior (no 404/405 split). Requesters never reach it — the staff route guard rejects them with 403 first (see matrix).

@@ -79,6 +79,10 @@ describe("create valid action (ACT-01)", () => {
     expect(res.status).toBe(201);
     expect(res.body.description).toContain("spooler");
     expect(res.body.performedBy).toMatchObject({ id: staffId, name: "Act Staff" });
+    // Stamp chaining: response carries the advanced ticket stamp.
+    expect(res.body.ticketUpdatedAt).toBeDefined();
+    const ticketAfter = await prisma.ticket.findUniqueOrThrow({ where: { id } });
+    expect(res.body.ticketUpdatedAt).toBe(ticketAfter.updatedAt.toISOString());
     expect(new Date(res.body.createdAt).getTime()).toBeGreaterThanOrEqual(before - 1000);
     const after = (await prisma.ticket.findUniqueOrThrow({ where: { id } })).updatedAt.getTime();
     expect(after).toBeGreaterThanOrEqual(before);
@@ -191,6 +195,9 @@ describe("edit + stale handling + 405", () => {
     expect(edited.status).toBe(200);
     expect(edited.body.result).toBe("Updated result.");
     expect(edited.body.followUpNote).toContain("Watch it");
+    expect(edited.body.ticketUpdatedAt).toBeDefined();
+    const ticketAfterEdit = await prisma.ticket.findUniqueOrThrow({ where: { id } });
+    expect(edited.body.ticketUpdatedAt).toBe(ticketAfterEdit.updatedAt.toISOString());
 
     const stale = await staff
       .patch(`/api/staff/tickets/${id}/actions/${actionId}`)

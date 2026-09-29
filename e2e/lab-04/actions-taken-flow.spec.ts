@@ -63,6 +63,12 @@ test('E2E-06: create action with follow-up, edit it, requester sees read-only (A
   await page.getByRole('button', { name: /post action/i }).click()
   await expect(page.getByText(desc)).toBeVisible()
   await expect(page.getByText('Recheck in the morning shift.')).toBeVisible()
+
+  // Edit round-trip: change the result, verify it sticks.
+  await page.getByRole('button', { name: /^Edit action / }).first().click()
+  await page.getByLabel(/^result/i).fill('Restarted the service; verified stable for one hour.')
+  await page.getByRole('button', { name: /save changes/i }).click()
+  await expect(page.getByText('Restarted the service; verified stable for one hour.')).toBeVisible()
   await logout(page)
 
   // Requester sees the action read-only: no form, no edit buttons.
