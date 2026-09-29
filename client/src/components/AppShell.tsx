@@ -27,6 +27,9 @@ export default function AppShell() {
         <div className="container d-flex flex-wrap align-items-center gap-3">
           <span className="tg-brand">TokTickIT</span>
           <nav aria-label="Main navigation" className="d-flex flex-wrap gap-1">
+            <NavLink to="/dashboard" className="tg-nav-link" end>
+              Dashboard
+            </NavLink>
             {!isStaff && (
               <>
                 <NavLink to="/tickets" className="tg-nav-link" end>

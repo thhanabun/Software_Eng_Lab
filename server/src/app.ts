@@ -9,6 +9,7 @@ import { adminRouter } from "./routes/admin";
 import { staffRouter } from "./routes/staff";
 import { staffTicketsRouter } from "./routes/staffTickets";
 import { ticketsRouter } from "./routes/tickets";
+import { dashboardRouter } from "./routes/dashboards";
 import { ticketAttachmentsRouter } from "./routes/ticketAttachments";
 import { attachmentsRouter } from "./routes/attachments";
 
@@ -29,6 +30,7 @@ export function createApp(): express.Express {
   app.use("/api/staff", staffRouter);
   app.use("/api/staff/tickets", staffTicketsRouter);
   app.use("/api/tickets", ticketsRouter);
+  app.use("/api/dashboard", dashboardRouter);
   app.use("/api/tickets/:id/attachments", ticketAttachmentsRouter);
   app.use("/api/attachments", attachmentsRouter);
 

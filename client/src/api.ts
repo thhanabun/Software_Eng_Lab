@@ -367,8 +367,13 @@ export async function getStaffTicketDetail(id: number): Promise<StaffTicketDetai
 
 export async function claimTicket(
   id: number,
-): Promise<{ owner: { id: number; name: string } | null; currentStatus: string }> {
-  const res = await fetch(`/api/staff/tickets/${id}/claim`, { method: 'POST' })
+  expectedUpdatedAt?: string,
+): Promise<{ owner: { id: number; name: string } | null; currentStatus: string; updatedAt?: string }> {
+  const res = await fetch(`/api/staff/tickets/${id}/claim`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(expectedUpdatedAt ? { expectedUpdatedAt } : {}),
+  })
   if (!res.ok) throw await apiError(res, 'Claim failed')
   return res.json()
 }
@@ -376,26 +381,31 @@ export async function claimTicket(
 export async function assignTicket(
   id: number,
   ownerId: number | null,
-): Promise<{ owner: { id: number; name: string } | null; currentStatus: string }> {
+  expectedUpdatedAt?: string,
+): Promise<{ owner: { id: number; name: string } | null; currentStatus: string; updatedAt?: string }> {
   const res = await fetch(`/api/staff/tickets/${id}/assign`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ownerId }),
+    body: JSON.stringify(expectedUpdatedAt ? { ownerId, expectedUpdatedAt } : { ownerId }),
   })
   if (!res.ok) {
     const errBody = (await res.json().catch(() => null)) as {
-      error?: { details?: ApiFieldError[] }
+      error?: { message?: string; details?: ApiFieldError[] }
     } | null
-    throw new ApiRequestError('Assign failed', res.status, errBody?.error?.details)
+    throw new ApiRequestError(errBody?.error?.message || 'Assign failed', res.status, errBody?.error?.details)
   }
   return res.json()
 }
 
-export async function setItPriority(id: number, itPriority: string): Promise<{ itPriority: string }> {
+export async function setItPriority(
+  id: number,
+  itPriority: string,
+  expectedUpdatedAt?: string,
+): Promise<{ itPriority: string; updatedAt?: string }> {
   const res = await fetch(`/api/staff/tickets/${id}/priority`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itPriority }),
+    body: JSON.stringify(expectedUpdatedAt ? { itPriority, expectedUpdatedAt } : { itPriority }),
   })
   if (!res.ok) throw await apiError(res, 'Priority update failed')
   return res.json()
@@ -404,17 +414,18 @@ export async function setItPriority(id: number, itPriority: string): Promise<{ i
 export async function setTicketStatus(
   id: number,
   status: string,
-): Promise<{ currentStatus: string }> {
+  expectedUpdatedAt?: string,
+): Promise<{ currentStatus: string; updatedAt?: string }> {
   const res = await fetch(`/api/staff/tickets/${id}/status`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(expectedUpdatedAt ? { status, expectedUpdatedAt } : { status }),
   })
   if (!res.ok) {
     const errBody = (await res.json().catch(() => null)) as {
-      error?: { details?: ApiFieldError[] }
+      error?: { message?: string; details?: ApiFieldError[] }
     } | null
-    throw new ApiRequestError('Status update failed', res.status, errBody?.error?.details)
+    throw new ApiRequestError(errBody?.error?.message || 'Status update failed', res.status, errBody?.error?.details)
   }
   return res.json()
 }
@@ -445,6 +456,128 @@ export async function postStaffComment(ticketId: number, body: string): Promise<
     } | null
     throw new ApiRequestError('Comment failed', res.status, errBody?.error?.details)
   }
+  return res.json()
+}
+
+export interface ActionTaken {
+  id: number
+  description: string
+  result: string
+  performedBy: { id: number; name: string }
+  followUpRequired: boolean
+  followUpNote: string | null
+  attachmentNotes: string | null
+  createdAt: string
+  updatedAt: string
+  ticketUpdatedAt?: string
+}
+
+export interface ActionInput {
+  description: string
+  result: string
+  followUpRequired: boolean
+  followUpNote?: string | null
+  attachmentNotes?: string | null
+  expectedUpdatedAt?: string
+}
+
+async function actionResult(res: Response, label: string): Promise<ActionTaken> {
+  if (!res.ok) {
+    const errBody = (await res.json().catch(() => null)) as {
+      error?: { details?: ApiFieldError[] }
+    } | null
+    throw new ApiRequestError(label, res.status, errBody?.error?.details)
+  }
+  return res.json()
+}
+
+export async function listStaffActions(ticketId: number): Promise<{ items: ActionTaken[] }> {
+  const res = await fetch(`/api/staff/tickets/${ticketId}/actions`)
+  if (!res.ok) throw await apiError(res, 'Actions failed')
+  return res.json()
+}
+
+export async function listTicketActions(ticketId: number): Promise<{ items: ActionTaken[] }> {
+  const res = await fetch(`/api/tickets/${ticketId}/actions`)
+  if (!res.ok) throw await apiError(res, 'Actions failed')
+  return res.json()
+}
+
+export async function createAction(ticketId: number, input: ActionInput): Promise<ActionTaken> {
+  const res = await fetch(`/api/staff/tickets/${ticketId}/actions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return actionResult(res, 'Action failed')
+}
+
+export async function updateAction(
+  ticketId: number,
+  actionId: number,
+  input: ActionInput,
+): Promise<ActionTaken> {
+  const res = await fetch(`/api/staff/tickets/${ticketId}/actions/${actionId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return actionResult(res, 'Action update failed')
+}
+
+export interface DrillDown {
+  base: string
+  query: string
+}
+
+export interface DashboardTicketRow {
+  id: number
+  ticketNumber: string
+  summary: string
+  currentStatus: string
+  updatedAt: string
+  drillDown: DrillDown
+}
+
+export interface RequesterDashboard {
+  metrics: {
+    open: number
+    waitingForRequester: number
+    resolved30d: number
+    drillDown: Record<string, DrillDown>
+  }
+  recentUpdated: DashboardTicketRow[]
+  recentResolved: DashboardTicketRow[]
+  attention: { id: number; ticketNumber: string; summary: string; reason: string; drillDown: DrillDown }[]
+}
+
+export interface StaffDashboard {
+  metrics: {
+    unassigned: number
+    ownedByMe: number
+    byStatus: Record<string, number>
+    byItPriority: Record<string, number>
+    drillDown: {
+      unassigned: DrillDown
+      ownedByMe: DrillDown
+      byStatus: Record<string, DrillDown>
+      byItPriority: Record<string, DrillDown>
+    }
+  }
+  recentUpdated: DashboardTicketRow[]
+  urgentUnassigned: DashboardTicketRow[]
+  userCounts?: { requesters: number; staff: number; admins: number; inactive: number }
+}
+
+export async function getRequesterDashboard(): Promise<RequesterDashboard> {
+  const res = await fetch('/api/dashboard/requester')
+  if (!res.ok) throw await apiError(res, 'Dashboard failed')
+  return res.json()
+}
+
+export async function getStaffDashboard(): Promise<StaffDashboard> {
+  const res = await fetch('/api/dashboard/staff')
+  if (!res.ok) throw await apiError(res, 'Dashboard failed')
   return res.json()
 }
 

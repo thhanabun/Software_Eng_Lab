@@ -132,6 +132,59 @@ const SEED_COMMENTS: SeedComment[] = [
   },
 ];
 
+type SeedAction = {
+  ticketNumber: string;
+  performer: string;
+  description: string;
+  result: string;
+  followUpRequired: boolean;
+  followUpNote?: string;
+  attachmentNotes?: string;
+};
+
+// Lab 4: zero / one / multiple actions across statuses. Seed writes bypass the
+// API layer, so actions may exist on CLOSED/CANCELLED tickets (BR-12 freeze is
+// API-only; seeded history stays readable).
+const SEED_ACTIONS: SeedAction[] = [
+  {
+    ticketNumber: "TKT-20260910-0103", performer: "nopparat.ops@example.test",
+    description: "Swapped the Building C access point with the reserved spare unit.",
+    result: "Roaming flaps stopped on the controller; monitoring for one hour.",
+    followUpRequired: true, followUpNote: "Revisit tomorrow to confirm stability before closing the spare request.",
+    attachmentNotes: "See controller screenshot in ticket attachments.",
+  },
+  {
+    ticketNumber: "TKT-20260910-0103", performer: "mina.staff@example.test",
+    description: "Verified signal levels from three dorm rooms after the swap.",
+    result: "All rooms above -65 dBm; no drops observed during the walk-through.",
+    followUpRequired: false,
+  },
+  {
+    ticketNumber: "TKT-20260910-0102", performer: "mina.staff@example.test",
+    description: "Checked the upload worker logs for stalled jobs.",
+    result: "Found a retry storm on chunk 14; worker restarted cleanly.",
+    followUpRequired: false, attachmentNotes: "Worker log excerpt attached as notes only.",
+  },
+  {
+    ticketNumber: "TKT-20260910-0105", performer: "mina.staff@example.test",
+    description: "Cleaned the duplexer rollers and ran ten duplex test pages.",
+    result: "No jams in the test run; ticket resolved.",
+    followUpRequired: false,
+  },
+  {
+    ticketNumber: "TKT-20260910-0106", performer: "nopparat.ops@example.test",
+    description: "Patched the CSV exporter pagination off-by-one.",
+    result: "Export now includes the final page; verified on a 500-row course.",
+    followUpRequired: false,
+  },
+  {
+    ticketNumber: "TKT-20260910-0108", performer: "suda.support@example.test",
+    description: "Confirmed duplicate of the newer mailbox request before cancelling.",
+    result: "Duplicate verified; ticket cancelled.",
+    followUpRequired: false,
+  },
+];
+
 export async function seedAll(db: PrismaClient): Promise<void> {
   for (const name of CATEGORY_NAMES) {
     await db.category.upsert({ where: { name }, update: {}, create: { name } });
@@ -193,6 +246,27 @@ export async function seedAll(db: PrismaClient): Promise<void> {
     });
   }
 
+  for (const action of SEED_ACTIONS) {
+    const ticket = await db.ticket.findUniqueOrThrow({ where: { ticketNumber: action.ticketNumber } });
+    const performedById = await userId(action.performer);
+    const existing = await db.actionTaken.findFirst({
+      where: { ticketId: ticket.id, performedById, description: action.description },
+    });
+    if (!existing) {
+      await db.actionTaken.create({
+        data: {
+          ticketId: ticket.id,
+          performedById,
+          description: action.description,
+          result: action.result,
+          followUpRequired: action.followUpRequired,
+          followUpNote: action.followUpNote ?? null,
+          attachmentNotes: action.attachmentNotes ?? null,
+        },
+      });
+    }
+  }
+
   for (const comment of SEED_COMMENTS) {
     const ticket = await db.ticket.findUniqueOrThrow({ where: { ticketNumber: comment.ticketNumber } });
     const authorId = await userId(comment.author);
@@ -210,7 +284,7 @@ export async function seedAll(db: PrismaClient): Promise<void> {
 async function main() {
   await seedAll(prisma);
   console.log(
-    `Seeded ${CATEGORY_NAMES.length} categories, ${RELATED_SYSTEMS.length} related systems, ${SEED_USERS.length} users, ${SEED_TICKETS.length} tickets, ${SEED_COMMENTS.length} comments`,
+    `Seeded ${CATEGORY_NAMES.length} categories, ${RELATED_SYSTEMS.length} related systems, ${SEED_USERS.length} users, ${SEED_TICKETS.length} tickets, ${SEED_COMMENTS.length} comments, ${SEED_ACTIONS.length} actions`,
   );
 }
 

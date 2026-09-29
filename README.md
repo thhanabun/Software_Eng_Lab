@@ -3,7 +3,8 @@
 TokTickIT is an IT service desk application for Account and Access, Hardware, Software, and
 Network requests. This repository contains the full-stack application built during
 **Lab 1: Full-Stack Hello World Starter**, **Lab 2: Requester Ticketing MVP with UI
-Foundation**, and **Lab 3: Auth, Roles, and Admin** for CPE 334 - Introduction to Software
+Foundation**, **Lab 3: Auth, Roles, and Admin**, and **Lab 4: Actions Taken, Dashboards,
+and Final Regression** for CPE 334 - Introduction to Software
 Engineering in the Age of AI Agents.
 
 **Lab 2 Sprint Goal:** A Development Requester (temporary testing identity — not login) can
@@ -15,6 +16,12 @@ tickets with search/filter/sort/pagination, open Ticket Detail, and manage attac
 (REQUESTER, IT_STAFF, ADMINISTRATOR), staff ticket queue and detail actions (claim,
 assign, priority, status transitions, comments, notes), admin user management
 (create/edit/reset/deactivate), and a responsive UI following Zen Green design tokens.
+
+**Lab 4 Sprint Goal:** Actions Taken records under each ticket (staff create/edit,
+requester read-only), a backend-enforced resolution gate (RESOLVED requires at least
+one action) with optimistic-concurrency protection (stale writes get 409), concise
+role-appropriate dashboards with drill-down links, and full Labs 1–3 regression —
+all inside the established Zen Green UI.
 
 ## Tech Stack
 
@@ -31,23 +38,29 @@ assign, priority, status transitions, comments, notes), admin user management
 ```
 toktickit/
 ├── client/                  React + TypeScript + Vite frontend
+│   ├── src/pages/           Login, dashboards, tickets, staff queue/detail, admin
 │   ├── tests/lab-02/        Lab 2 UI tests (Vitest + Testing Library)
-│   └── tests/lab-03/        Lab 3 UI tests (Vitest + Testing Library)
+│   ├── tests/lab-03/        Lab 3 UI tests (Vitest + Testing Library)
+│   └── tests/lab-04/        Lab 4 UI tests (actions, workflow, dashboards)
 ├── server/                  Express API + Prisma
 │   ├── prisma/              Schema, migrations, idempotent seed
-│   ├── src/                 Routers + lib (ticket, auth, staff, admin)
+│   ├── src/                 Routers + lib (ticket, auth, staff, admin, dashboards, actions)
 │   ├── uploads/             Attachment files on disk (gitignored)
 │   ├── tests/lab-02/        Lab 2 API tests (Supertest)
-│   └── tests/lab-03/        Lab 3 API tests (Supertest)
+│   ├── tests/lab-03/        Lab 3 API tests (Supertest)
+│   └── tests/lab-04/        Lab 4 API tests (actions, workflow, dashboards)
 ├── e2e/                     Standalone Playwright project (own package.json)
 │   ├── lab-02/              E2E flows + responsive screenshot spec
-│   └── lab-03/              E2E auth/staff/admin flows + screenshots
+│   ├── lab-03/              E2E auth/staff/admin flows + screenshots
+│   └── lab-04/              E2E actions/resolution/dashboard flows + screenshots
 ├── artifacts/               Generated: Playwright reports + screenshots
 ├── docs/
 │   ├── lab-01/              Lab 1 evidence documents
 │   ├── lab-02/              Lab 2 specification, api-spec, ui-spec, tests
-│   └── lab-03/              Lab 3 specification, api-spec, ui-spec, tests,
-│                            reviewer.md, ai-use.md
+│   ├── lab-03/              Lab 3 specification, api-spec, ui-spec, tests,
+│   │                        reviewer.md, ai-use.md, evidence/
+│   └── lab-04/              Lab 4 specification, api-spec, ui-spec, tests,
+│                            reviewer.md, ai-use.md, evidence/
 └── docker-compose.yml       PostgreSQL 16 container
 ```
 

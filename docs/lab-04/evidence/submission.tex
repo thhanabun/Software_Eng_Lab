@@ -1,0 +1,298 @@
+% =====================================================================
+%  CPE 334 - Lab 4 Submission : TokTickIT Actions Taken, Dashboards, Final Regression
+%  Compile: pdfLaTeX. Upload the WHOLE evidence/ folder to Overleaf and
+%  set this file as the main document.
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\UseRawInputEncoding
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,margin=2.0cm]{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{amssymb}
+\usepackage{xstring}
+\usepackage{hyperref}
+
+\definecolor{tggreen}{HTML}{006B3C}
+\definecolor{todoorange}{HTML}{B45309}
+\hypersetup{colorlinks=true, linkcolor=tggreen, urlcolor=tggreen}
+
+\makeatletter
+\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
+  {-3.25ex\@plus -1ex \@minus -.2ex}%
+  {1.5ex \@plus .2ex}%
+  {\normalfont\normalsize\bfseries}}
+\makeatother
+
+\lstset{
+  basicstyle=\ttfamily\scriptsize,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8},
+  columns=fullflexible,
+  captionpos=b,
+  escapechar=,
+}
+
+\title{\textcolor{tggreen}{\textbf{CPE 334 --- Lab 4 Submission}}\\[4pt]
+\large TokTickIT: Actions Taken, Dashboards, and Final Regression}
+\author{Thanaboon Tikaew (67070501021) --- @thhanabun \\
+Peer reviewer: Siriwan Yindeepot --- @ssiriwan}
+\date{\url{https://github.com/thhanabun/Software_Eng_Lab} --- \texttt{lab4-staging} (release PR \#67)}
+
+\begin{document}
+\maketitle
+
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+
+\newcommand{\shot}[4][auto]{%
+  \begin{figure}[H]\centering
+  \IfFileExists{#2}{%
+    \IfStrEq{#1}{auto}{%
+      \IfSubStr{#2}{mobile}{\includegraphics[width=0.60\textwidth]{#2}}{\includegraphics[width=0.90\textwidth]{#2}}%
+    }{%
+      \includegraphics[width=#1\textwidth]{#2}%
+    }%
+  }{%
+    \fcolorbox{todoorange}{gray!6}{\begin{minipage}{0.88\textwidth}\small
+      \textbf{\textcolor{todoorange}{TODO screenshot}} --- save as \texttt{#2} next to this .tex file\\
+      \emph{Show:} #3
+    \end{minipage}}%
+  }
+  \caption{#4}
+  \end{figure}%
+}
+
+% =====================================================================
+\section*{Answer Part 1: Git Use with Engineering Workflow (10 pts)}
+% =====================================================================
+
+\subsection*{1.1 Commit history on the final \code{lab4-staging} branch}
+Lab 4 work followed: \code{main} $\leftarrow$ \code{lab4-staging} $\leftarrow$ 7 feature
+branches, every hop through a reviewed Pull Request (PRs \#59--\#65), and one release PR
+(\code{lab4-staging} $\to$ \code{main}).
+
+\shot{git-history.png}{GitHub commit history on lab4-staging showing feature-branch merges}{Git History --- lab4-staging branch}
+
+\subsection*{1.2 GitHub Issues, feature branches and reviewed PRs}
+\noindent
+\begin{longtable}{@{} c l c p{7.5cm} c @{}}
+\toprule
+\textbf{Issue} & \textbf{Feature branch} & \textbf{PR} & \textbf{Reviewer verdict} & \textbf{Merged} \\
+\midrule
+\#51 Spec DD & \code{feature/lab4-spec-contract} & \#59 & Approved, 7 follow-ups addressed & Yes \\
+\addlinespace
+\#52 Actions foundation & \code{feature/lab4-actions-foundation} & \#60 & Envelope blocking + notes fixed & Yes \\
+\addlinespace
+\#53 Actions UI & \code{feature/lab4-actions-ui} & \#61 & 6 follow-ups + fallback fixed & Yes \\
+\addlinespace
+\#54 Ticket workflow & \code{feature/lab4-ticket-workflow} & \#62 & Claim stamp + 4 notes fixed & Yes \\
+\addlinespace
+\#55 Dashboards API & \code{feature/lab4-dashboards-api} & \#63 & Drill-downs + 4 notes fixed & Yes \\
+\addlinespace
+\#56 Dashboards UI & \code{feature/lab4-dashboards-ui} & \#64 & 7 points fixed & Yes \\
+\addlinespace
+\#57 E2E + hardening & \code{feature/lab4-e2e-hardening} & \#65 & Edit step + base + stamp fixed & Yes \\
+\addlinespace
+\#58 Release & \code{feature/lab4-final-docs} & \#66 & Release docs + evidence & Yes \\
+\bottomrule
+\end{longtable}
+
+\subsection*{1.3 GitHub Projects Kanban --- final state}
+All eight Lab 4 issues are in \textbf{Done}.
+Board: \href{https://github.com/users/thhanabun/projects/1}{TokTickIT Individual Sprints}.
+
+\shot{kanban-board.png}{Kanban board with Lab 4 issues \#51--\#58 in Done}{Kanban Board --- final state}
+
+\subsection*{1.4 Rendered \code{reviewer.md}}
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-04/reviewer.md}{docs/lab-04/reviewer.md}
+
+Reviewer \textbf{ssiriwan} reviewed all 7 Lab 4 PRs (\#59--\#65). Every PR drew at least one
+round of substantive review: spec (7 follow-ups), foundation (envelope blocking change),
+actions UI (6 follow-ups), workflow (claim-stamp blocking fix), dashboards API
+(drill-down blocking fix), dashboards UI (7 points), E2E (edit step + base + stamp).
+All comments were addressed on the feature branches before merge; merges left to the peer.
+
+\subsection*{1.5 README and .gitignore evidence}
+README carries Lab 4 sprint goal, updated repository structure (lab-04 tests, dashboards
+routes, actions model), and current setup/test instructions.
+\texttt{.gitignore} keeps \texttt{docs/lab-04/evidence/} committable while excluding
+\texttt{server/uploads/}, \texttt{.env}, and lab-01/lab-02 evidence (verified with
+\code{git check-ignore}: evidence file not ignored; uploads and .env ignored).
+Raw Playwright captures live in \texttt{artifacts/lab-04/screenshots/} (build output);
+the committed copies this PDF builds against live in \texttt{docs/lab-04/evidence/}.
+
+\subsection*{1.6 Repository directory structure (Lab 4 increment)}
+\begin{lstlisting}
+toktickit/
+  client/src/pages/          Dashboard, RequesterDashboard, StaffDashboard (+ Lab 1-3 pages)
+  client/tests/lab-04/       ActionsTaken, TicketWorkflow, RequesterDashboard, StaffDashboard
+  server/src/routes/         dashboards.ts, staff.ts (+actions), tickets.ts (+requester list)
+  server/prisma/             ActionTaken model, migration, seed (0/1/N actions)
+  server/tests/lab-04/       actions-taken, ticket-workflow, requester-dashboard, staff-dashboard
+  e2e/lab-04/                actions-taken-flow, ticket-resolution, dashboards
+  docs/lab-04/               specification, api-spec, ui-spec, tests, reviewer, ai-use, evidence/
+\end{lstlisting}
+
+% =====================================================================
+\section*{Answer Part 2: Spec DD (5 pts)}
+% =====================================================================
+
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-04/specification.md}{docs/lab-04/specification.md}
+Approved as PR \#59 \textbf{before} any implementation PR; 7 reviewer follow-ups folded in.
+
+\subsection*{Locked decisions}
+\begin{itemize}
+\item Minimal action model per sheet \S8.3: list/create/view-edit only, no assignee/status on actions; fields date/time (auto), description, result, performer (auto), follow-up flag + mandatory note, attachment notes.
+\item Resolution gate: \code{* -> RESOLVED} requires $\geq$1 action (BR-10), staff/admin only, backend-enforced.
+\item Optimistic concurrency via ticket \code{updatedAt}: mismatch $\to$ 409; required on action-edit, checked-when-present elsewhere (Lab 3 compat); 409 is best-effort usability, not a security boundary.
+\item Requesters see all actions on owned tickets, read-only.
+\item Dashboards per handout examples with per-count drill-downs (BR-16); admin reuses staff dashboard + user counts.
+\end{itemize}
+
+\subsection*{Requirements and rules (summary)}
+FR-01--FR-04 actions CRUD semantics; FR-05--FR-08 workflow, gate, concurrency, advisory
+indication; FR-09--FR-11 dashboards; FR-12--FR-13 regression and hardening.
+BR-01--BR-08 actions; BR-09 final 8-status matrix (Lab 3 matrix retained); BR-10 gate;
+BR-11 concurrency; BR-12 CANCELLED freeze; BR-13 unassign coupling carryover; BR-14--BR-16
+dashboard calculations; BR-17 safe errors; BR-18 regression gate.
+AC-01--AC-11, each mapped to $\geq$1 test (see Part 3).
+
+% =====================================================================
+\section*{Answer Part 3: Test DD and Traceability (10 pts)}
+% =====================================================================
+
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-04/tests.md}{docs/lab-04/tests.md}
+
+\subsection*{Planned tests (all Pass)}
+ACT-01 create, ACT-02 follow-up coupling, ACT-03 requester isolation, ACT-04
+cross-requester 404, ACT-05 boundaries, ACT-06 CANCELLED freeze; WF-01/02 gate,
+WF-03 matrix+roles, WF-04 stale stamps + claim race, WF-05 via API, MIG-03 migration;
+DREQ-01/02 isolation + empty (+boundary, drill-downs); DSTF-01/02 counts + roles
+(+ownedByMe cross-check, precedence); PERF-01 latency smoke; DUI-01 actions UI (8 tests),
+DUI-02 workflow UI, DUI-03 dashboards UI, STYLE-03 badge distinction; E2E-06/07/08 flows;
+E2E-09 screenshots; RREG-02 full regression (one deliberate exception: Lab 3 walk test
+extended with an action before the RESOLVED hop, recorded in tests.md).
+
+\subsection*{Final results (verified on \code{lab4-staging})}
+\begin{longtable}{@{} l c c c @{}}
+\toprule
+\textbf{Suite} & \textbf{Files} & \textbf{Tests} & \textbf{Result} \\
+\midrule
+server API lab-04 & 4 & 25 & Pass \\
+client UI lab-04 & 4 & 17 & Pass \\
+e2e Playwright lab-04 & 3 & 5 & Pass \\
+full server (labs 1--4) & 18 & 134/135 & 1 pre-existing MIG-02 failure \\
+full client (labs 1--4) & 18 & 76/76 & Pass \\
+\bottomrule
+\end{longtable}
+
+\noindent The single server failure (MIG-02 dev-password login) is pre-existing on the base
+commit (verified via stash) and unrelated to Lab 4: the local DB holds a manually changed
+password that the idempotent seed never resets.
+
+% =====================================================================
+\section*{Answer Part 4: AI Use with Reflection (5 pts)}
+% =====================================================================
+
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-04/ai-use.md}{docs/lab-04/ai-use.md}
+LLM: Muse Spark (via opencode). Eight key prompts cover issue breakdown, spec drafting,
+foundation implementation, envelope alignment, workflow gate, dashboards, E2E diagnosis,
+and release assembly. Reflection: locking the six ambiguous decisions with human answers
+before drafting prevented most rework; the agent is strongest at spec-to-code-to-test
+translation and evidence-backed failure diagnosis (refresh-race traced via network logs),
+weakest at reporting hygiene (once reported stale suite numbers without re-running —
+now every PR comment requires fresh full-suite output).
+
+% =====================================================================
+\section*{Answer Part 5: Working IT Staff Dashboard UI (5 pts)}
+% =====================================================================
+
+Staff dashboard (\code{/dashboard} for staff/admin): unassigned + owned-by-me cards,
+by-status and by-priority breakdowns with per-key drill-down links, urgent-unassigned
+list, and (admin only) user counts. Counts verified against direct DB queries in
+DSTF-01 (including an \code{ownedByMe} cross-check); every count links to a filtered
+queue view (BR-16); loading/empty/forbidden/failure states covered.
+
+\shot{staff-dashboard-desktop.png}{Operations dashboard at desktop (1280px)}{Staff Dashboard --- desktop (1280px)}
+\shot{staff-dashboard-tablet.png}{Operations dashboard at tablet (820px)}{Staff Dashboard --- tablet (820px)}
+\shot[0.60]{staff-dashboard-mobile.png}{Operations dashboard at mobile (390px)}{Staff Dashboard --- mobile (390px)}
+
+% =====================================================================
+\section*{Answer Part 6: Working Actions Taken UI (10 pts)}
+% =====================================================================
+
+Staff detail carries an Actions Taken section (list/create/view-edit, follow-up gating,
+char counters, busy states, 409 reload banner that refetches list + ticket); requester
+detail shows the same list read-only. Multiple actions on one ticket render as separate
+cards with performer + timestamp; follow-up items carry icon + text badge (not color
+alone); validation, inactive handling via existing guards, role restrictions (requester
+create/edit $\to$ 403), and safe failures verified. The E2E runs exposed and fixed two
+real bugs here: the refresh-race 409 (fixed by returning \code{ticketUpdatedAt} in action
+responses) and hardcoded client fallbacks hiding gate errors.
+
+\shot{actions-desktop.png}{Actions Taken section on staff detail at desktop}{Actions Taken --- desktop (1280px)}
+\shot{actions-tablet.png}{Actions Taken section at tablet (820px)}{Actions Taken --- tablet (820px)}
+\shot[0.60]{actions-mobile.png}{Actions Taken section at mobile (390px)}{Actions Taken --- mobile (390px)}
+
+% =====================================================================
+\section*{Answer Part 7: Working Ticket Workflow (5 pts)}
+% =====================================================================
+
+Permitted transitions follow the final matrix (UI lists only legal targets); the
+resolution gate rejects action-less RESOLVED with a surfaced server message; stale
+\code{expectedUpdatedAt} yields 409 with reload guidance (including the two-staff claim
+race); ordering is stable (newest-first actions; FIFO queue default intact); actions are
+append-mostly (no delete: 405 + Allow); visibility is role-appropriate (notes stay
+staff-only; requester indication stays advisory).
+
+% =====================================================================
+\section*{Answer Part 8: Working Requester Dashboard and Final Regression UI (5 pts)}
+% =====================================================================
+
+Requester dashboard (\code{/dashboard} for requesters): owned open/waiting/resolved-30d
+cards, attention list, recently-updated and recently-resolved lists, all with drill-downs
+into filtered My Tickets views; ownership enforced backend-side (cross-requester probes
+return 404). Regression evidence: full Labs 1--3 suites green (server 109/110 with the
+one pre-existing MIG-02 environmental failure; client 59/59 pre-existing plus 17 new),
+E2E-06/07/08 green, and representative screens (auth, My Tickets, detail, attachments,
+comments, staff functions, notes, user management) covered by the untouched prior suites.
+
+\shot{requester-dashboard-desktop.png}{Requester dashboard at desktop (1280px)}{Requester Dashboard --- desktop (1280px)}
+\shot{requester-dashboard-tablet.png}{Requester dashboard at tablet (820px)}{Requester Dashboard --- tablet (820px)}
+\shot[0.60]{requester-dashboard-mobile.png}{Requester dashboard at mobile (390px)}{Requester Dashboard --- mobile (390px)}
+
+% =====================================================================
+\section*{Answer Part 9: Zen Green UI, Responsive, Accessibility, Final Polish (5 pts)}
+% =====================================================================
+
+\textbf{Link:} \href{https://github.com/thhanabun/Software\_Eng\_Lab/blob/main/docs/lab-04/ui-spec.md}{docs/lab-04/ui-spec.md}
+
+\subsection*{Visual and accessibility checklist (tests.md \S4, executed in \#57)}
+\begin{itemize}
+\item Colors/tokens match ui-spec \S1; new warning badge consistent; actions visually distinct from comments/notes
+\item Metric cards aligned with labels, values, and accessible drill-down actions (aria-labelled View links)
+\item Validation messages below fields; asterisks; role=alert errors; busy states on all submits
+\item No clipping/overlap; no page-level horizontal scrolling at 390px
+\item Follow-up flag has icon + text (not color alone); role nav correct per role; guards render safe panels
+\item Visible keyboard focus indicators at all three viewports; dialogs labelled; counters via aria-describedby
+\item Forbidden/expired-session states safe and readable
+\end{itemize}
+
+\noindent Screenshots in Parts 5, 6, and 8 cover all major Lab 4 screens at desktop (1280px),
+tablet (820px), and mobile (390px); the 9 files above were reviewed against this checklist
+during \#57 (E2E-09), not merely captured.
+
+\vspace{2em}
+\begin{center}
+\small\textcolor{tggreen}{\textbf{End of Lab 4 submission --- repository and \code{lab4-staging} branch remain the source of truth.}}
+\end{center}
+
+\end{document}
