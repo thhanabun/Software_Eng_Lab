@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiRequestError, getStaffDashboard, type StaffDashboard as StaffDashboardData } from '../api'
-import { formatDate } from '../lib/format'
 
 type LoadState = 'loading' | 'ready' | 'forbidden' | 'error'
 
@@ -13,7 +12,7 @@ function MetricCard({ label, value, to, testId }: { label: string; value: number
         <p className="h3 mb-2" data-testid={`${testId}-value`}>
           {value}
         </p>
-        <Link to={to} className="tg-btn tg-btn-tertiary">
+        <Link to={to} className="tg-btn tg-btn-tertiary" aria-label={`View ${label}`}>
           View
         </Link>
       </div>

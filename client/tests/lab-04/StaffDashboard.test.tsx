@@ -72,6 +72,28 @@ describe('Staff Dashboard (DUI-03)', () => {
     expect(screen.getByTestId('priority-count-URGENT')).toHaveTextContent('1')
     expect(screen.getByTestId('urgent-row-11')).toHaveTextContent('Server down')
     expect(screen.queryByTestId('users-section')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View Unassigned tickets' })).toHaveAttribute(
+      'href',
+      '/staff/tickets?owner=unassigned',
+    )
+    expect(screen.getByTestId('status-row-NEW').querySelector('a')).toHaveAttribute(
+      'href',
+      '/staff/tickets?status=NEW',
+    )
+    expect(screen.getByTestId('priority-row-URGENT').querySelector('a')).toHaveAttribute(
+      'href',
+      '/staff/tickets?itPriority=URGENT',
+    )
+  })
+
+  it('DUI-03: non-staff role sees the forbidden panel', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false, status: 403, json: async () => ({ error: { code: 'FORBIDDEN' } }) })),
+    )
+    renderDashboard()
+
+    expect(await screen.findByTestId('forbidden-panel')).toHaveTextContent(/access denied/i)
   })
 
   it('DUI-03: admin payload shows the user-counts section', async () => {

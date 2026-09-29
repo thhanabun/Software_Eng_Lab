@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ApiRequestError, getRequesterDashboard, type RequesterDashboard as RequesterDashboardData } from '../api'
+import { getRequesterDashboard, type RequesterDashboard as RequesterDashboardData } from '../api'
 import { formatDate } from '../lib/format'
 
 type LoadState = 'loading' | 'ready' | 'error'
@@ -13,7 +13,7 @@ function MetricCard({ label, value, to, testId }: { label: string; value: number
         <p className="h3 mb-2" data-testid={`${testId}-value`}>
           {value}
         </p>
-        <Link to={to} className="tg-btn tg-btn-tertiary">
+        <Link to={to} className="tg-btn tg-btn-tertiary" aria-label={`View ${label}`}>
           View
         </Link>
       </div>
@@ -117,6 +117,29 @@ export default function RequesterDashboard() {
           <ul className="mb-0" style={{ listStyle: 'none', paddingLeft: 0 }}>
             {data.recentUpdated.map((t) => (
               <li key={t.id} data-testid={`recent-row-${t.id}`} className="py-2 border-bottom">
+                <Link to={`${t.drillDown.base}${t.drillDown.query}`}>{t.ticketNumber}</Link>
+                <span className="ms-2">{t.summary}</span>
+                <span className="ms-2 small" style={{ color: 'var(--tg-muted)' }}>
+                  {t.currentStatus} · {formatDate(t.updatedAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="tg-card mb-3" aria-labelledby="resolved-heading" data-testid="resolved-section">
+        <h2 id="resolved-heading" className="h6 mb-2">
+          Recently resolved
+        </h2>
+        {data.recentResolved.length === 0 ? (
+          <p data-testid="resolved-empty" style={{ color: 'var(--tg-muted)' }}>
+            Nothing resolved yet.
+          </p>
+        ) : (
+          <ul className="mb-0" style={{ listStyle: 'none', paddingLeft: 0 }}>
+            {data.recentResolved.map((t) => (
+              <li key={t.id} data-testid={`resolved-row-${t.id}`} className="py-2 border-bottom">
                 <Link to={`${t.drillDown.base}${t.drillDown.query}`}>{t.ticketNumber}</Link>
                 <span className="ms-2">{t.summary}</span>
                 <span className="ms-2 small" style={{ color: 'var(--tg-muted)' }}>

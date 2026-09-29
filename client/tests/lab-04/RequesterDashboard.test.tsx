@@ -36,7 +36,9 @@ const requesterPayload = {
   recentUpdated: [
     { id: 7, ticketNumber: 'TKT-1', summary: 'Wi-Fi down', currentStatus: 'OPEN', updatedAt: '2026-09-10T10:00:00.000Z', drillDown: { base: '/tickets/7', query: '' } },
   ],
-  recentResolved: [],
+  recentResolved: [
+    { id: 12, ticketNumber: 'TKT-3', summary: 'Printer jam fixed', currentStatus: 'RESOLVED', updatedAt: '2026-09-09T10:00:00.000Z', drillDown: { base: '/tickets/12', query: '' } },
+  ],
   attention: [
     { id: 9, ticketNumber: 'TKT-2', summary: 'Mailbox locked', reason: 'WAITING_FOR_REQUESTER', drillDown: { base: '/tickets/9', query: '' } },
   ],
@@ -78,8 +80,12 @@ describe('Dashboards (DUI-03)', () => {
     expect(screen.getByTestId('metric-resolved-value')).toHaveTextContent('1')
     expect(screen.getByTestId('attention-row-9')).toHaveTextContent('Mailbox locked')
     expect(screen.getByTestId('recent-row-7')).toHaveTextContent('Wi-Fi down')
-    const viewLinks = screen.getAllByRole('link', { name: 'View' })
-    expect(viewLinks[0].getAttribute('href')).toBe('/tickets')
+    expect(screen.getByTestId('resolved-row-12')).toHaveTextContent('Printer jam fixed')
+    expect(screen.getByRole('link', { name: 'View Open tickets' })).toHaveAttribute('href', '/tickets')
+    expect(screen.getByRole('link', { name: 'View Waiting for you' })).toHaveAttribute(
+      'href',
+      '/tickets?status=WAITING_FOR_REQUESTER',
+    )
   })
 
   it('DUI-03: requester empty dashboard renders zero cards without lists', async () => {
