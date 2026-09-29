@@ -28,12 +28,12 @@ Conventions: API tests seed in `beforeAll`/`beforeEach`; bcrypt cost 4 via env; 
 | WF-01 | API | AC-04 | Resolution gate (zero actions) | Legal edge to RESOLVED → 400 gate error | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
 | WF-02 | API | AC-04 | Resolution gate (with action) | Same edge → 200 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
 | WF-03 | API | AC-05 | Off-matrix + requester attempts | 400 / 403, status unchanged | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
-| WF-04 | API | AC-06 | Stale `expectedUpdatedAt` | 409 on status/assign/priority/action-edit; nothing changed | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
+| WF-04 | API | AC-06 | Stale `expectedUpdatedAt` | 409 on status/assign/priority/claim/action-edit + claim-race win; invalid/missing stamps; nothing changed on 409 | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
 | WF-05 | API | BR-09/10 | Matrix + gate via API (helpers live inline in route) | Legal/illegal + gate cases covered by WF-01..03 (no separate unit helper exists) | `server/tests/lab-04/ticket-workflow.api.test.ts` | Pass |
-| DREQ-01 | API | AC-07 | Requester dashboard isolation | Owned metrics only; cross-requester data never leaks | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
+| DREQ-01 | API | AC-07 | Requester dashboard isolation + boundary + drill-downs | Owned metrics only; 60-day RESOLVED excluded from resolved30d; metric drillDowns present; cross-requester data never leaks | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
 | DREQ-02 | API | AC-09 | Requester dashboard empty state | Zeros + `[]`, no 404 | `server/tests/lab-04/requester-dashboard.api.test.ts` | Pass |
-| DSTF-01 | API | AC-08 | Staff dashboard counts vs DB | Metrics match direct queries; drill-down links present | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
-| DSTF-02 | API | AC-08/09 | Staff dashboard roles + empty | Requester → 403; admin sees userCounts; empty → zeros | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| DSTF-01 | API | AC-08 | Staff dashboard counts vs DB | Metrics match direct queries incl. ownedByMe cross-check; per-key byStatus/byItPriority drill-downs present | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
+| DSTF-02 | API | AC-08/09 | Staff dashboard roles + empty + precedence | Requester → 403; must-change on wrong endpoint → role-403 (not PASSWORD_CHANGE_REQUIRED); admin sees userCounts; empty → zeros | `server/tests/lab-04/staff-dashboard.api.test.ts` | Pass |
 | DUI-01 | UI | AC-01/02 | Actions form states | Follow-up gating, counters, busy, field errors, 409 banner | `client/tests/lab-04/ActionsTaken.test.tsx` | Pass |
 | DUI-02 | UI | AC-05/06 | Workflow controls rendering | Only legal targets; confirm modal; 409 banner | `client/tests/lab-04/TicketWorkflow.test.tsx` | Pass |
 | DUI-03 | UI | AC-07/08 | Dashboard cards | Metrics render; drill-down links navigate; empty/forbidden states | `client/tests/lab-04/RequesterDashboard.test.tsx`, `StaffDashboard.test.tsx` | Pass |
@@ -66,15 +66,15 @@ Conventions: API tests seed in `beforeAll`/`beforeEach`; bcrypt cost 4 via env; 
 
 Executed in Issue #57 against ui-spec §7 with the E2E-09 screenshots (desktop 1280×800, tablet 820×1180, mobile 390×844):
 
-- [ ] Colors/tokens match; actions visually distinct from comments/notes
-- [ ] Metric cards aligned; drill-down links obvious
-- [ ] Validation messages below fields; busy states verified
-- [ ] No clipping/overlap; no page-level h-scroll at 390px
-- [ ] Follow-up flag has icon + text (not color alone)
-- [ ] Visible keyboard focus at all three viewports
-- [ ] Forbidden/expired-session states safe and readable
+- [x] Colors/tokens match; actions visually distinct from comments/notes
+- [x] Metric cards aligned; drill-down links obvious
+- [x] Validation messages below fields; busy states verified
+- [x] No clipping/overlap; no page-level h-scroll at 390px
+- [x] Follow-up flag has icon + text (not color alone)
+- [x] Visible keyboard focus at all three viewports
+- [x] Forbidden/expired-session states safe and readable
 
-Screenshot paths: `artifacts/lab-04/screenshots/{staff-dashboard,requester-dashboard,actions-taken}/{desktop,tablet,mobile}.png`
+Screenshot paths: raw captures land in `artifacts/lab-04/screenshots/{staff-dashboard,requester-dashboard,actions-taken}/{desktop,tablet,mobile}.png` (gitignored build output). The committed copies the PDF builds against live in `docs/lab-04/evidence/` (`staff-dashboard-*.png`, `requester-dashboard-*.png`, `actions-*.png`, plus `git-history.png` and `kanban-board.png`) — graders find every Part 5/6/8/9 screenshot there.
 
 ## 5. Test Commands
 

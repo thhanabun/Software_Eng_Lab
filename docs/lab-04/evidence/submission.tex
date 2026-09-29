@@ -124,7 +124,10 @@ All comments were addressed on the feature branches before merge; merges left to
 README carries Lab 4 sprint goal, updated repository structure (lab-04 tests, dashboards
 routes, actions model), and current setup/test instructions.
 \texttt{.gitignore} keeps \texttt{docs/lab-04/evidence/} committable while excluding
-\texttt{server/uploads/}, \texttt{.env}, and lab-01/lab-02 evidence.
+\texttt{server/uploads/}, \texttt{.env}, and lab-01/lab-02 evidence (verified with
+\code{git check-ignore}: evidence file not ignored; uploads and .env ignored).
+Raw Playwright captures live in \texttt{artifacts/lab-04/screenshots/} (build output);
+the committed copies this PDF builds against live in \texttt{docs/lab-04/evidence/}.
 
 \subsection*{1.6 Repository directory structure (Lab 4 increment)}
 \begin{lstlisting}
