@@ -524,6 +524,62 @@ export async function updateAction(
   return actionResult(res, 'Action update failed')
 }
 
+export interface DrillDown {
+  base: string
+  query: string
+}
+
+export interface DashboardTicketRow {
+  id: number
+  ticketNumber: string
+  summary: string
+  currentStatus: string
+  updatedAt: string
+  drillDown: DrillDown
+}
+
+export interface RequesterDashboard {
+  metrics: {
+    open: number
+    waitingForRequester: number
+    resolved30d: number
+    drillDown: Record<string, DrillDown>
+  }
+  recentUpdated: DashboardTicketRow[]
+  recentResolved: DashboardTicketRow[]
+  attention: { id: number; ticketNumber: string; summary: string; reason: string; drillDown: DrillDown }[]
+}
+
+export interface StaffDashboard {
+  metrics: {
+    unassigned: number
+    ownedByMe: number
+    byStatus: Record<string, number>
+    byItPriority: Record<string, number>
+    drillDown: {
+      unassigned: DrillDown
+      ownedByMe: DrillDown
+      byStatus: Record<string, DrillDown>
+      byItPriority: Record<string, DrillDown>
+    }
+  }
+  recentUpdated: DashboardTicketRow[]
+  urgentUnassigned: DashboardTicketRow[]
+  userCounts?: { requesters: number; staff: number; admins: number; inactive: number }
+}
+
+export async function getRequesterDashboard(): Promise<RequesterDashboard> {
+  const res = await fetch('/api/dashboard/requester')
+  if (!res.ok) throw await apiError(res, 'Dashboard failed')
+  return res.json()
+}
+
+export async function getStaffDashboard(): Promise<StaffDashboard> {
+  const res = await fetch('/api/dashboard/staff')
+  if (!res.ok) throw await apiError(res, 'Dashboard failed')
+  return res.json()
+}
+
 export async function listStaffUsers(): Promise<StaffUser[]> {
   const res = await fetch('/api/staff/users')
   if (!res.ok) throw await apiError(res, 'User directory failed')

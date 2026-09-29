@@ -49,7 +49,8 @@ describe("staff dashboard counts vs DB (DSTF-01)", () => {
     for (const row of byPriorityRows) {
       expect(res.body.metrics.byItPriority[row.itPriority]).toBe(row._count.itPriority);
     }
-    expect(res.body.metrics.drillDown.unassigned).toMatchObject({ base: "/staff/tickets", query: "?ownerId=unassigned" });
+    expect(res.body.metrics.drillDown.unassigned).toMatchObject({ base: "/staff/tickets", query: "?owner=unassigned" });
+    expect(res.body.metrics.drillDown.ownedByMe).toMatchObject({ base: "/staff/tickets", query: "?owner=mine" });
     expect(res.body.recentUpdated.length).toBeLessThanOrEqual(5);
     for (const t of res.body.recentUpdated) {
       expect(t.drillDown.base).toBe(`/staff/tickets/${t.id}`);

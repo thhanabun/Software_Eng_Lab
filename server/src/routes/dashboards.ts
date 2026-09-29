@@ -130,8 +130,8 @@ dashboardRouter.get("/staff", ...staffOnly, async (req, res) => {
         byStatus,
         byItPriority,
         drillDown: {
-          unassigned: { base: "/staff/tickets", query: "?ownerId=unassigned" },
-          ownedByMe: { base: "/staff/tickets", query: `?ownerId=${userId}` },
+          unassigned: { base: "/staff/tickets", query: "?owner=unassigned" },
+          ownedByMe: { base: "/staff/tickets", query: "?owner=mine" },
           byStatus: statusLinks,
           byItPriority: priorityLinks,
         },

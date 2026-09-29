@@ -63,8 +63,8 @@ Body: `{ "status", "expectedUpdatedAt"? }` (stamp checked when present, skipped 
     "byStatus": { "NEW": 3, "OPEN": 2, "IN_PROGRESS": 1, "WAITING_FOR_REQUESTER": 1, "RESOLVED": 2, "CLOSED": 5, "REOPENED": 0, "CANCELLED": 1 },
     "byItPriority": { "URGENT": 1, "HIGH": 2, "MEDIUM": 3, "LOW": 1 },
     "drillDown": {
-      "unassigned": { "base": "/staff/tickets", "query": "?ownerId=unassigned" },
-      "ownedByMe": { "base": "/staff/tickets", "query": "?ownerId=<me>" },
+      "unassigned": { "base": "/staff/tickets", "query": "?owner=unassigned" },
+      "ownedByMe": { "base": "/staff/tickets", "query": "?owner=mine" },
       "byStatus": { "NEW": { "base": "/staff/tickets", "query": "?status=NEW" }, "...": "one link per status" },
       "byItPriority": { "URGENT": { "base": "/staff/tickets", "query": "?itPriority=URGENT" }, "...": "one link per priority" }
     }

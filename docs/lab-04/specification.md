@@ -90,7 +90,7 @@ Ticket status and resolution:
 Dashboards:
 - BR-14: Requester metrics query only `requesterId = session.user`; staff metrics query all tickets; both computed by backend aggregates (never client-side counting of full collections).
 - BR-15: "Recently updated" = `ORDER BY updatedAt DESC LIMIT 5`; "recently resolved" = status RESOLVED/CLOSED `ORDER BY updatedAt DESC LIMIT 5`; date boundaries in UTC day; empty → `[]` with `total: 0`, never 404.
-- BR-16: Every dashboard count links to a drill-down: `{ base, query }` pairs mapping to existing list screens (e.g. queue `?status=NEW&ownerId=unassigned`, my-tickets `?status=WAITING_FOR_REQUESTER`).
+- BR-16: Every dashboard count links to a drill-down: `{ base, query }` pairs mapping to existing list screens (e.g. queue `?status=NEW&owner=unassigned`, my-tickets `?status=WAITING_FOR_REQUESTER`). Query names match the screens' `useSearchParams` contracts (`client/src/pages/StaffTicketQueue.tsx:48` reads `owner`; `client/src/pages/MyTickets.tsx:35` reads `status`).
 
 Validation/failures/regression:
 - BR-17: Safe-error shape and codes extend Lab 3 (plus 409 `CONFLICT` for stale updates); no hashes/tokens/stacks/SQL in responses.
