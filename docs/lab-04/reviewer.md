@@ -28,8 +28,14 @@
 
 ## Pull Requests I Reviewed (in ssiriwan's repository, ssiriwan/toktickit)
 
-| PR | Issue | Title | Branch | Status |
+| PR | Issue | Title | Branch | My review |
 | --- | --- | --- | --- | --- |
-| — | — | Lab 4 reviews in peer repo | — | TBD (updated as reviews happen) |
+| #46 | #45 | Sprint 4 Contract & Test Plan | `feature/45-spec-contract` | Commented — solid contract; noted missing transition table, DELETE 403-vs-404, ordering tie-break |
+| #48 | #47 | Actions Taken foundation | `feature/47-actions-foundation` | Commented — lifecycle inconsistency, Date-path future check, duplicated result validation, ordering tie-break, seed key |
+| #50 | #49 | Actions Taken UI in Ticket Detail | `feature/49-actions-taken-ui` | Commented — attachmentNotes cap, silent directory failures, spoofable performerId, rowBusy slot |
+| #52 | #51 | Role dashboards API | `feature/51-dashboards-api` | Commented — window bounds untested at API level, DB-dependent priority ordering, mock dead branch, p95-on-n5 |
+| #54 | #53 | Role dashboards UI | `feature/53-dashboards-ui` | Commented — real bug: stale drill-down filters on same-mount navigation; plus unfiltered landing, sort-only link, admin-strip guard |
+| #56 | #55 | Ticket workflow hardening and resolution gate | `feature/55-ticket-workflow` | Commented — error-rename check, required-stamp migration check, fail-open catch, UI-06 filter scope |
+| #58 | #57 | Final hardening, regression, screenshots, and release prep | `feature/57-final-release` | **Approved** with 5 merge-gate notes (fail-closed catch, E2E-02 rows, retries/trace, gitignore check, CI + PNG verification) |
 
 > This file is updated continuously as reviews happen.

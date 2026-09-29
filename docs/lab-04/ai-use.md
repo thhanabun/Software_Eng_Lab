@@ -13,6 +13,11 @@ LLM: Muse Spark (via opencode). Human-approved merges; reviewer ssiriwan. Workfl
 7. "Write E2E-06/07/08 + screenshot specs; diagnose the refresh-race 409 and the hardcoded-fallback message bugs the runs exposed."
 8. "Fill tests.md Final, reviewer.md, ai-use.md, README, capture evidence screenshots, and write submission.tex Parts 1–9."
 
+## Session 8 — Peer review (ssiriwan/toktickit PRs #46–#58)
+
+- Prompt: "Fetch each peer PR diff, summarize design decisions + correctness concerns + test coverage, with file/line-anchored findings; I verify the top claims and post the reviews myself."
+- Three recon agents covered spec/foundation, actions-UI/dashboards-API, and dashboards-UI/workflow/release in parallel; I spot-verified the two highest-value claims (stale-query snapshot, gate-refresh closure) against the raw diffs before posting 6 comment-reviews + 1 approval.
+
 ## My Reflection
 
 Spec-agent use: the handout is long and partly contradictory (e.g. §8.3 minimal actions vs Part 6 assign/complete/cancel language), so I used the agent to draft the contract but locked the six ambiguous decisions with human answers first — that upfront step prevented most rework. The reviewer still caught real gaps (requester path placement, DELETE code, missing PERF/MIG tests), which shows spec review by a human remains the highest-value gate.
