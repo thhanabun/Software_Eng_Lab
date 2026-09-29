@@ -269,6 +269,10 @@ export default function StaffTicketDetail() {
     try {
       const created = await createAction(ticketId, actionPayload())
       setActions((prev) => [created, ...prev])
+      if (created.ticketUpdatedAt) {
+        const stamp = created.ticketUpdatedAt
+        setDetail((prev) => (prev ? { ...prev, updatedAt: stamp } : prev))
+      }
       resetActionForm()
       await refresh()
     } catch (error) {
@@ -309,6 +313,10 @@ export default function StaffTicketDetail() {
         expectedUpdatedAt: detail.updatedAt,
       })
       setActions((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
+      if (updated.ticketUpdatedAt) {
+        const stamp = updated.ticketUpdatedAt
+        setDetail((prev) => (prev ? { ...prev, updatedAt: stamp } : prev))
+      }
       resetActionForm()
       await refresh()
     } catch (error) {

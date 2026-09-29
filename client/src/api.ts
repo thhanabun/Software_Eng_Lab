@@ -390,9 +390,9 @@ export async function assignTicket(
   })
   if (!res.ok) {
     const errBody = (await res.json().catch(() => null)) as {
-      error?: { details?: ApiFieldError[] }
+      error?: { message?: string; details?: ApiFieldError[] }
     } | null
-    throw new ApiRequestError('Assign failed', res.status, errBody?.error?.details)
+    throw new ApiRequestError(errBody?.error?.message || 'Assign failed', res.status, errBody?.error?.details)
   }
   return res.json()
 }
@@ -423,9 +423,9 @@ export async function setTicketStatus(
   })
   if (!res.ok) {
     const errBody = (await res.json().catch(() => null)) as {
-      error?: { details?: ApiFieldError[] }
+      error?: { message?: string; details?: ApiFieldError[] }
     } | null
-    throw new ApiRequestError('Status update failed', res.status, errBody?.error?.details)
+    throw new ApiRequestError(errBody?.error?.message || 'Status update failed', res.status, errBody?.error?.details)
   }
   return res.json()
 }
@@ -469,6 +469,7 @@ export interface ActionTaken {
   attachmentNotes: string | null
   createdAt: string
   updatedAt: string
+  ticketUpdatedAt?: string
 }
 
 export interface ActionInput {

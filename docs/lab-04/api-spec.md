@@ -15,7 +15,7 @@ Path does not imply authorization: the requester path and the staff path below e
 ### POST /api/staff/tickets/:id/actions — create (roles: IT_STAFF, ADMINISTRATOR)
 Body: `{ "description", "result", "followUpRequired": bool, "followUpNote"?, "attachmentNotes"?, "expectedUpdatedAt"? }`.
 - Validation (BR-04..06): description/result 1–2000 trimmed; follow-up coupling; attachmentNotes ≤500. Violations → **400** with field `details`.
-- Performer + timestamp from server/session (client values ignored; stored UTC). CANCELLED ticket → **400**. Concurrent creates without stamp: both rows win in creation order; ticket `updatedAt` advances to the latest write. **201** with the entry.
+- Performer + timestamp from server/session (client values ignored; stored UTC). CANCELLED ticket → **400**. Concurrent creates without stamp: both rows win in creation order; ticket `updatedAt` advances to the latest write. **201** with the entry plus `ticketUpdatedAt` (the advanced ticket stamp, so clients can chain ops without refetching).
 
 ### PATCH /api/staff/tickets/:id/actions/:actionId — edit (roles: IT_STAFF, ADMINISTRATOR)
 Body subset of create fields + required `expectedUpdatedAt` (ticket-level stamp).

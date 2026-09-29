@@ -611,7 +611,8 @@ staffRouter.post("/tickets/:id/actions", ...staffOnly, async (req, res) => {
     }
     if (!checkFreshTicket(ticket.updatedAt, body.expectedUpdatedAt, res, { required: false })) return;
     // Concurrent creates both win in creation order; updatedAt advances to latest.
-    const [created] = await prisma.$transaction([
+    // The ticket stamp rides along so clients can chain ops without refetching.
+    const [created, touched] = await prisma.$transaction([
       prisma.actionTaken.create({
         data: {
           ticketId: id,
@@ -626,8 +627,8 @@ staffRouter.post("/tickets/:id/actions", ...staffOnly, async (req, res) => {
       }),
       prisma.ticket.update({ where: { id }, data: { updatedAt: new Date() } }),
     ]);
-    res.status(201).json(
-      serializeAction({
+    res.status(201).json({
+      ...serializeAction({
         id: created.id,
         description: created.description,
         result: created.result,
@@ -639,7 +640,8 @@ staffRouter.post("/tickets/:id/actions", ...staffOnly, async (req, res) => {
         createdAt: created.createdAt,
         updatedAt: created.updatedAt,
       }),
-    );
+      ticketUpdatedAt: touched.updatedAt.toISOString(),
+    });
   } catch {
     internalError(res, "Unable to create action");
   }
@@ -678,7 +680,7 @@ staffRouter.patch("/tickets/:id/actions/:actionId", ...staffOnly, async (req, re
       attachmentNotes: existing.attachmentNotes,
     });
     if (!input) return;
-    const [updated] = await prisma.$transaction([
+    const [updated, touched] = await prisma.$transaction([
       prisma.actionTaken.update({
         where: { id: actionId },
         data: {
@@ -692,8 +694,8 @@ staffRouter.patch("/tickets/:id/actions/:actionId", ...staffOnly, async (req, re
       }),
       prisma.ticket.update({ where: { id }, data: { updatedAt: new Date() } }),
     ]);
-    res.json(
-      serializeAction({
+    res.json({
+      ...serializeAction({
         id: updated.id,
         description: updated.description,
         result: updated.result,
@@ -705,7 +707,8 @@ staffRouter.patch("/tickets/:id/actions/:actionId", ...staffOnly, async (req, re
         createdAt: updated.createdAt,
         updatedAt: updated.updatedAt,
       }),
-    );
+      ticketUpdatedAt: touched.updatedAt.toISOString(),
+    });
   } catch {
     internalError(res, "Unable to update action");
   }
